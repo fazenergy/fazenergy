@@ -1,0 +1,90 @@
+SEQUENCIAD DE INSERT (CADASTRO)
+
+O primeiro usuario cadastrado é feito via terminal createsuperuser django, 
+nesse momento cria-se um usuário superuser que é fodão
+
+Feito isso logado no painel, exemplo: http://127.0.0.1:9000/admin
+
+CRIA CONFIGURAÇÃO GERAL REDE
+	bonificação ativa = true ( se tiver false a rede não vai bonificar)
+	limite mínimo pra saque: 0,00
+	taxa de saque a ser deduzida = 0,00
+	## ESTUDAR COMO SERÁ ESSA PARTE DO SPLIT AINDA
+	Receber c/ PagSeguro SEM Split?
+	Receber c/ Cartão de Crédito COM Split? = true
+	Receber c/ Cartão de Débito COM Split?
+	Receber c/ Boleto COM Split?
+	config de tx de juros para pagamento de 1 a 12 parcelas
+	Numeração RPS: 0
+	ID Série RPS: 0
+	ativo = true
+	
+CRIAR CONTRATO PARA PLANO DE ADESÃO (CONFIGURAR O JSON E API DO MESMO) - LEXAL LEGAL (CAMPO WSIGYW EDITOR QUE CONVERTE EM HTML) TRAZER VARIÁVEIS DE NEGÓCIO)
+CRIAR CONTRATO PARA VENDA DE USINA  (CONFIGURAR O JSON E API DO MESMO) - LEXAL LEGAL (CAMPO WSIGYW EDITOR QUE CONVERTE EM HTML) TRAZER VARIÁVEIS DE NEGÓCIO)
+
+CRIAR POLITICA DE PRIVACIDADE PRA VINCULAR NO PRÉ CADASTRO
+
+
+CRIAR GRUPOS DE USUÁRIO
+	Afiliado
+	Operador
+	* mas pra que isso já que as permissões de ambos são iguais, 
+	serve também para diferenciar os tipos usários e se quiser filtrar no painel administrativo 
+	com um link direto só pra operadores e outro só pra afiliados
+
+
+CRIAR UM PLANO 
+	tb_plan (Licença Anual, 1400,00 300 ,300,00 120,00 60,00, 36,00 24,00, vincular 1 contrato de adesão usina)
+	** aqui cria-se um plano de adesão com as configurações de pontos e bonificação por  5 níveis 
+
+INSERIR USER OPERADOR 
+	tb_User
+		Ativo = true
+		grupo: Operador
+	insert tb_Operator
+	** esse nao gera bonus, pontos e nem conta virtual
+	** e o que ele faz então? 
+		Visão geral do dasboard de toda rede, adesoes e usinas pagas, bonus gerados e pontos gerados 
+		GRID de Afiliados, botão visão geral, botão excluir afiliado 
+		GRID de Documentos PF 
+		GRID de Documentos PJ
+		relatório de adesoes mmn 
+		relatório de adesoes usinas
+		relat de solicitação de saque 
+		relat de saldo em conta (insert nessa tela)
+	** operador não consigo criar usuarios
+		
+
+
+AFILIADOS
+	INSERT tb_Affiliate
+		INSERT pk tb_ Conta Virtual
+		INSERT pk tb_ Rede Unilevel (grafo)
+		INSERT pk tb_ Pontos Unilevel
+
+
+PLANO DE ADESÃO:
+	del tb_PlanAdesion
+	del pk tb_ (faturar Pagar.me)
+	de  pk tb_Transactions 
+	
+
+		
+		
+		
+		
+		
+		
+		
+OCULTAR DO AMDIN
+	SUPORTE
+	SITES
+	PAGINAS PLANAS
+	PRODUTO
+	PAGE
+	MENSAGEM
+	LISTA NEGA DE TOKENS
+	GEO
+	FORNECEDOR
+		CONVITES
+	BLOG

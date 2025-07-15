@@ -1,0 +1,30 @@
+SEQUENCIA E CASOS DE DELETE
+
+PLANO DE ADESÃO:
+	del tb_PlanAdesion
+	del pk tb_ (faturar Pagar.me)
+	de  pk tb_Transactions 
+	
+OPERADOR
+	del tb_User
+	del fk user_groups
+	del tb_administrativo_operador
+	
+AFILIADOS
+	del tb_Affiliates
+	del pk tb Adesão Usina Solar: 1
+	del pk tb_ Conta Virtual
+	del pk tb_ Rede Unilevel (grafo)
+	del pk tb_ Pontos Unilevel
+	del pk tb_ suporte
+	del pk tb_ resposta suporte
+	
+	
+FATURAS PAGARMER
+	tb_recmentiPagarmer (só remove ela mesmo)
+	
+	
+ADESAO USINA SOLAR
+	del tb_ USINA
+	
+		

@@ -1,0 +1,78 @@
+# Crie a pasta principal
+mkdir FazEnergy
+cd FazEnergy
+
+# Crie pasta do backend
+mkdir backend
+cd backend
+
+# Crie ambiente virtual do Python
+python -m venv venv
+
+# Ative o ambiente virtual (Windows)
+venv\Scripts\activate
+
+# Ou Linux/macOS
+source venv/bin/activate
+
+# Instale Django e DRF
+pip install django djangorestframework djangorestframework-simplejwt django-cors-headers django-filter django-import-export Pillow xhtml2pdf openpyxl
+
+# Salve dependências
+pip freeze > requirements.txt
+
+# Crie projeto Django
+django-admin startproject fazenergy .
+
+# Crie apps do seu sistema com a estrutura basica (model, views, url...)
+python manage.py startapp core
+python manage.py startapp network
+python manage.py startapp plans
+python manage.py startapp finance
+
+INSTALL FRONTEND
+#############################################################
+# Crie pasta frontend
+mkdir frontend
+cd frontend
+
+# Inicie projeto Vue com Vite
+npm create vite@latest .
+
+# Escolha:
+# > Project name: frontend
+# > Framework: Vue
+# > Variant: JavaScript
+
+# Instale dependências Vue + Pinia + TailwindCSS
+npm install
+npm install pinia
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+
+
+RODANDO OS DOIS JUNTOS BACK E FRONT
+##############################################################
+✅ 📌 8) Rodar tudo junto
+Backend:
+cd FazEnergy/backend
+venv\Scripts\activate  # ou source venv/bin/activate
+python manage.py runserver
+
+Frontend:
+cd FazEnergy/frontend
+npm run dev # Para produção: npm run build   # Gera build do Vue em backend/static/
+
+npm install axios
+
+
+📌 9) Dicas extras
+O Vue roda em http://localhost:5173 (dev) e consome sua API em http://localhost:8000.
+
+Use axios para fazer requisições JWT, configurando os Authorization: Bearer ... headers.
+
+Mapeie suas rotas no Vue Router com views separadas para Login, Dashboard, Rede, Relatórios, Configurações, Meu Perfil.
+
+Crie suas stores Pinia (auth.js, network.js, etc).
+
+Para export PDF/XLSX, use xhtml2pdf e openpyxl no backend.

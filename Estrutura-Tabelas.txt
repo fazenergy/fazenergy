@@ -1,0 +1,221 @@
+
+
+# CONFIGURAÇÕES DO PLANO
+tb_Plan
+	id
+	Name: Licença Anual
+	Image: upload de imagem de 400x400 px
+	Price: 1400,00
+	Points: 300
+	BonusLevel_1: 300,00
+	BonusLevel_2: 120,00
+	BonusLevel_3: 60,00
+	BonusLevel_4: 36,00
+	BonusLevel_5: 24,00
+	Usr_Record
+	Usr_Update
+	Dtt_Record 
+	Dtt_Update
+	Stt_Record: true / false
+
+# TABELA PLANO DE ADESÃO
+tb_PlanAdesion
+	Id
+	Plan_id 
+	affiliate_id
+	Ind_PaymentStatus				varchar [pending, confirmed, canceled]
+	Typ_Payment		 				varchar [pix, money, creditCard, debitCard]
+    Dtt_Record  					datetime not null
+	Dtt_Payment						datetime
+	Dtt_Cancel 						datetime
+	Dtt_Update 						datetime
+	Is_Courtesy 					boolean NOT NULL,
+    Points_Generated 				boolean NOT NULL,
+    Ind_Processing  				varchar [pending, success, canceled]
+	Ind_BonusStatus 				varchar [notApply, pendingPayment, bonusApplied, cancelBonus, bonusCanceled  ]
+	Des_CancelReason	 			varchar (500)
+    Contract_Status 				character varying(50) 
+    Contract_Token 					character varying(500)
+
+
+
+# TABELA PLANO DE ADESÃO
+	Cadastrar um Plano de Adesão Anual pra rede
+tb_ProductAdhesionPlan	
+tb_ProductSolarPlant
+	
+
+# TABELA USUARIO
+	1º Cadastrar o usuario AFILIADO Raiz
+		username:
+		password:
+		first_name
+		last_name
+		email
+		is_active
+		is_staff
+		is_superuser
+		groups
+		user_permissions
+		last_login
+		date_joined	
+				
+		Ativo = true
+		Membro da Equipe = false
+		Status de superusuario = false
+		Grupo:	
+			Associar ao grupo AFILIADO
+		Permissões de usuário:
+			nenhuma vinculada 
+			
+# GRUPO DE USUARIO 
+		Nome do grupo , exemplo: Operador, AFILIADO
+		permissões que esse grupo pode ter
+
+
+
+# TABELA AFILIADO ( controla o indicado e indicador)
+tb_Affiliate
+	id
+	user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    username = models.CharField(max_length=150)  # Replica username do user
+    original_indicator = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='referrals')
+    person_type = models.CharField(max_length=2, choices=[('pf', 'Pessoa Física'), ('pj', 'Pessoa Jurídica')])
+    cpf_cnpj = models.CharField(max_length=20, unique=True)
+    cep = models.CharField(max_length=8, blank=True, null=True)
+    city_id = models.BigIntegerField(blank=True, null=True)
+    state_id = models.BigIntegerField(blank=True, null=True)
+    address = models.CharField(max_length=300, blank=True, null=True)
+    number = models.CharField(max_length=8, blank=True, null=True)
+    complement = models.CharField(max_length=100, blank=True, null=True)
+    district = models.CharField(max_length=300, blank=True, null=True)
+    phone = models.CharField(max_length=14, blank=True, null=True)
+
+    plan_id = models.SmallIntegerField()
+    previous_career = models.SmallIntegerField()
+    current_career = models.SmallIntegerField()
+    dtt_previous_career = models.DateTimeField(blank=True, null=True)
+    dtt_current_career = models.DateTimeField(blank=True, null=True)
+
+    is_root = models.BooleanField(default=False)
+    stt_record = models.BooleanField(default=True)
+    is_in_network = models.BooleanField(default=True)
+    accept_lgpd = models.BooleanField(default=False)
+    comment = models.TextField(blank=True, null=True)
+    dtt_payment_received = models.DateTimeField(blank=True, null=True)
+
+    dtt_record = models.DateTimeField(auto_now_add=True)
+    dtt_update = models.DateTimeField(auto_now=True)
+       
+    
+ tb_OperationsManager   (tabela para registrar detalhe de operadores)  
+	id
+	user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    username = models.CharField(max_length=150)  # Replica username do user
+    cpf_cnpj = models.CharField(max_length=20, unique=True)
+	sexo
+	data de nascimento
+	estado civil
+	num_docIdentidade
+	Sigla_OrgaoExpedir
+    cep = models.CharField(max_length=8, blank=True, null=True)
+    city_id = models.BigIntegerField(blank=True, null=True)
+    state_id = models.BigIntegerField(blank=True, null=True)
+    address = models.CharField(max_length=300, blank=True, null=True)
+    number = models.CharField(max_length=8, blank=True, null=True)
+    complement = models.CharField(max_length=100, blank=True, null=True)
+    district = models.CharField(max_length=300, blank=True, null=True)
+    phone = models.CharField(max_length=14, blank=True, null=True)
+	des_comment = models.TextField(blank=True, null=True)
+	typ_permissao
+    stt_record = models.BooleanField(default=True)
+    dtt_record = models.DateTimeField(auto_now_add=True)
+    dtt_update = models.DateTimeField(auto_now=True)
+	
+
+
+
+
+	1º - O primeiro AFILIADO ou seja a raiz(pai) da rede esse não tem indicador Original e nem Indicador Matriz, pois ele é isso
+		AFILIADO deve ser vinculado a um usuario
+		login (nao precisa)
+		senha (nao precisa)
+		Raiz =  true 
+		Ativado como AFILIADO? = false
+		Ativado como Cliente? = false
+		Na Rede? = false 
+		Aceite = false 
+
+		Plano = Licença Anual	
+	
+	2º - Segundo AFILIADO cadastrado
+		 Indicador Original = id do AFILIADO raiz
+		 Indicador Matriz = id do AFILIADO raiz
+		 Raiz = false
+		 Ativado como AFILIADO = true
+		 Ativado como Cliente = false
+		 Na rede = true
+		 aceite = false 
+		 Plano = Pré Cadastro (quando pagar adesão anual aí vai pra Licença anual)
+		 Carreira Anterior: nenhuma 
+		 Carreira Atual: Nenhuma
+		 
+		 
+# FINANCE (BANK)		 
+TABELA CONTA VIRTUAL DO AFILIADO 
+	Toda vez que criar um usuário do tipo AFILIADO deve ser feito um insert nessa tabela com: 
+	id
+	Nome_AFILIADO
+	Saldo_Disponível = 0,00
+	Saldo Bloqueado = 0,00
+	Dtt_Record 
+	Dtt_Update
+	id_AFILIADO
+	
+TABELA TRANSACTION
+    Toda vez que um indicado efetuar um pagamento do plano de adesão dou da compra da usina, então deve-se registrar aqui 
+	id
+	id_contaVirtual
+	Produto: por exemplo "Plano Adesão MMN: 02"
+	Descrição: ex.: "Bônus de Indicação: ID 103"
+	Status: Bloqueado / Liberado / Cancelado
+	Operação: Crédito / Débito
+	Valor: 300,00
+	Processado ? true/false
+	Data de Referência 
+	Data do Cadastro
+	
+
+# REDE UNILEVEL
+TABELA REDE_ESTRUTURA (REGISTRA QUEM INDICOU QUEM E O SEU NÍVEL)
+	id,
+	id_AFILIADOPai
+	id_AFILIADOFilho
+	Nivel
+	Dtt_Record,
+	Dtt_Update
+
+TABELA PONTOS NA REDE
+	REGISTRA A PONTUAÇÃO DE CADA AFILIADO CONFORME INDICAÇÕES 
+	ID,
+	AFILIADO 
+	Descrição 
+	Pontos
+	Referência
+	Dtt_Ref 
+	Dtt_Record 
+	Status
+	
+	
+obs.: LEMBRANDO QUE SE AFILIADO NÃO TIVER PAGO O PLANO DE ADESÃO E O MESMO AINDA NÃO ESTIVER PAGO, A COMPRESSÃO DINAMICA É DESATIVADA PARA O MESMO. 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+

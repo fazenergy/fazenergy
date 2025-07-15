@@ -1,0 +1,26 @@
+
+PRIMEIRA ETAPA APÓS UM CONVITE 
+Quando um usuário raiz cadastra(convida) um distribuidor, o que o sistema faz:
+Insere o usuario na tabela padrão de usuario 
+Insere na tabela distribuidor vinculando o id do usuário 
+insere na tabela de Conta Virtual e vinculando esse distribuidor
+Insere na tabela de Adesão MMN
+Insere um registro na tabela recebimento_faturapagarme já com o link de pagamento criado vinculando o adesao_id
+Insere na tabela de Grafo da rede Unilevel vinculando Pai(indicador) filho que é ele mesmo
+
+*** ENQUANTO ESSE USUARIO CONVIDADO NÃO EFETUAR O PAGAMENTO ELE NÃO GERA PONTOS NA REDE,
+ELE PODE ATÉ INDICAR CONVIDAR MEMBROS PRA REDE DELE, PORÉM SE ELE NÃO FEZ O PAGAMENTO ANUAL
+ENTÃO A COMPRESSÃO DINÂMICA FICA DESATIVADA PARA ELE E ELE NÃO VAI GERAR PONTOS PRA ELE POR MAIS QUE
+QUEM ESTEJA ABAIXO DELE TENHA EFETUADO OS PAGAMENTOS
+*** 
+
+
+O que acontece quando distribuidor que antes era pré cadastro efetua um pagamento de adesao ?
+* Na tabela de adesão ele passa ficar com status Confirmado e flega o campo Bonificação
+* Insere registro na tabela Transaction com a referencia da adesão, status Bloqueado, tipo de operação crédito e o valor de R$ 300,00 para a conta que o indicou
+**** Obs.: Tem que ter um processo que fica verificando os pagamentos efetuados, imagine que esse distribuidor tenha
+pago hoje via cartão de crédito, porém só irá ficará disponível o ponto após a compensação qeu geralmente é o d + 20, 
+ou seja se já tiver dado 20 dias então na tabela TRANSACTION o status saí de bloqueado para Liberado
+E nesse tempo o processo tem que rodar também a função que verifica plano 
+
+
