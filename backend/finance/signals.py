@@ -49,3 +49,49 @@ def create_transaction_on_plan_payment(sender, instance, created, **kwargs):
         instance.points_generated = True
         instance.save()
 
+
+
+##############################################
+from finance.models import PaymentLink
+
+@receiver(post_save, sender=PaymentLink)
+def post_save_payment_link(instance, created, **kwargs):
+    """
+    Signal para capturar ou cancelar pagamento na nova estrutura.
+    """
+    if created:
+        return
+
+    # Se ainda não capturado e pago
+    if not instance.is_captured and not instance.is_canceled:
+        if instance.status == "paid":
+            # Atualiza o Affiliate
+            affiliate = instance.affiliate
+            affiliate.active = True
+            affiliate.activated_at = timezone.now()
+            affiliate.save(update_fields=["active", "activated_at"])
+
+            # Atualiza o Product (opcional)
+            product = instance.product
+            product.status = 'paid'
+            product.paid_at = timezone.now()
+            product.save(update_fields=["status", "paid_at"])
+
+            # Marca PaymentLink como capturado
+            instance.is_captured = True
+            instance.closed_at = timezone.now()
+            instance.save(update_fields=["is_captured", "closed_at"])
+
+    # Se precisar cancelar (exemplo)
+    if instance.is_captured and not instance.is_canceled:
+        if instance.status == "paid" and instance.cancel_response and instance.canceled_at:
+            affiliate = instance.affiliate
+            affiliate.active = False
+            affiliate.save(update_fields=["active"])
+
+            product = instance.product
+            product.status = 'canceled'
+            product.save(update_fields=["status"])
+
+            instance.is_canceled = True
+            instance.save(update_fields=["is_canceled"])

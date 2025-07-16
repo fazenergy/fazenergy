@@ -12,11 +12,11 @@ class VirtualAccount(models.Model):
         related_name='virtual_account',
         verbose_name='Afiliado'
     )
-    name_affiliate = models.CharField(max_length=150, verbose_name='Nome do Afiliado')
-    balance_available = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name='Saldo Disponível')
-    balance_blocked = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name='Saldo Bloqueado')
-    dtt_record = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
-    dtt_update = models.DateTimeField(auto_now=True, verbose_name='Data Atualização')
+    name_affiliate      = models.CharField(max_length=150, verbose_name='Nome do Afiliado')
+    balance_available   = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name='Saldo Disponível')
+    balance_blocked     = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name='Saldo Bloqueado')
+    dtt_record          = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
+    dtt_update          = models.DateTimeField(auto_now=True, verbose_name='Data Atualização')
 
     class Meta:
         db_table = 'tb_VirtualAccount'

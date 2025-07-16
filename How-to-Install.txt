@@ -53,7 +53,7 @@ npx tailwindcss init -p
 
 RODANDO OS DOIS JUNTOS BACK E FRONT
 ##############################################################
-✅ 📌 8) Rodar tudo junto
+📌 8) Rodar tudo junto
 Backend:
 cd FazEnergy/backend
 venv\Scripts\activate  # ou source venv/bin/activate
@@ -75,4 +75,4 @@ Mapeie suas rotas no Vue Router com views separadas para Login, Dashboard, Rede,
 
 Crie suas stores Pinia (auth.js, network.js, etc).
 
-Para export PDF/XLSX, use xhtml2pdf e openpyxl no backend.
+Para export PDF/XLSX, use xhtml2pdf e openpyxl no backend. 

@@ -11,7 +11,7 @@ from network.models import UnilevelNetwork
 from contracts.services import send_doc_adesion_to_lexio
 
 
-
+# CRIA UM PLANO DE ADESAO PARA ESSE NOVO AFILIADO
 @receiver(post_save, sender=Affiliate)
 def create_plan_adesion_for_affiliate(sender, instance, created, **kwargs):
     """
@@ -53,7 +53,7 @@ def create_plan_adesion_for_affiliate(sender, instance, created, **kwargs):
             # Se não tiver indicador, é raiz na rede
             pass
 
-
+# CHAMA O METODO DA API PARA LEXO LEGAL ENVIAR O CONTRATO
 @receiver(post_save, sender=Affiliate)
 def enviar_contrato_apos_cadastro(sender, instance, created, **kwargs):
     if created:

@@ -1,6 +1,7 @@
 # finance/admin.py
 from django.contrib import admin
-from .models import VirtualAccount, VirtualAccountTransaction
+from .models import VirtualAccount, VirtualAccountTransaction, PaymentLink
+from finance.models.payment_config import PaymentConfig
 
 @admin.register(VirtualAccount)
 class VirtualAccountAdmin(admin.ModelAdmin):
@@ -18,3 +19,42 @@ class VirtualAccountTransactionAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('virtual_account')
+    
+
+# RECEBIMENTO: LINKS DE PAGAMENTO PAGARME
+@admin.register(PaymentLink)
+class PaymentLinkAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'affiliate',
+        'product',
+        'amount',
+        'status',
+        'gateway',
+        'is_captured',
+        'is_canceled',
+        'created_at',
+    )
+    list_filter = ('status', 'is_captured', 'is_canceled')
+    search_fields = ('order_id', 'charge_id', 'affiliate__user__username')  
+
+
+# finance/admin.py
+@admin.register(PaymentConfig)
+class PaymentConfigAdmin(admin.ModelAdmin):
+    list_display = ('name', 'api_url', 'dev_url_hint', 'postback_url', 'redirect_url', 'active')
+    list_filter = ('active',)
+    search_fields = ('name', 'api_url', 'postback_url')
+
+    fieldsets = (
+        (None, {'fields': ('name', 'active')}),
+        ('API Settings', {'fields': ('api_token', 'api_url', 'dev_url_hint')}),
+        ('URLs', {'fields': ('postback_url', 'redirect_url')}),
+    )
+
+    def has_add_permission(self, request):
+        """Permite só um registro se quiser forçar singleton"""
+        count = PaymentConfig.objects.count()
+        if count >= 1:
+            return False
+        return True

@@ -1,9 +1,12 @@
 # plans/models.py
 from django.db import models
 from django.conf import settings  # Para pegar o User do projeto
+from django.utils import timezone
+from datetime import timedelta
+from finance.models.payment_link_create import create_payment_link
 
 
-# Planos de Adesão
+# Configuração de Planos de Adesão ( podemos dizer que é uma tabela mestre )
 # #################################################################################################
 class Plan(models.Model):
     name = models.CharField(max_length=255)
@@ -39,9 +42,11 @@ class Plan(models.Model):
     def __str__(self):
         return self.name
 
-# Dic Choices de Plano de Adesão 
+# Planos de Adesão Cadastros
 # #################################################################################################
 class PlanAdesion(models.Model):
+
+    # Dicionário: Choices de Plano de Adesão 
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pendente'),
         ('confirmed', 'Confirmado'),
@@ -99,6 +104,17 @@ class PlanAdesion(models.Model):
     def __str__(self):
         return f"Adesão {self.id} - {self.affiliate} - {self.plan.name}"
     
+    # chama o metodo que cria o link de pagamento
+    def create_payment_link(self):
+        from finance.models.payment_link_create import create_payment_link  # 👈 lazy import!
+        return create_payment_link(self)
+    
+
+ 
+   
+
+
+
 # Planos de Carreira
 # #################################################################################################
 class PlanCareer(models.Model):

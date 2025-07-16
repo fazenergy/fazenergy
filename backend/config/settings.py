@@ -173,16 +173,51 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 ##########################################################################
 # # Jazzmin Configuration | Painel Admin Customizado
 ##########################################################################
+# JAZZMIN_SETTINGS = {
+#     "site_header": "FazEnergy Adm",
+#     "site_title": "Painel Admin FazEnergy",
+#     "site.index_title": "Bem-vindo!",
+#     #"site_logo": "img/logo.svg",          # Ícone no topo
+#     "site_brand": "FazEnergy",
+#     "welcome_sign": "Bem-vindo ao Painel Admin FazEnergy",
+#     "copyright": "Copyright © 2025 FazEnergy",    
+#     "color_scheme": "black",  # Escolha um esquema de cores
+#     "show_ui_builder": True,  # Desabilita o construtor de UI
+#     "show_sidebar": True,
+#     "navigation_expanded": False,  # inicia fechado!
+# }
+
+
 JAZZMIN_SETTINGS = {
-    "site_header": "FazEnergy Adm",
-    "site_title": "Painel Admin FazEnergy",
-    "site.index_title": "Bem-vindo!",
-    #"site_logo": "img/logo.svg",          # Ícone no topo
+    "site_title": "Painel Administrativo",
+    "site_header": "FazEnergy Admin",
     "site_brand": "FazEnergy",
-    "welcome_sign": "Bem-vindo ao Painel Admin FazEnergy",
-    "copyright": "Copyright © 2025 FazEnergy",    
-    "color_scheme": "black",  # Escolha um esquema de cores
-    "show_ui_builder": True,  # Desabilita o construtor de UI
+    "site_logo": "logo-fz.png",          # Ícone no topo
+    "site_icon": "favicon.ico",
+    "welcome_sign": "Bem-vindo ao Painel FazEnergy",
+    "copyright": "FazEnergy © 2025",
+
+    "navigation_expanded": False,  # Inicia os apps fechados (accordion)
+    "show_sidebar": True,
+    "hide_apps": [],  # Apps que quer ocultar do menu
+    "hide_models": [],  # Models que quer ocultar do menu
+
+    "order_with_respect_to": [
+        "core",
+        "finance",
+        "notifications",
+        "location",
+    ],
+
+    "icons": {
+        "auth": "fas fa-users",
+        "finance": "fas fa-coins",
+        "core.Affiliate": "fas fa-user-tie",
+        "finance.PaymentLink": "fas fa-link",
+    },
+
+    "custom_css": None,
+    "custom_js": None,
 }
 
 
