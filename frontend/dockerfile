@@ -1,0 +1,20 @@
+# Dockerfile - frontend
+
+FROM node:20
+
+WORKDIR /app
+
+# Copia apenas arquivos necessários para instalar dependências
+COPY frontend/package*.json ./
+
+# Instala as dependências
+RUN npm install
+
+# Copia o restante do frontend
+COPY frontend/ .
+
+# Expõe a porta padrão do Vite
+EXPOSE 5173
+
+# Roda em modo dev
+CMD ["npm", "run", "dev"]

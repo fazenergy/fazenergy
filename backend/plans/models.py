@@ -3,7 +3,6 @@ from django.db import models
 from django.conf import settings  # Para pegar o User do projeto
 from django.utils import timezone
 from datetime import timedelta
-from finance.models.payment_link_create import create_payment_link
 
 
 # Configuração de Planos de Adesão ( podemos dizer que é uma tabela mestre )

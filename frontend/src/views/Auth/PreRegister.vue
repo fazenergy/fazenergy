@@ -124,12 +124,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import Input from '@/components/ui/Input.vue'
-import Select from '@/components/ui/select.vue'
-import Textarea from '@/components/ui/textarea.vue'
-import Button from '@/components/ui/button.vue'
-import Switch from '@/components/ui/switch.vue'
+import Select from '@/components/ui/Select.vue'
+import Textarea from '@/components/ui/Textarea.vue'
+import Button from '@/components/ui/Button.vue'
+import Switch from '@/components/ui/Switch.vue'
 import Checkbox from '@/components/ui/Checkbox.vue'
-import FormField from '@/components/ui/formField.vue'
+import FormField from '@/components/ui/FormField.vue'
 import api from '@/services/axios'
 
 

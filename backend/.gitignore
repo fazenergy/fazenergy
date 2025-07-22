@@ -1,0 +1,36 @@
+# Bytecode do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtualenv
+venv/
+.env
+
+# Migrations (opcional manter só se quiser versionar)
+**/migrations/__pycache__/
+**/migrations/*.pyc
+
+# SQLite (caso use em dev)
+*.sqlite3
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Django stuff:
+*.log
+staticfiles/
+media/
+static/
+
+# Docker
+*.pid
+*.db
+docker-compose.override.yml
