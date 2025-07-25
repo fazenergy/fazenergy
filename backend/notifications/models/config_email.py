@@ -15,6 +15,7 @@ class EmailConfig(models.Model):
     )
 
     class Meta:
+        db_table = 'tb_NotifyEmailConfig'
         verbose_name = "Configuração de E-mail"
         verbose_name_plural = "Configurações de E-mail"
 

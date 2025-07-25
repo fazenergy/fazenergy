@@ -18,6 +18,9 @@ source venv/bin/activate
 # Instale Django e DRF
 pip install django djangorestframework djangorestframework-simplejwt django-cors-headers django-filter django-import-export Pillow xhtml2pdf openpyxl
 
+# Rodar o requirements pra instalar dependencias
+pip install -r requirements.txt
+
 # Salve dependências
 pip freeze > requirements.txt
 
@@ -29,6 +32,25 @@ python manage.py startapp core
 python manage.py startapp network
 python manage.py startapp plans
 python manage.py startapp finance
+
+
+## IMPORTANTE ################################################
+ANTES DE RODAR O MIGRATIONS RODE NESSA SEQUENCIA
+python manage.py makemigrations plans
+python manage.py makemigrations core
+python manage.py makemigrations location
+python manage.py migrate
+
+python manage.py makemigrations
+python manage.py migrate
+
+
+
+
+
+
+
+
 
 INSTALL FRONTEND
 #############################################################
@@ -76,3 +98,9 @@ Mapeie suas rotas no Vue Router com views separadas para Login, Dashboard, Rede,
 Crie suas stores Pinia (auth.js, network.js, etc).
 
 Para export PDF/XLSX, use xhtml2pdf e openpyxl no backend. 
+
+
+
+10) CASO CRIE NOVAS CLASSES , RODE:
+python manage.py makemigrations
+python manage.py migrate

@@ -1,7 +1,7 @@
 # finance/admin.py
 from django.contrib import admin
 from .models import VirtualAccount, VirtualAccountTransaction, PaymentLink
-from finance.models.payment_config import PaymentConfig
+from .models.gateway_config import PaymentConfig
 
 @admin.register(VirtualAccount)
 class VirtualAccountAdmin(admin.ModelAdmin):

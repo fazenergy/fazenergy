@@ -1,6 +1,6 @@
 from rest_framework import viewsets, generics, permissions
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from .models import Affiliate, User
+from .models.user_manager import Affiliate, User
 from .serializers import AffiliateSerializer, UserProfileSerializer
 
 class AffiliateViewSet(viewsets.ModelViewSet):

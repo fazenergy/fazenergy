@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Affiliate
+from .models.user_manager import User, Affiliate
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

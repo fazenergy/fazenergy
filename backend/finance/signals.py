@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from plans.models import PlanAdesion
 from .models import VirtualAccount, VirtualAccountTransaction
-from core.models import Affiliate
+from backend.core.models.user_manager import Affiliate
 from django.utils import timezone
 
 

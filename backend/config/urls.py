@@ -18,6 +18,9 @@ urlpatterns = [
     #path('api/webhook/lexio/', lexio_webhook, name='webhook-lexio'),
     #path('api/webhook/lexio', lexio_webhook),  # para aceitar sem a barra também
 
+    # Importante para Upload
+    path('ckeditor5/', include('django_ckeditor_5.urls')),
+
     
    
 

@@ -1,7 +1,7 @@
 # contracts/services.py (regras do domínio)
 from django.shortcuts import get_object_or_404
 from contracts.utils import doc_to_pdf_base64
-from core.models import Affiliate, User
+from backend.core.models.user_manager import Affiliate, User
 
 import requests
 from contracts.models import ContractConfig, ContractLog, ContractTemplate

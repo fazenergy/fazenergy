@@ -1,0 +1,75 @@
+/* ===== LOGIN PAGE DARK THEME ===== */
+.login-page, .login-box, .jazzmin-login-page {
+    background-color: #121212 !important;
+    color: #ffffff !important;
+}
+
+.login-logo a {
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 24px;
+}
+
+.login-logo img {
+    max-width: 80px;
+    height: auto;
+}
+
+.login-box {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 20px;
+    background-color: #1e1e1e !important;
+    max-width: 400px;
+    width: 90%;
+    margin: auto;
+}
+
+.login-card-body {
+    background-color: #1e1e1e !important;
+    border-radius: 8px;
+    padding: 25px;
+}
+
+
+.jazzmin-login-page.form-control {
+    background-color: #2a2a2a !important;
+    border: 1px solid #444 !important;
+    color: #fff !important;
+}
+
+.jazzmin-login-page.form-control:focus {
+    border-color: #00c896 !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 200, 150, 0.25) !important;
+    background-color: #2a2a2a;
+    color: #ffffff;
+}
+
+.jazzmin-login-page.btn-primary {
+    background-color: #00c896 !important;
+    border-color: #00c896 !important;
+    color: #000000 !important;
+    font-weight: 600;
+    border-radius: 6px;
+}
+
+.jazzmin-login-page.btn-primary:hover {
+    background-color: #00b086 !important;
+    border-color: #00b086 !important;
+}
+
+.jazzmin-login-page.help-block, .errornote {
+    color: #ff6b6b !important;
+    font-weight: 500;
+}
+
+.jazzmin-login-page.login-box-msg {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #cccccc;
+}
+
+/* Remove footer info */
+.login-footer {
+    display: none;
+}

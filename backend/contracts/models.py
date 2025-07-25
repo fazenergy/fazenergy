@@ -1,7 +1,7 @@
 # contracts/models.py
 from django.db import models
-from ckeditor.fields import RichTextField
-from core.models import Affiliate
+from django_ckeditor_5.fields import CKEditor5Field
+from backend.core.models.user_manager import Affiliate
 
 # registra as configurações da API da Lexio Legal
 class ContractConfig(models.Model):
@@ -15,6 +15,7 @@ class ContractConfig(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'tb_ContractConfig'
         verbose_name = "Configuração Lexio"
         verbose_name_plural = "Configurações Lexio"
 
@@ -26,7 +27,7 @@ class ContractConfig(models.Model):
 class ContractTemplate(models.Model):
     name = models.CharField(max_length=255, unique=True, verbose_name="Nome do Contrato")
     description = models.TextField(blank=True, null=True, verbose_name="Descrição")
-    body = RichTextField(verbose_name="Conteúdo do Contrato (HTML)")
+    body = CKEditor5Field(verbose_name="Conteúdo do Contrato (HTML)")
     mapping_info = models.TextField(
         blank=True, null=True,
         verbose_name="Instruções de Mapeamento",
@@ -35,6 +36,7 @@ class ContractTemplate(models.Model):
     active = models.BooleanField(default=True, verbose_name="Ativo?")
 
     class Meta:
+        db_table = 'tb_ContractTemplate'
         verbose_name = "Template de Contrato"
         verbose_name_plural = "Templates de Contrato"
 
@@ -64,6 +66,11 @@ class ContractLog(models.Model):
     status = models.CharField(max_length=50)
     response = models.JSONField(blank=True, null=True)  # opcional: salva resposta completa
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'tb_ContractLog'
+        verbose_name = "Log de Contrato"
+        verbose_name_plural = "Log de Contrato"
 
     def __str__(self):
         return f"{self.affiliate} - {self.contract_template} - {self.status}"

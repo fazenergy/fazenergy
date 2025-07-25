@@ -1,8 +1,7 @@
 # plans/models.py
 from django.db import models
 from django.conf import settings  # Para pegar o User do projeto
-from django.utils import timezone
-from datetime import timedelta
+#from finance.models.gateway_link_service import create_payment_link
 
 
 # Configuração de Planos de Adesão ( podemos dizer que é uma tabela mestre )
@@ -105,11 +104,14 @@ class PlanAdesion(models.Model):
     
     # chama o metodo que cria o link de pagamento
     def create_payment_link(self):
-        from finance.models.payment_link_create import create_payment_link  # 👈 lazy import!
-        return create_payment_link(self)
-    
+        # Verifica se o afiliado é um usuário "raiz"
+        if getattr(self.affiliate, 'is_root', False):
+            print("✅ Afiliado raiz — não será criado link de pagamento.")
+            return None, None
 
- 
+        from finance.models.gateway_link_service import create_payment_link  # lazy import!
+        return create_payment_link(self)
+
    
 
 
@@ -124,8 +126,6 @@ class PlanCareer(models.Model):
     required_directs = models.PositiveSmallIntegerField(verbose_name="Quantidade de Diretos")
     required_direct_sales = models.PositiveSmallIntegerField(verbose_name="Vendas Diretas")
     max_pml_per_line = models.PositiveIntegerField(verbose_name="Pontos Máximos por Linha (PML)")
-
-
 
     cover_image = models.ImageField(
         upload_to='plan_careers/',

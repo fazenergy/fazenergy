@@ -1,7 +1,8 @@
 # core/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Affiliate, OperationsManager
+from core.models import User, Group, Affiliate, OperationsManager
+
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.utils.html import format_html

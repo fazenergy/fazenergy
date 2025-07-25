@@ -18,7 +18,7 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent  # <-- Define antes de tudo
-load_dotenv(dotenv_path=BASE_DIR / ".env")  
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     # Terceiros
     'rest_framework',
     'corsheaders',
-    'ckeditor',
+    'django_ckeditor_5',
 
     # Apps internas (core primeiro!)
     'core',
@@ -105,18 +105,27 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # caso queira customizar o chkeditor
-# CKEDITOR_CONFIGS = {
-#     'default': {
-#         'toolbar': 'full',
-#         'height': 300,
-#         'width': '100%',
-#     },
-# }
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': [
+            'heading', '|',
+            'bold', 'italic', 'underline', 'link', '|',
+            'bulletedList', 'numberedList', 'blockQuote', '|',
+            'insertTable', 'imageUpload', '|',
+            'undo', 'redo'
+        ],
+        'width': '600px',
+        'language': 'pt-br',
+    }
+}
+
+# CKEDITOR5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# SQLLITE
+#SQLLITE
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
@@ -229,7 +238,7 @@ JAZZMIN_SETTINGS = {
         "finance.PaymentLink": "fas fa-link",
     },
 
-    "custom_css": None,
+    "custom_css": "css/admin-custom.css",
     "custom_js": None,
 }
 

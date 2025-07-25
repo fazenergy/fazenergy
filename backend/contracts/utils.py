@@ -3,7 +3,7 @@ import io,base64
 from django.template import Template, Context
 #from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
-from core.models import Affiliate, User
+from backend.core.models.user_manager import Affiliate, User
 from xhtml2pdf import pisa
 
 # MAPA DE CHAVES MAGICAS PARA USAR NO EDITOR DE TEXTO DO TEMPLATE

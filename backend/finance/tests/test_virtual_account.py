@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.utils import timezone
 
-from core.models import User, Affiliate
+from backend.core.models.user_manager import User, Affiliate
 from plans.models import Plan, PlanAdesion
 from finance.models import VirtualAccount, VirtualAccountTransaction
 
