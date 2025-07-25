@@ -42,43 +42,69 @@ class PaymentLink(models.Model):
         blank=True
     )
 
-    product = models.CharField(_('Product'), max_length=50, choices=Product.choices, default=Product.ADESION)   
+    product         = models.CharField(_('Product'), max_length=50, choices=Product.choices, default=Product.ADESION)   
 
 #   futuramente quando virar loja virtual, talvez seja necessário:  product = models.ForeignKey( Product, on_delete=models.CASCADE, related_name='payment_links'  )
-    gateway = models.CharField(_('Gateway'),max_length=50, choices=PaymentGateway.choices, default=PaymentGateway.PAGARME
+    gateway         = models.CharField(_('Gateway'),max_length=50, choices=PaymentGateway.choices, default=PaymentGateway.PAGARME
     )
-    order_id = models.CharField(_('Order ID'), max_length=256, blank=True, null=True)
-    charge_id = models.CharField(_('Charge ID'), max_length=256, blank=True, null=True)
-    payment_method = models.CharField(_('Payment Method'), max_length=50, blank=True, null=True)
+    order_id        = models.CharField(_('Order ID'), max_length=256, blank=True, null=True)
+    code            = models.CharField(_(u'Code'), max_length=256, null=True, blank=True)
+    charge_id       = models.CharField(_('Charge ID'), max_length=256, blank=True, null=True)
+    payment_method  = models.CharField(_('Payment Method'), max_length=50, blank=True, null=True)
 
-    amount = models.DecimalField(_('Amount'), max_digits=10, decimal_places=2, blank=True, null=True)
-    paid_amount = models.DecimalField(_('Paid Amount'), max_digits=10, decimal_places=2, blank=True, null=True)
-    installments = models.PositiveSmallIntegerField(_('Installments'), blank=True, null=True)
+    amount          = models.DecimalField(_('Amount'), max_digits=10, decimal_places=2, blank=True, null=True)
+    paid_amount     = models.DecimalField(_('Paid Amount'), max_digits=10, decimal_places=2, blank=True, null=True)
+    installments    = models.PositiveSmallIntegerField(_('Installments'), blank=True, null=True)
 
-    status = models.CharField(_('Status'), max_length=50, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
+    status          = models.CharField(_('Status'), max_length=50, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
 
-    url = models.URLField(_('Payment Link URL'), max_length=512, blank=True, null=True)
-    barcode = models.CharField(_('Barcode'), max_length=256, blank=True, null=True)
-    qrcode = models.CharField(_('QR Code'), max_length=512, blank=True, null=True)
+    url             = models.URLField(_('Payment Link URL'), max_length=512, blank=True, null=True)
+    barcode         = models.CharField(_('Barcode'), max_length=256, blank=True, null=True)
+    qrcode          = models.CharField(_('QR Code'), max_length=512, blank=True, null=True)
 
     request_payload = models.TextField(_('Request Payload'), blank=True, null=True)
     response_payload = models.TextField(_('Response Payload'), blank=True, null=True)
 
-    is_captured = models.BooleanField(_('Captured?'), default=False)
-    is_canceled = models.BooleanField(_('Canceled?'), default=False)
+    is_captured     = models.BooleanField(_('Captured?'), default=False)
+    is_canceled     = models.BooleanField(_('Canceled?'), default=False)
 
-    created_at = models.DateTimeField(_('Created At'), auto_now_add=True)
-    updated_at = models.DateTimeField(_('Updated At'), auto_now=True)
-    closed_at = models.DateTimeField(_('Closed At'), blank=True, null=True)
-    canceled_at = models.DateTimeField(_('Canceled At'), blank=True, null=True)
+    created_at      = models.DateTimeField(_('Created At'), auto_now_add=True)
+    updated_at      = models.DateTimeField(_('Updated At'), auto_now=True)
+    closed_at       = models.DateTimeField(_('Closed At'), blank=True, null=True)
+    canceled_at     = models.DateTimeField(_('Canceled At'), blank=True, null=True)
 
     def __str__(self):
         return f'PaymentLink {self.order_id or self.pk}'
 
     def approve_payment(self):
         """Aprova pagamento se status for pago/autorizado."""
+        print("Chamando approve_payment")
+
         if self.status in [PaymentStatus.PAID, PaymentStatus.AUTHORIZED] and not self.is_captured:
+            print("✅ Pagamento será aprovado...")
+
             self.is_captured = True
-            self.closed_at = timezone.now()
+            if not self.closed_at:
+                self.closed_at = timezone.now()
             self.save(update_fields=['is_captured', 'closed_at'])
-            # Aqui pode adicionar lógica para atualizar o afiliado/plano.
+
+            if self.adesion:
+                adesion = self.adesion
+                adesion.status = 2
+                adesion.dtt_payment_received = self.closed_at
+
+                mp_map = {'credit_card': 1, 'pix': 2, 'boleto': 3}
+                adesion.payment_type = mp_map.get(self.payment_method, 0)
+
+                adesion.save(update_fields=['status', 'dtt_payment_received', 'payment_type'])
+
+                # Atualiza afiliado
+                affiliate = adesion.affiliate
+                affiliate.dtt_payment_received = self.closed_at
+                affiliate.save(update_fields=['dtt_payment_received'])
+
+            else:
+                print("Sem adesão vinculada a este PaymentLink.")
+
+        else:
+            print("Pagamento já estava aprovado ou status não é válido.")

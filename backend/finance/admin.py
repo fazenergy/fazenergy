@@ -28,6 +28,7 @@ class PaymentLinkAdmin(admin.ModelAdmin):
         'id',
         'affiliate',
         'product',
+        'code',
         'amount',
         'status',
         'gateway',
@@ -47,9 +48,10 @@ class PaymentConfigAdmin(admin.ModelAdmin):
     search_fields = ('name', 'api_url', 'postback_url')
 
     fieldsets = (
-        (None, {'fields': ('name', 'active')}),
+        (None,           {'fields': ('name', 'active')}),
         ('API Settings', {'fields': ('api_token', 'api_url', 'dev_url_hint')}),
-        ('URLs', {'fields': ('postback_url', 'redirect_url')}),
+        ('URLs',         {'fields': ('postback_url', 'redirect_url')}),
+        ("Webhook",      {'fields': ('webhook_token', 'webhook_user', 'webhook_password', 'webhook_secret') }),
     )
 
     def has_add_permission(self, request):

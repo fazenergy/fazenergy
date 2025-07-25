@@ -5,7 +5,7 @@ from core.tasks import verificar_plano_de_carreira_task
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from core.models import Affiliate  # ajuste para seu import real
+from backend.core.models.user_manager import Affiliate  # ajuste para seu import real
 from plans.models import PlanAdesion  
 from network.models import UnilevelNetwork
 from contracts.services import send_doc_adesion_to_lexio
@@ -55,7 +55,7 @@ def create_plan_adesion_for_affiliate(sender, instance, created, **kwargs):
 
 # CHAMA O METODO DA API PARA LEXO LEGAL ENVIAR O CONTRATO
 @receiver(post_save, sender=Affiliate)
-def enviar_contrato_apos_cadastro(sender, instance, created, **kwargs):
+def send_contract_api_lexo(sender, instance, created, **kwargs):
     if created:
         try:
             resultado = send_doc_adesion_to_lexio(instance.pk)

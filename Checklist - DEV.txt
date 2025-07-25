@@ -1,0 +1,134 @@
+ id 			bigint NOT NULL | IDENTITY,
+ name 			character varying(255),
+ image 			character varying(100),
+ price 			numeric(10,2) NOT NULL,
+ points		   	int NOT NULL,
+ bonus_level_1 	numeric(10,2) NOT NULL,
+ bonus_level_2 	numeric(10,2) NOT NULL,
+ bonus_level_3 	numeric(10,2) NOT NULL,
+ bonus_level_4 	numeric(10,2) NOT NULL,
+ bonus_level_5 	numeric(10,2) NOT NULL,
+ dtt_record 	datetime NOT NULL,
+ dtt_update 	datetime NOT NULL,
+ stt_record 	boolean NOT NULL,
+ usr_record_id 	bigint,
+ usr_update_id 	bigint,
+ 
+ 
+CLASS/TABELAS/OTHER 								BACKEND		FRONTEND	
+Template Geral Sistema								ok			
+Tb e Tela config gerais							
+Django SuperUser									ok						
+Tela Config Notify mail								ok
+Cad Template de Mensagens							ok 
+Add Botão testar notify 							ok
+Tela Config API Contrato							ok
+Cad Template de Contrato							ok
+Cadastra Política LGPD						
+Cad Config de Plano									ok
+Criar tabela PlanoAdesion							ok
+Criar Grupo de Usuários	(afiliados e operadores)	ok
+Criar User com grupo Operador						ok
+Criar User com grupo Afiliado Raiz					ok
+Tb para Contas Virtuais								ok
+Tb para transações									ok
+Tb recebimento ( controla o link de pagamento)		OK
+Afiliado insert -> Conta Virtual					ok
+Afiliado insert -> Plano de Adesão					ok
+Afiliado insert -> Recebimento (pagarme)			OK
+Afiliado insert -> Rede Unilevel (pai e filho)		ok 
+
+
+
+
+# CHECK DEV - AQUILES 
+[BACKEND]
+Ok - Config Django Rest Super User
+Ok - Criação de tabelas da rede
+Ok - Criacao de link pagarme 
+Ok - webhook para escutar pagamentos
+Ok - Envio contrato lexio
+Ok - construcao rede de indicadores
+OK - Tabela de pontucao pós.pagamento
+- Função de compressão dinâmica
+- Rotina de Plano de Carreira e Qualificações (direto no banco)
+- tb_logs (DEPOIS)
+-- SICOOB (ELBA MARTINS) REFERENTE AO PAGAMENTO
+
+
+
+
+[FRONTEND]
+ok - tela de pré cadastro
+ok - telas de configurações ( bonus, api, webhook, contrato)
+- telas de dashboards e relatórios
+- telas de ações, cadastros
+- montar árvore rede
+- tela para fechamento/saque saldo disponível
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ANOTAÇÕES IMPORTANTES REFERENTE USINA
+10% sobre a mensalidade do produto ( que é em cima do contrato de 6 anos)
+Simula 
+Após aprovação da analise de crédito - 
+a revo envia o contrato dela para o cliente
+ele solicita e temos até 5 dias uteis pra pagar ( exemplo ele solicita até tal dia 25 e pagamentos até dia 31)
+twillio
+
+SPLIT DE PAGAMENTO 
+
+
+
+
+
+REVO API - RODRIGO
+Tela com Grid de Cadastros e Status 
+Cadastro de Simulação (botão para refazer simulação se necessário)
+CEP busca via api REVO devido a concessionária 
+Se ok , Cadastrar proposta
+Tela de Envio de documentos ( revisar confirmar se é pra enviar aqueles todos mesmo ou só dois dos principais)
+Webhook para acompanhar status de proposta e refletir isso na tela 
+Como e quando será cobrado os R$ 1200,00 ?
+Usuário cliente se pagar adicional vai poder vender usina sem estar na rede ?
+
+
+
+
+		
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 

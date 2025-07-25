@@ -122,7 +122,7 @@ def create_payment_link(plan_adesion):
         payment_link.request_payload = payload
         payment_link.response_payload  = data
         payment_link.order_id = data.get("id")
-        # payment_link.code = data.get("code") # confirmar se precisa e se temos que criar isso lá no paymentlink
+        payment_link.code = data.get("code") # code de controle pra quando webhook chamar
         payment_link.url = data.get("url")
         payment_link.status = data.get("status")
         payment_link.amount = data.get("amount", amount)
