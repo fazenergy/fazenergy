@@ -2,18 +2,18 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from plans.models import PlanAdesion
-from .models import VirtualAccount, VirtualAccountTransaction
-from backend.core.models.user_manager import Affiliate
+from .models import VirtualAccount, Transaction
+from core.models.Licensed import Licensed
 from django.utils import timezone
 
 
-# Sempre que um novo afiliado for criado, cria uma conta virtual associada ao afiliado com o nome do usuário do afiliado.
-@receiver(post_save, sender=Affiliate)
+# Sempre que um novo licenciado for criado, cria uma conta virtual associada ao licenciado com o nome do usuário do licenciado.
+@receiver(post_save, sender=Licensed)
 def create_virtual_account(sender, instance, created, **kwargs):
     if created:
         VirtualAccount.objects.create(
-            affiliate=instance,
-            name_affiliate=instance.user.username
+            licensed=instance,
+            name_licensed=instance.user.username
         )
 
 # Sempre que um PlanAdesion for salvo, se o pagamento for confirmado e não processado,
@@ -25,15 +25,15 @@ def create_transaction_on_plan_payment(sender, instance, created, **kwargs):
     cria a transação de bônus na conta virtual.
     """
     if instance.ind_payment_status == 'confirmed' and not instance.points_generated:
-        # Pega o afiliado
-        affiliate = instance.affiliate
-        virtual_account, _ = VirtualAccount.objects.get_or_create(affiliate=affiliate)
+        # Pega o licensed
+        licensed = instance.licensed
+        virtual_account, _ = VirtualAccount.objects.get_or_create(licensed=licensed)
 
         # Cria transação
-        transaction = VirtualAccountTransaction.objects.create(
+        transaction = Transaction.objects.create(
             virtual_account=virtual_account,
             product=f"Plano Adesão MMN: {instance.plan.id}",
-            description=f"Bônus de Indicação: ID {affiliate.id}",
+            description=f"Bônus de Indicação: ID {licensed.id}",
             status='blocked',
             operation='credit',
             amount=instance.plan.bonus_level_1,
@@ -65,11 +65,11 @@ def post_save_payment_link(instance, created, **kwargs):
     # Se ainda não capturado e pago
     if not instance.is_captured and not instance.is_canceled:
         if instance.status == "paid":
-            # Atualiza o Affiliate
-            affiliate = instance.affiliate
-            affiliate.active = True
-            affiliate.activated_at = timezone.now()
-            affiliate.save(update_fields=["active", "activated_at"])
+            # Atualiza o Licensed
+            licensed = instance.licensed
+            licensed.active = True
+            licensed.activated_at = timezone.now()
+            licensed.save(update_fields=["active", "activated_at"])
 
             # Atualiza o Product (opcional)
             product = instance.product
@@ -85,9 +85,9 @@ def post_save_payment_link(instance, created, **kwargs):
     # Se precisar cancelar (exemplo)
     if instance.is_captured and not instance.is_canceled:
         if instance.status == "paid" and instance.cancel_response and instance.canceled_at:
-            affiliate = instance.affiliate
-            affiliate.active = False
-            affiliate.save(update_fields=["active"])
+            licensed = instance.licensed
+            licensed.active = False
+            licensed.save(update_fields=["active"])
 
             product = instance.product
             product.status = 'canceled'

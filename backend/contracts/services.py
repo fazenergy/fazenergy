@@ -1,7 +1,8 @@
 # contracts/services.py (regras do domínio)
 from django.shortcuts import get_object_or_404
 from contracts.utils import doc_to_pdf_base64
-from backend.core.models.user_manager import Affiliate, User
+from core.models.User import User
+from core.models.Licensed import Licensed
 
 import requests
 from contracts.models import ContractConfig, ContractLog, ContractTemplate
@@ -42,12 +43,12 @@ def send_doc_lexio_api(filename, base_document, signers, resumo, send_email=True
 
 
 def send_doc_adesion_to_lexio(pk: int) -> dict:
-    affiliate = get_object_or_404(Affiliate, pk=pk)
-    userAffiliate = get_object_or_404(User, pk=affiliate.user.pk)
+    licensed = get_object_or_404(Licensed, pk=pk)
+    userLicensed = get_object_or_404(User, pk=licensed.user.pk)
 
-    plan = affiliate.plan
+    plan = licensed.plan
     if not plan:
-        raise ValueError("Afiliado não possui um plano cadastrado.")
+        raise ValueError("Licenciado não possui um plano cadastrado.")
 
     template = plan.contract_template
     if not template:
@@ -66,8 +67,8 @@ def send_doc_adesion_to_lexio(pk: int) -> dict:
             "function": config.signer_company_function,
         },
         {
-            "completed_name": userAffiliate.get_full_name(),
-            "email": userAffiliate.email,
+            "completed_name": userLicensed.get_full_name(),
+            "email": userLicensed.email,
             "function": "Parte Contratada",
         },
     ]
@@ -80,7 +81,7 @@ def send_doc_adesion_to_lexio(pk: int) -> dict:
     )
 
     ContractLog.objects.create(
-        affiliate=affiliate,
+        licensed=licensed,
         contract_template=template,
         document_token=result.get("document_token"),
         status=result.get("status"),

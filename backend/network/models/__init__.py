@@ -1,8 +1,8 @@
-from .affiliate_points import AffiliatePoints
-from .unilevel_network import UnilevelNetwork
+from .LicensedPoints import LicensedPoints
+from .UnilevelNetwork import UnilevelNetwork
 
 __all__ = [
-    "AffiliatePoints",
+    "LicensedPoints",
     "UnilevelNetwork",
 ]
 

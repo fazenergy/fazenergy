@@ -6,7 +6,7 @@ class Country(models.Model):
     iso_code = models.CharField(max_length=3, unique=True)
 
     class Meta:
-        db_table = 'tb_IBGECountry'
+        db_table = 'Country'
         verbose_name = "País"
         verbose_name_plural = "Países"
 
@@ -19,7 +19,7 @@ class State(models.Model):
     country = models.ForeignKey(Country, on_delete=models.CASCADE, related_name='states')
 
     class Meta:
-            db_table = 'tb_IBGEState'
+            db_table = 'State'
             verbose_name = "Estado"
             verbose_name_plural = "Estados"
 
@@ -35,7 +35,7 @@ class City(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE, related_name='cities')
     
     class Meta:
-        db_table = 'tb_IBGECity'
+        db_table = 'City'
         verbose_name = "Cidade"
         verbose_name_plural = "Cidades"
 

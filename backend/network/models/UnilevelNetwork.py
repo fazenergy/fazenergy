@@ -9,17 +9,17 @@ class UnilevelNetwork(models.Model):
     """
     Estrutura UNILEVEL: quem indicou quem, em qual nível
     """
-    parent_affiliate = models.ForeignKey(
-        'core.Affiliate',
+    upline_licensed = models.ForeignKey(
+        'core.Licensed',
         on_delete=models.CASCADE,
         related_name='children',
-        verbose_name="Afiliado Pai"
+        verbose_name="Licenciado Pai"
     )
-    child_affiliate = models.ForeignKey(
-        'core.Affiliate',
+    downline_licensed = models.ForeignKey(
+        'core.Licensed',
         on_delete=models.CASCADE,
         related_name='parents',
-        verbose_name="Afiliado Filho"
+        verbose_name="Licenciado Filho"
     )
     level = models.PositiveSmallIntegerField(
         verbose_name="Nível na Rede"
@@ -28,15 +28,15 @@ class UnilevelNetwork(models.Model):
     dtt_update = models.DateTimeField(auto_now=True, verbose_name="Data Atualização")
 
     class Meta:
-        db_table = 'tb_UnilevelNetwork'
+        db_table = 'UnilevelNetwork'
         verbose_name = "Rede Unilevel"
         verbose_name_plural = "Rede Unilevel"
         indexes = [
-            models.Index(fields=['parent_affiliate']),
-            models.Index(fields=['child_affiliate']),
+            models.Index(fields=['upline_licensed']),
+            models.Index(fields=['downline_licensed']),
         ]
 
     def __str__(self):
-        return f"{self.parent_affiliate} => {self.child_affiliate} (Nível {self.level})"
-    
+        return f"{self.upline_licensed} => {self.downline_licensed} (Nível {self.level})"
+
     

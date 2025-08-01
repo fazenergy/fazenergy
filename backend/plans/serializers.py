@@ -75,7 +75,7 @@ class PlanAdesionSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'plan',
-            'affiliate',
+            'licensed',
             'ind_payment_status',
             'typ_payment',
             'dtt_record',
@@ -98,9 +98,9 @@ class PlanAdesionSerializer(serializers.ModelSerializer):
 
         adesion = PlanAdesion.objects.create(**validated_data)
 
-        # Garante que quem criou fique registrado como `affiliate` se não vier explícito
-        if user and not validated_data.get('affiliate'):
-            adesion.affiliate = user
+        # Garante que quem criou fique registrado como `licensed` se não vier explícito
+        if user and not validated_data.get('licensed'):
+            adesion.licensed = user
             adesion.save()
 
         return adesion

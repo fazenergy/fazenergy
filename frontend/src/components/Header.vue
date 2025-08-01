@@ -7,7 +7,7 @@
         <Menu class="w-5 h-5" />
       </button>
       <h1 class="font-semibold">
-        Dashboard Administrativo
+        Dashboard
       </h1>
     </div>
 
@@ -57,9 +57,9 @@ const displyProfile = computed(() => {
   if (auth.user?.is_superuser) {
     return 'Admin'
   } else if (auth.user?.groups?.length) {
-    return auth.user.groups[0] // ou `.join(', ')` se quiser todos
+    return auth.user.groups[0]
   } else {
-    return logout();
+    return 'Visitante' // ou '', ou null, mas NÃO chame logout aqui!
   }
 })
 

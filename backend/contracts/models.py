@@ -1,7 +1,7 @@
 # contracts/models.py
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
-from backend.core.models.user_manager import Affiliate
+from core.models.Licensed import Licensed
 
 # registra as configurações da API da Lexio Legal
 class ContractConfig(models.Model):
@@ -15,7 +15,7 @@ class ContractConfig(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'tb_ContractConfig'
+        db_table = 'ContractConfig'
         verbose_name = "Configuração Lexio"
         verbose_name_plural = "Configurações Lexio"
 
@@ -36,7 +36,7 @@ class ContractTemplate(models.Model):
     active = models.BooleanField(default=True, verbose_name="Ativo?")
 
     class Meta:
-        db_table = 'tb_ContractTemplate'
+        db_table = 'ContractTemplate'
         verbose_name = "Template de Contrato"
         verbose_name_plural = "Templates de Contrato"
 
@@ -47,30 +47,43 @@ class ContractTemplate(models.Model):
     def save(self, *args, **kwargs):
         if not self.mapping_info:
             self.mapping_info = """
-                {{ affiliate.id }}: ID do afiliado
-                {{ affiliate.nome }}: Nome do afiliado
-                {{ affiliate.cpf_cnpj }}: CPF/CNPJ
-                {{ affiliate.phone }}: Telefone
-                {{ affiliate.address }}: Endereço
-                {{ user.username }}: Nome de usuário
-                {{ user.email }}: E-mail do usuário
-                {{ site_url }}: URL do site
-                """
+            {{ licensed.original_indicator }}: ID do Indicador Original
+            {{ licensed.id }}: ID do afiliado
+            {{ licensed.nome }}: Nome do licenciado
+            {{ licensed.person_type }}: Tipo de Pessoa PF ou PJ
+            {{ licensed.cpf_cnpj }}: CPF/CNPJ
+            {{ user.username }}: Nome de usuário
+            {{ user.email }}: E-mail do usuário
+            {{ site_url }}: URL do site
+            {{ licensed.phone }}: Telefone
+            {{ licensed.cep }}: CEP
+            {{ licensed.address }}: Endereço
+            {{ licensed.number }}: Número do Endereço
+            {{ licensed.complement }}: Complemento do Endereço
+            {{ licensed.district }}: Bairro
+            {{ licensed.city_name }}: Cidade
+            {{ licensed.state_abbr }}: UF
+            {{ licensed.plan.name }}: Nome do Plano de Adesão
+            {{ licensed.plan.price }}: Preço do Plano de Adesão
+            {{ licensed.full_name }}: Nome completo do afiliado
+            {{ licensed.dtt_record }}: Data de cadastro do afiliado
+            {{ licensed.dtt_payment_received }}: Data de recebimento do pagamento
+                """ 
         super().save(*args, **kwargs)
 
 # auditoria de contrato assinado
 class ContractLog(models.Model):
-    affiliate = models.ForeignKey(Affiliate, on_delete=models.CASCADE)
-    contract_template = models.ForeignKey(ContractTemplate, on_delete=models.CASCADE)
-    document_token = models.CharField(max_length=255)
-    status = models.CharField(max_length=50)
+    licensed = models.ForeignKey(Licensed, on_delete=models.CASCADE, null=True)
+    contract_template = models.ForeignKey(ContractTemplate, on_delete=models.CASCADE, null=True)
+    document_token = models.CharField(max_length=255, null=True)
+    status = models.CharField(max_length=50, null=True)
     response = models.JSONField(blank=True, null=True)  # opcional: salva resposta completa
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'tb_ContractLog'
+        db_table = 'ContractLog'
         verbose_name = "Log de Contrato"
         verbose_name_plural = "Log de Contrato"
 
     def __str__(self):
-        return f"{self.affiliate} - {self.contract_template} - {self.status}"
+        return f"{self.licensed} - {self.contract_template} - {self.status}"

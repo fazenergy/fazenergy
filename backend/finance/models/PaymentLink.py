@@ -2,15 +2,16 @@ from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from core.models.affiliate import Affiliate  # ajuste para o seu app
+from core.models.Licensed import Licensed  # ajuste para o seu app
 #from products.models import Product  # ou onde estiver o seu model de produto
 
-# Choices de Gateways
+# ########################################################################################
+# PaymentGateway e PaymentStatus - Dicionarios de options para gateways e status de pagamento
+# ########################################################################################
 class PaymentGateway(models.TextChoices):
     PAGARME = 'pagarme', 'Pagarme'
     PAGSEGURO = 'pagseguro', 'PagSeguro'
 
-# Choices para status de pagamento
 class PaymentStatus(models.TextChoices):
     PENDING     = 'pending', _('Pending')
     PAID        = 'paid', _('Paid')
@@ -24,16 +25,18 @@ class Product(models.TextChoices):
     ADESION = 'Adesão Anual', _('Plano de Adesão Anual'),
     USINA   = 'Usina Fotovoltaica', _('Usina Fotovoltaica')
 
+
 # ########################################################################################
-# PAYMENTLINK - Define o modelo PaymentLink, nome claro e direto.
+# TABELA: PAYMENTLINK - Define o modelo PaymentLink, nome claro e direto.
 # ########################################################################################
 class PaymentLink(models.Model):
     class Meta:
+        db_table = 'PaymentLink'
         verbose_name = _('Link de Cobrança')
         verbose_name_plural = _('Links de Cobranças')
 
-    affiliate = models.ForeignKey(
-        Affiliate, on_delete=models.CASCADE, related_name='payment_links'
+    licensed = models.ForeignKey(
+        Licensed, on_delete=models.CASCADE, related_name='payment_links', null=True, blank=True
     )
 
     # criei essa fk só pra garantir que o link de pagamento esteja associado a uma adesão
@@ -101,10 +104,10 @@ class PaymentLink(models.Model):
 
                 adesion.save(update_fields=['status', 'dtt_payment_received', 'payment_type'])
 
-                # Atualiza afiliado
-                affiliate = adesion.affiliate
-                affiliate.dtt_payment_received = self.closed_at
-                affiliate.save(update_fields=['dtt_payment_received'])
+                # Atualiza licenciado
+                licensed = adesion.licensed
+                licensed.dtt_payment_received = self.closed_at
+                licensed.save(update_fields=['dtt_payment_received'])
 
             else:
                 print("Sem adesão vinculada a este PaymentLink.")

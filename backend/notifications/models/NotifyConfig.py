@@ -1,6 +1,6 @@
 from django.db import models
 
-class EmailConfig(models.Model):
+class NotifyConfig(models.Model):
     smtp_host = models.CharField(max_length=255, verbose_name="Servidor SMTP")
     smtp_port = models.PositiveIntegerField(default=465, verbose_name="Porta SMTP")
     smtp_user = models.EmailField(verbose_name="Usuário SMTP")
@@ -15,9 +15,9 @@ class EmailConfig(models.Model):
     )
 
     class Meta:
-        db_table = 'tb_NotifyEmailConfig'
-        verbose_name = "Configuração de E-mail"
-        verbose_name_plural = "Configurações de E-mail"
+        db_table = 'NotifyConfig'
+        verbose_name = "Configuração de Notificação"
+        verbose_name_plural = "Configurações de Notificação"
 
     def __str__(self):
         return f"{self.smtp_user} ({self.smtp_host}:{self.smtp_port})"

@@ -1,4 +1,4 @@
-# finance/models/gateway_link_service.py
+# finance/services/CreatePaymentLink.py
 # É um "serviço" que cria link de pagamento no gateway.
 import base64
 import requests 
@@ -9,8 +9,8 @@ from datetime import timedelta
 import json
 
 def create_payment_link(plan_adesion):
-    from finance.models.payment_link import PaymentLink
-    from finance.models.gateway_config import PaymentConfig
+    from backend.finance.models.PaymentLink import PaymentLink
+    from backend.finance.models.GatewayConfig import PaymentConfig
     """
         Service: gera PaymentLink para a PlanAdesion recebida.
     """
@@ -23,7 +23,7 @@ def create_payment_link(plan_adesion):
         ).last()
         return payment_link, None
 
-    buyer = plan_adesion.affiliate # cliente comprador
+    buyer = plan_adesion.licensed # cliente comprador
     buyer_name = f"{buyer.first_name} {buyer.last_name}".strip() #nome completo do comprador
     amount = int(plan_adesion.plan.price * 100) # valor do plano
     code = f"PLAN-ADES-{plan_adesion.id}"
@@ -113,12 +113,12 @@ def create_payment_link(plan_adesion):
         data = resp.json()
         print("Resposta do Pagar.me:", json.dumps(data, indent=2))
 
-        from backend.core.models.user_manager import Affiliate
-        affiliate = Affiliate.objects.get(user=plan_adesion.affiliate)
+        from backend.core.models.Licensed import Licensed
+        licensed = Licensed.objects.get(user=plan_adesion.licensed)
 
         payment_link = PaymentLink(
                 adesion=plan_adesion, 
-                 affiliate=affiliate,
+                 licensed=licensed,
                 gateway='pagarme'
                 )
         payment_link.request_payload = payload

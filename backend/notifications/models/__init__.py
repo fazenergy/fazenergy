@@ -1,4 +1,4 @@
-from .config_email import EmailConfig
-from .template import NotificationTemplate
+from .NotifyConfig import NotifyConfig
+from .NotifyTemplate import NotifyTemplate
 
-__all__ = ['EmailConfig', 'NotificationTemplate']
+__all__ = ['NotifyConfig', 'NotifyTemplate']

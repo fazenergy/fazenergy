@@ -16,10 +16,10 @@ class ContractConfigAdmin(admin.ModelAdmin):
 
 @admin.register(ContractLog)
 class ContractLogAdmin(admin.ModelAdmin):
-    list_display = ('affiliate', 'contract_template', 'document_token', 'status', 'created_at')
-    search_fields = ('affiliate__cpf_cnpj', 'document_token', 'status')
+    list_display = ('licensed', 'contract_template', 'document_token', 'status', 'created_at')
+    search_fields = ('licensed__cpf_cnpj', 'document_token', 'status')
     list_filter = ('status', 'created_at')
-    readonly_fields = ('affiliate', 'contract_template', 'document_token', 'status', 'created_at')
+    readonly_fields = ('licensed', 'contract_template', 'document_token', 'status', 'created_at')
 
 
 

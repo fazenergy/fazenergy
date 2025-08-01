@@ -1,9 +1,9 @@
-# finance/models/gateway_config.py
+# finance/models/GatewayConfig.py
 # Reflete que são configurações do gateway de pagamento (Pagarme etc).
 
 from django.db import models
 
-class PaymentConfig(models.Model):
+class GatewayConfig(models.Model):
     name            = models.CharField(max_length=50, default='Pagarme')
     api_token       = models.CharField(max_length=255)
     api_url         = models.URLField(help_text="URL da API Pagarme dev. Ex.: https://sdx-api.pagar.me/core/v5/paymentlinks")
@@ -30,6 +30,11 @@ class PaymentConfig(models.Model):
     webhook_secret      = models.CharField(max_length=255, blank=True, null=True)
 
     active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'GatewayConfig'
+        verbose_name = "Configuração de Pagamento"
+        verbose_name_plural = "Configurações de Pagamento"
 
     def __str__(self):
         return f"{self.name}"

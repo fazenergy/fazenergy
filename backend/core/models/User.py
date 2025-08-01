@@ -7,7 +7,8 @@ from core.choices import *
 # --------------------------------------------------------------------------------------------------
 class User(AbstractUser):
     is_operator = models.BooleanField(default=False, verbose_name="É Operador?")
-    is_affiliate = models.BooleanField(default=False, verbose_name="É Afiliado?")
+    is_licensed = models.BooleanField(default=False, verbose_name="É Licenciado?")
+    is_customer = models.BooleanField(default=False, verbose_name="É Cliente ? ") # usado pra quando o mesmo não é licenciado ainda e sim um cliente
     image_profile = models.ImageField(
         upload_to='profiles/',
         blank=True,
@@ -21,7 +22,7 @@ class User(AbstractUser):
         related_name='custom_user_set',
         blank=True,
         verbose_name="Grupo de Usuários",
-        db_table='tb_UserGroup'
+        db_table='UserGroup'
     )
 
     user_permissions = models.ManyToManyField(
@@ -29,11 +30,11 @@ class User(AbstractUser):
         related_name='custom_user_set',
         blank=True,
         verbose_name="Permissões",
-        db_table='tb_UserPermission'
+        db_table='UserPermission'
     )
 
     class Meta:
-        db_table = 'tb_User'
+        db_table = 'User'
         verbose_name = "Usuário"
         verbose_name_plural = "Usuários"
 

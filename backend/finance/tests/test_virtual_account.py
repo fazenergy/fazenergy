@@ -1,7 +1,8 @@
 from django.test import TestCase
 from django.utils import timezone
 
-from backend.core.models.user_manager import User, Affiliate
+from backend.core.models.User import User
+from backend.core.models.Licensed import Licensed
 from plans.models import Plan, PlanAdesion
 from finance.models import VirtualAccount, VirtualAccountTransaction
 
@@ -11,9 +12,9 @@ from finance.models import VirtualAccount, VirtualAccountTransaction
 class VirtualAccountTestCase(TestCase):
 
     def setUp(self):
-        # Usuário + Afiliado
-        self.user = User.objects.create_user(username="afiliado1", password="1234")
-        self.affiliate = Affiliate.objects.create(user=self.user, cpf_cnpj="12345678901")
+        # Usuário + Licenciado
+        self.user = User.objects.create_user(username="licenciado1", password="1234")
+        self.licensed = Licensed.objects.create(user=self.user, cpf_cnpj="12345678901")
 
         # Plano
         self.plan = Plan.objects.create(
@@ -25,18 +26,18 @@ class VirtualAccountTestCase(TestCase):
 
     def test_virtual_account_transaction_created(self):
         # Antes: virtual account não existe
-        self.assertFalse(hasattr(self.affiliate, 'virtual_account'))
+        self.assertFalse(hasattr(self.licensed, 'virtual_account'))
 
         # Simula pagamento confirmado
         adesion = PlanAdesion.objects.create(
             plan=self.plan,
-            affiliate=self.user,
+            licensed=self.user,
             ind_payment_status='confirmed'
         )
 
-        # Recarrega afiliado e conta virtual
-        self.affiliate.refresh_from_db()
-        virtual_account = VirtualAccount.objects.get(affiliate=self.affiliate)
+        # Recarrega licenciado e conta virtual
+        self.licensed.refresh_from_db()
+        virtual_account = VirtualAccount.objects.get(licensed=self.licensed)
 
         # Verifica se conta virtual criada
         self.assertIsNotNone(virtual_account)

@@ -12,8 +12,8 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(PlanAdesion)
 class PlanAdesionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'plan', 'affiliate', 'ind_payment_status', 'typ_payment', 'is_courtesy', 'points_generated', 'ind_processing')
-    search_fields = ('affiliate__username', 'plan__name')
+    list_display = ('id', 'plan', 'licensed', 'ind_payment_status', 'typ_payment', 'is_courtesy', 'points_generated', 'ind_processing')
+    search_fields = ('licensed__username', 'plan__name')
     list_filter = ('ind_payment_status', 'typ_payment', 'ind_processing')
 
 

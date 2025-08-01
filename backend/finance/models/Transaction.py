@@ -4,7 +4,7 @@ from django.db import models
 # # Tabela de Transações da Conta Virtual
 # Esta tabela armazena as transações realizadas nas contas virtuais, incluindo créditos e débitos
 # e o status de cada transação.
-class VirtualAccountTransaction(models.Model):
+class Transaction(models.Model):
     STATUS_CHOICES = [
         ('blocked', 'Bloqueado'),
         ('released', 'Liberado'),
@@ -69,7 +69,7 @@ class VirtualAccountTransaction(models.Model):
         return f"{self.product} - {self.operation} - {self.amount}"
 
     class Meta:
-        db_table = 'tb_Transaction'
+        db_table = 'Transaction'
         verbose_name = "Transação"
         verbose_name_plural = "Transações"
 

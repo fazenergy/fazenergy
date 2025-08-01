@@ -33,7 +33,7 @@ class Plan(models.Model):
 
 
     class Meta:
-        db_table = 'tb_Plan'
+        db_table = 'Plan'
         verbose_name = "Plano"
         verbose_name_plural = "Planos"
 
@@ -73,7 +73,7 @@ class PlanAdesion(models.Model):
     ]
 
     plan = models.ForeignKey('plans.Plan', on_delete=models.PROTECT, related_name='adesions')
-    affiliate = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='adesions')
+    licensed = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='adesions')
 
     ind_payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
     typ_payment = models.CharField(max_length=20, choices=PAYMENT_TYPE_CHOICES, blank=True, null=True)
@@ -94,22 +94,22 @@ class PlanAdesion(models.Model):
     contract_token = models.CharField(max_length=500, blank=True, null=True)
 
     class Meta:
-        db_table = 'tb_PlanAdesion'
+        db_table = 'PlanAdesion'
         verbose_name = "Plano de Adesão"
         verbose_name_plural = "Planos de Adesão"
 
 
     def __str__(self):
-        return f"Adesão {self.id} - {self.affiliate} - {self.plan.name}"
-    
+        return f"Adesão {self.id} - {self.licensed} - {self.plan.name}"
+
     # chama o metodo que cria o link de pagamento
     def create_payment_link(self):
-        # Verifica se o afiliado é um usuário "raiz"
-        if getattr(self.affiliate, 'is_root', False):
-            print("✅ Afiliado raiz — não será criado link de pagamento.")
+        # Verifica se o licenciado é um usuário "raiz"
+        if getattr(self.licensed, 'is_root', False):
+            print("✅ Licenciado raiz — não será criado link de pagamento.")
             return None, None
 
-        from finance.models.gateway_link_service import create_payment_link  # lazy import!
+        from backend.finance.services.CreatePaymentLink import create_payment_link  # lazy import!
         return create_payment_link(self)
 
    
@@ -138,7 +138,7 @@ class PlanCareer(models.Model):
     stt_record = models.BooleanField(default=True, verbose_name="Ativo")
 
     class Meta:
-        db_table = 'tb_PlanCareers'
+        db_table = 'PlanCareers'
         verbose_name = "Plano de Carreira"
         verbose_name_plural = "Planos de Carreira"
 

@@ -1,4 +1,9 @@
 // src/store/auth.js
+
+// ✅ Está armazenando o user via fetchProfile() após o login
+// ✅ Está usando Pinia com persistência via localStorage
+// ✅ Está configurando o header de Authorization no axios
+
 import { defineStore } from 'pinia'
 import api from '@/services/axios' // Usa o seu axios.js configurado!
 import { API_BASE_URL } from '@/config/settings'
@@ -36,10 +41,14 @@ export const useAuthStore = defineStore('auth', {
       api.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`
 
       const res = await api.get('/api/core/profile/')
+      console.log('[DEBUG] Perfil recebido:', res.data); // TO DO: COMENTAR DEPOIS ( bom pra ver como está chegando o perfil do user logado)
       this.user = res.data
     },
 
     logout() {
+      debugger;
+      console.log('[AUTH] logout chamado')
+      console.trace('[AUTH] logout chamado')
       this.user = null
       this.accessToken = ''
       this.refreshToken = ''
@@ -47,4 +56,23 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('refreshToken')
     },
   },
+  getters: {
+    isAuthenticated: (state) => !!state.accessToken,
+    userGroups: (state) => state.user?.groups || [],
+    isSuperadmin: (state) => state.user?.is_superuser || state.user?.groups?.includes('Superadmin'),
+    isAfiliado: (state) => state.user?.groups?.includes('Afiliado'),
+    isOperador: (state) => state.user?.groups?.includes('Operador'),
+    isCliente: (state) => state.user?.groups?.includes('Cliente'),
+  },
 })
+
+//console.log(res.data)
+/* explicação do getters:
+Isso assume que o backend retorna algo como:
+  {
+    "id": 1,
+    "username": "aquiles",
+    "role": "superadmin"
+  }
+
+*/

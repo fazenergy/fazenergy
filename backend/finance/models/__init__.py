@@ -1,11 +1,11 @@
-from .gateway_config import PaymentConfig
-from .payment_link import PaymentLink
-from .virtual_account import VirtualAccount
-from .virtual_transaction import VirtualAccountTransaction
+from .GatewayConfig import GatewayConfig
+from .PaymentLink import PaymentLink
+from .VirtualAccount import VirtualAccount
+from .Transaction import Transaction
 
 __all__ = [
-    "PaymentConfig",
+    "GatewayConfig",
     "PaymentLink",
     "VirtualAccount",
-    "VirtualAccountTransaction",
+    "Transaction",
 ]

@@ -5,15 +5,16 @@ from django.utils import timezone
 # ###########################################################################################################
 # Registro de Pontuação de cada Afiliado na Rede
 # ###########################################################################################################    
-class AffiliatePoints(models.Model):
+class LicensedPoints(models.Model):
     """
     Registro de Pontuação de cada Afiliado na Rede
     """
-    affiliate = models.ForeignKey(
-        'core.Affiliate',
+    licensed = models.ForeignKey(
+        'core.Licensed',
         on_delete=models.CASCADE,
         related_name='points',
-        verbose_name="Afiliado"
+        verbose_name="Licenciado",
+        null=True, blank=True
     )
     description = models.CharField(
         max_length=255,
@@ -38,16 +39,16 @@ class AffiliatePoints(models.Model):
     )
 
     class Meta:
-        db_table = 'tb_AffiliatePoints'
-        verbose_name = "Pontuação do Afiliado"
-        verbose_name_plural = "Pontuações dos Afiliados"
+        db_table = 'LicensedPoints'
+        verbose_name = "Pontuação do Licenciado"
+        verbose_name_plural = "Pontuações dos Licenciados"
         indexes = [
-            models.Index(fields=['affiliate']),
+            models.Index(fields=['licensed']),
             models.Index(fields=['status']),
         ]
 
     def __str__(self):
-        return f"{self.affiliate} - {self.points} pts ({self.status})"  
+        return f"{self.licensed} - {self.points} pts ({self.status})"
 
 
 

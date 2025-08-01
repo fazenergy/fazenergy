@@ -1,7 +1,7 @@
 # core/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from core.models import User, Group, Affiliate, OperationsManager
+from core.models import User, Group, Licensed, Operator
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -52,8 +52,8 @@ class UserAdmin(BaseUserAdmin):
 # #####################################################################################
 # PAINEL ADMIN - MODELOS DE USUÁRIOS OPERADORES
 # #####################################################################################
-@admin.register(OperationsManager)
-class OperationsManagerAdmin(admin.ModelAdmin):
+@admin.register(Operator)
+class OperatorAdmin(admin.ModelAdmin):
     @admin.display(description="Criado em")
     def formatted_dtt_record(self, obj):
         return obj.dtt_record.strftime('%d/%m/%Y %H:%M')
@@ -107,8 +107,8 @@ class OperationsManagerAdmin(admin.ModelAdmin):
 # #####################################################################################
 # PAINEL ADMIN - MODELOS DE USUÁRIOS AFILIADOS
 # #####################################################################################
-@admin.register(Affiliate)
-class AffiliateAdmin(admin.ModelAdmin):
+@admin.register(Licensed)
+class LicensedAdmin(admin.ModelAdmin):
     # grid de exibição
     list_display = (
         'original_indicator', 'get_username', 'person_type', 'cpf_cnpj', 'plan', 

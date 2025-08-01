@@ -4,7 +4,7 @@
 <div>
    <!-- ✅ Botão visível só para afiliados -->
     <button
-      v-if="isAffiliate"
+      v-if="isLicensed"
       @click="goToPreRegister"
       class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
     >
@@ -90,8 +90,8 @@ const auth = useAuthStore()
 const router = useRouter()
 
 // Exemplo: se você salva grupos no `auth.user`
-const isAffiliate = computed(() => {
-  return auth.user?.groups?.includes('Afiliado')
+const isLicensed = computed(() => {
+  return auth.user?.groups?.includes('Licenciado')
 })
 
 function goToPreRegister() {

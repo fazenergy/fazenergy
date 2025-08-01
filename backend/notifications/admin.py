@@ -1,14 +1,14 @@
 from django.contrib import admin, messages
 from django.urls import path
 from django.shortcuts import redirect
-from notifications.models.config_email import EmailConfig
-from notifications.models.template import NotificationTemplate
+from notifications.models.NotifyConfig import NotifyConfig
+from notifications.models.NotifyTemplate import NotifyTemplate
 from notifications.utils import send_email
 from django.utils.html import format_html
 
 
-@admin.register(EmailConfig)
-class EmailConfigAdmin(admin.ModelAdmin):
+@admin.register(NotifyConfig)
+class NotifyConfigAdmin(admin.ModelAdmin):
     list_display = ('smtp_host', 'smtp_port', 'smtp_user', 'use_ssl', 'use_tls')
     list_editable = ('use_ssl', 'use_tls')
     fieldsets = (
@@ -24,8 +24,8 @@ class EmailConfigAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(NotificationTemplate)
-class NotificationTemplateAdmin(admin.ModelAdmin):
+@admin.register(NotifyTemplate)
+class NotifyTemplateAdmin(admin.ModelAdmin):
     list_display = ('name', 'subject', 'active', 'test_send_link')
     list_filter = ('active',)
     search_fields = ('name', 'subject')
@@ -60,9 +60,9 @@ class NotificationTemplateAdmin(admin.ModelAdmin):
     test_send_link.allow_tags = True
 
     def test_template(self, request, pk):
-        template = NotificationTemplate.objects.get(pk=pk)
+        template = NotifyTemplate.objects.get(pk=pk)
 
-        config = EmailConfig.objects.first()
+        config = NotifyConfig.objects.first()
         recipient = config.test_recipient if config and config.test_recipient else None
 
         if not recipient:
@@ -73,7 +73,7 @@ class NotificationTemplateAdmin(admin.ModelAdmin):
             "nome": "Teste",
             "id": "USR001",
             "nova_senha": "abc123",
-            "site_url": "https://www.fazenergy.com.br",
+            "site_url": "https://faz.energy",
         }
 
         send_email(template.name, context, [recipient])

@@ -3,14 +3,14 @@ import base64
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.utils.dateparse import parse_datetime
-from finance.models import PaymentLink, PaymentConfig
+from finance.models import PaymentLink, GatewayConfig
 
 @csrf_exempt
 def pagarme_webhook(request):
     print("WEBHOOK - PAGARME ")
     print("#########################################")
     
-    config = PaymentConfig.objects.filter(active=True).first()
+    config = GatewayConfig.objects.filter(active=True).first()
     if not config:
         return HttpResponseForbidden("Configuração não encontrada")
     

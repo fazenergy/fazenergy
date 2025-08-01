@@ -5,7 +5,7 @@ from core.choices import *
 # #################################################################################################
 # Tabela Detalhes de Usuarios do tipo Operador: endereço, telefone, etc
 # #################################################################################################
-class OperationsManager(models.Model):
+class Operator(models.Model):
     username            = models.CharField(max_length=150, unique=True, verbose_name="Operador")
     user                = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Login desse Operador")
     cpf_cnpj            = models.CharField(max_length=20, unique=True, verbose_name="CPF/CNPJ")
@@ -32,7 +32,7 @@ class OperationsManager(models.Model):
     dtt_update          = models.DateTimeField(auto_now=True, verbose_name="Data Atualização")
 
     class Meta:
-        db_table = 'tb_OperationsManager'
+        db_table = 'Operator'
         verbose_name = "Gerente de Operação"
         verbose_name_plural = "Gerente de Operações"
 

@@ -5,10 +5,10 @@ from collections import deque
 from django.utils import timezone
 
 # #################################################################################################
-# Tabela de Detalhes de Usuarios do tipo Afiliado: endereço, plano, carreira, etc
+# Tabela de Detalhes de Usuarios do tipo licensed: endereço, plano, carreira, etc
 #################################################################################################
-class Affiliate(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Login desse Afiliado")
+class Licensed(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Login desse Licenciado")
 
     original_indicator = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True, 
@@ -19,63 +19,67 @@ class Affiliate(models.Model):
         choices=[('pf', 'PF'), ('pj', 'PJ')] # TO DO: levar pro dicionario de choices.py depois
     , verbose_name="Pessoa")
 
-    cpf_cnpj = models.CharField(max_length=20, unique=True, verbose_name="CPF/CNPJ")
-    cep = models.CharField(max_length=8, blank=True, null=True, verbose_name="CEP")
-    
-    city_lookup = models.ForeignKey('location.City', on_delete=models.SET_NULL, null=True, blank=True)
-    city_name = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
-    state_abbr = models.CharField(max_length=2, blank=True, null=True , verbose_name="UF")
-        
-    address = models.CharField(max_length=300, blank=True, null=True, verbose_name="Endereço")
-    number = models.CharField(max_length=8, blank=True, null=True, verbose_name="Número")
-    complement = models.CharField(max_length=100, blank=True, null=True, verbose_name="Complemento")
-    district = models.CharField(max_length=300, blank=True, null=True, verbose_name="Bairro")
-    phone = models.CharField(max_length=14, blank=True, null=True, verbose_name="Telefone")
+    cpf_cnpj    = models.CharField(max_length=20, unique=True, verbose_name="CPF/CNPJ")
+    cep         = models.CharField(max_length=8, blank=True, null=True, verbose_name="CEP")
 
-    plan = models.ForeignKey('plans.Plan', on_delete=models.PROTECT, verbose_name="Plano de Adesão")
+    city_lookup = models.ForeignKey('location.City', on_delete=models.SET_NULL, null=True, blank=True)
+    city_name   = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
+    state_abbr  = models.CharField(max_length=2, blank=True, null=True , verbose_name="UF")
+        
+    address     = models.CharField(max_length=300, blank=True, null=True, verbose_name="Endereço")
+    number      = models.CharField(max_length=8, blank=True, null=True, verbose_name="Número")
+    complement  = models.CharField(max_length=100, blank=True, null=True, verbose_name="Complemento")
+    district    = models.CharField(max_length=300, blank=True, null=True, verbose_name="Bairro")
+    phone       = models.CharField(max_length=14, blank=True, null=True, verbose_name="Telefone")
+
+    plan        = models.ForeignKey('plans.Plan', on_delete=models.PROTECT, verbose_name="Plano de Adesão")
 
      # FK - Conecta com PlanCareer
     previous_career = models.ForeignKey(
         'plans.PlanCareer',
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='previous_affiliates',
+        related_name='previous_licensed',
         verbose_name="Carreira Anterior")
 
     current_career = models.ForeignKey(
         'plans.PlanCareer',
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name='current_affiliates',
+        related_name='current_licensed',
         verbose_name="Carreira Atual")
 
-    dtt_previous_career = models.DateTimeField(blank=True, null=True, verbose_name="Data Carreira Anterior")
-    dtt_current_career = models.DateTimeField(blank=True, null=True, verbose_name="Data Carreira Atual")
+    dtt_previous_career     = models.DateTimeField(blank=True, null=True, verbose_name="Data Carreira Anterior")
+    dtt_current_career      = models.DateTimeField(blank=True, null=True, verbose_name="Data Carreira Atual")
 
-    is_root = models.BooleanField(default=False, verbose_name="É Raiz na Rede ? ")
-    stt_record = models.BooleanField(default=True, verbose_name="Ativo")
-    is_in_network = models.BooleanField(default=True, verbose_name="Está na Rede ?")
-    accept_lgpd = models.BooleanField(default=False, verbose_name="Aceita LGPD")
-    comment = models.TextField(blank=True, null=True, verbose_name="Comentário")
-    dtt_payment_received = models.DateTimeField(blank=True, null=True, verbose_name="Data Recebimento Pagamento")
+    is_root                 = models.BooleanField(default=False, verbose_name="É Raiz ? ")
+    root_network_name       = models.CharField(max_length=100, blank=True, null=True, verbose_name="Nome Rede Raiz")
+    stt_record              = models.BooleanField(default=True, verbose_name="Ativo")
+    is_in_network           = models.BooleanField(default=True, verbose_name="Está na Rede ?")
+    accept_lgpd             = models.BooleanField(default=False, verbose_name="Aceita LGPD")
+    comment                 = models.TextField(blank=True, null=True, verbose_name="Comentário")
+    dtt_payment_received    = models.DateTimeField(blank=True, null=True, verbose_name="Data Recebimento Pagamento")
 
-    dtt_record = models.DateTimeField(auto_now_add=True, verbose_name="Data Cadastro")
-    dtt_update = models.DateTimeField(auto_now=True, verbose_name="Data Atualização")
- 
+    dynamic_compression     = models.BooleanField(default=False, verbose_name="Compressão Dinâmica Ativa")  # Indica se o afiliado está com compressão dinâmica ativada (relacionado ao pagamento anual, se estiver em dia então ativa se naõ desativa)
+    dtt_record              = models.DateTimeField(auto_now_add=True, verbose_name="Data Cadastro")
+    dtt_update              = models.DateTimeField(auto_now=True, verbose_name="Data Atualização")
+
     class Meta:
-        db_table = 'tb_Affiliate'
-        verbose_name = "Afiliado"
-        verbose_name_plural = "Afiliados"
+        db_table = 'Licensed'
+        verbose_name = "Licenciado"
+        verbose_name_plural = "Licenciados"
 
     def __str__(self):
         return f'{self.user.username} ({self.cpf_cnpj})'
 
+
+
     # #################################################################################################
-    # Métodos para verificar e atualizar plano de carreira do afiliado 
+    # Métodos para verificar e atualizar plano de carreira do licenciado 
     # #################################################################################################
     def verificar_plano_de_carreira(self):
-        print(f"\nAFILIADO: {self.user.username} ###########")
-        
+        print(f"\nLICENCIADO: {self.user.username} ###########")
+
         # dessa forma para evitar import circular
         from django.apps import apps 
         PlanCareer = apps.get_model('plans', 'PlanCareer')
