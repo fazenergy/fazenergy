@@ -1,0 +1,29 @@
+# .gitignore na raiz do projeto
+
+# Ambiente Python
+.venv/
+__pycache__/
+*.pyc
+
+# Variáveis de ambiente
+# .env
+# .env.*
+
+# Banco local
+*.sqlite3
+
+# Logs
+*.log
+
+# Node e frontend
+node_modules/
+dist/
+.vite/
+
+# VSCode e IDEs
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db
