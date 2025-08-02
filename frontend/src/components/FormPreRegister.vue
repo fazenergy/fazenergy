@@ -126,11 +126,11 @@ import api from '@/services/axios'
 // COMPONENTES
 import Input from '@/components/ui/Input.vue'
 import InputPass from '@/components/ui/InputPass.vue'
-import Select from '@/components/ui/select.vue'
-import Button from '@/components/ui/button.vue'
-import Switch from '@/components/ui/switch.vue'
+import Select from '@/components/ui/Select.vue'
+import Button from '@/components/ui/Button.vue'
+import Switch from '@/components/ui/Switch.vue'
 import Checkbox from '@/components/ui/Checkbox.vue'
-import FormField from '@/components/ui/formField.vue'
+import FormField from '@/components/ui/FormField.vue'
 
 // PROP
 const props = defineProps({
