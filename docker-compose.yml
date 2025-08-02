@@ -3,7 +3,7 @@ version: '3.9'
 services:
   db:
     image: postgres:15
-    container_name: fazenergy-db
+    container_name: fazenergyFinal-db
     restart: always
     ports:
       - "5432:5432"
@@ -18,7 +18,7 @@ services:
 
   backend:
     build: ./backend
-    container_name: fazenergy-backend
+    container_name: fazenergyFinal-backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
@@ -34,6 +34,7 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    container_name: fazenergyFinal-frontend
     volumes:
       - ./frontend:/app
       - /app/node_modules  # impede conflito com node_modules local

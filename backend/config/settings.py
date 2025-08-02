@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'network',
     'notifications',
     'plans',
+    'revo',
 ]
 
 
