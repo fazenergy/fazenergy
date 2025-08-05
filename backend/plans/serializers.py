@@ -1,7 +1,7 @@
 # plans/serializers.py
 from rest_framework import serializers
-from .models import Plan
-from .models import PlanAdesion
+from .models.Plan import Plan
+from .models.PlanAdesion import PlanAdesion
 
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:

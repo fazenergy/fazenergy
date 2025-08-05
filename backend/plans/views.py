@@ -1,8 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Plan
+from .models.Plan import Plan
 from .serializers import PlanSerializer
-from .models import PlanAdesion
+from .models.PlanAdesion import PlanAdesion
 from .serializers import PlanAdesionSerializer
 
 class PlanViewSet(viewsets.ModelViewSet):

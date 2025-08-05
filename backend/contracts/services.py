@@ -60,16 +60,22 @@ def send_doc_adesion_to_lexio(pk: int) -> dict:
     if not config:
         raise ValueError("Configuração da API Lexio não encontrada!")
 
+    # Monta os signatários
     signers = [
         {
-            "completed_name": config.signer_company_name,
-            "email": config.signer_company_email,
-            "function": config.signer_company_function,
+            "completed_name": config.signer_name_partner,
+            "email": config.signer_mail_partner,
+            "function": "Parte da Empresa",
+        },
+        {
+            "completed_name": config.signer_name_testmon,
+            "email": config.signer_mail_testmon,
+            "function": "Testemunha",
         },
         {
             "completed_name": userLicensed.get_full_name(),
             "email": userLicensed.email,
-            "function": "Parte Contratada",
+            "function": "Representante legal", # que seria a parte contratada no caso
         },
     ]
 
@@ -77,7 +83,7 @@ def send_doc_adesion_to_lexio(pk: int) -> dict:
         filename=f"Contrato de Adesao_{pk}",
         base_document=contrato_b64,
         signers=signers,
-        resumo=f"Plano e Contrato de Adesão MMN - Faz Energy - Cliente {pk}",
+        resumo=f"Contrato de Adesão MMN - Faz Energy - Cliente {pk}",
     )
 
     ContractLog.objects.create(

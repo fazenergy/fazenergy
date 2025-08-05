@@ -4,13 +4,13 @@ from .models import ContractConfig, ContractTemplate, ContractLog
 
 @admin.register(ContractConfig)
 class ContractConfigAdmin(admin.ModelAdmin):
-    list_display = ('lexio_url', 'signer_company_name', 'signer_company_email', 'lexio_token')
+    list_display = ('lexio_url', 'signer_name_partner', 'signer_mail_partner','signer_name_testmon', 'signer_mail_testmon', 'lexio_token')
     fieldsets = (
         (None, {
             'fields': ('lexio_url', 'lexio_token')
         }),
-        ('Signatário Parte Contratante', {
-            'fields': ('signer_company_name', 'signer_company_email', 'signer_company_function')
+        ('Signatário Parte Empresa', {
+            'fields': ('signer_name_partner', 'signer_mail_partner', 'signer_name_testmon', 'signer_mail_testmon')
         }),
     )
 

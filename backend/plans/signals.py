@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from plans.models import PlanAdesion
+from plans.models.PlanAdesion import PlanAdesion
 
 # CHAMA O METODO QUE CRIA O LINK DE PAGAMENTO NA PAGARME E GRAVA NO BANCO NO 
 # MOMENTO EM QUE É INSERIDO UM NOVO PLANO DE ADESÃO PARA AQUELE AFILIADO

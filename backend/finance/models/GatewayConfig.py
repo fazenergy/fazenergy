@@ -33,8 +33,8 @@ class GatewayConfig(models.Model):
 
     class Meta:
         db_table = 'GatewayConfig'
-        verbose_name = "Configuração de Pagamento"
-        verbose_name_plural = "Configurações de Pagamento"
+        verbose_name = "Gateway Config"
+        verbose_name_plural = "Gateways Configs"
 
     def __str__(self):
         return f"{self.name}"

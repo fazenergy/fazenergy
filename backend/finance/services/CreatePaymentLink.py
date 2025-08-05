@@ -9,8 +9,8 @@ from datetime import timedelta
 import json
 
 def create_payment_link(plan_adesion):
-    from backend.finance.models.PaymentLink import PaymentLink
-    from backend.finance.models.GatewayConfig import PaymentConfig
+    from finance.models.PaymentLink import PaymentLink
+    from finance.models.GatewayConfig import GatewayConfig
     """
         Service: gera PaymentLink para a PlanAdesion recebida.
     """
@@ -75,7 +75,7 @@ def create_payment_link(plan_adesion):
     }
 
     # Busca config ativa
-    config = PaymentConfig.objects.filter(active=True).first()
+    config = GatewayConfig.objects.filter(active=True).first()
     if not config:
         raise ValueError("Nenhuma configuração de pagamento ativa encontrada.")
 
@@ -113,7 +113,7 @@ def create_payment_link(plan_adesion):
         data = resp.json()
         print("Resposta do Pagar.me:", json.dumps(data, indent=2))
 
-        from backend.core.models.Licensed import Licensed
+        from core.models.Licensed import Licensed
         licensed = Licensed.objects.get(user=plan_adesion.licensed)
 
         payment_link = PaymentLink(

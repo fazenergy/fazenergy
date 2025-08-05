@@ -1,5 +1,5 @@
 from django.contrib import admin, messages
-from django.urls import path
+from django.urls import path, reverse
 from django.shortcuts import redirect
 from notifications.models.NotifyConfig import NotifyConfig
 from notifications.models.NotifyTemplate import NotifyTemplate
@@ -40,6 +40,35 @@ class NotifyTemplateAdmin(admin.ModelAdmin):
     # adicionei isso só pra testarmos o envio de email
     actions = ['test_send']
 
+    def test_send(self, request, queryset):
+        """Action para testar envio de email em lote"""
+        config = NotifyConfig.objects.first()
+        recipient = config.test_recipient if config and config.test_recipient else None
+
+        if not recipient:
+            self.message_user(request, "Destinatário de teste não configurado!", messages.ERROR)
+            return
+
+        context = {
+            "nome": "Teste",
+            "id": "USR001",
+            "nova_senha": "abc123",
+            "site_url": "https://faz.energy",
+        }
+
+        success_count = 0
+        for template in queryset:
+            try:
+                send_email(template.name, context, [recipient])
+                success_count += 1
+            except Exception as e:
+                self.message_user(request, f"Erro ao enviar {template.name}: {str(e)}", messages.ERROR)
+
+        if success_count > 0:
+            self.message_user(request, f"{success_count} emails de teste enviados para {recipient}.", messages.SUCCESS)
+
+    test_send.short_description = "Enviar email de teste para os templates selecionados"
+
 
     # AQUI PRA BAIXO É SÓ FIRULA, IMPORTANTE É O QUE ESTÁ ACIMA
     #####################################################################################################################
@@ -47,7 +76,7 @@ class NotifyTemplateAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('<int:pk>/test/', self.admin_site.admin_view(self.test_template), name='notificationtemplate-test'),
+            path('<int:pk>/test/', self.admin_site.admin_view(self.test_template), name='notifytemplate-test'),
         ]
         return custom_urls + urls
 
@@ -67,7 +96,7 @@ class NotifyTemplateAdmin(admin.ModelAdmin):
 
         if not recipient:
             self.message_user(request, "Destinatário de teste não configurado!", messages.ERROR)
-            return redirect('/admin/notifications/notificationtemplate/')
+            return redirect(reverse('admin:notifications_notifytemplate_changelist'))
 
         context = {
             "nome": "Teste",
@@ -78,4 +107,4 @@ class NotifyTemplateAdmin(admin.ModelAdmin):
 
         send_email(template.name, context, [recipient])
         self.message_user(request, f"E-mail de teste enviado para {recipient}.", messages.SUCCESS)
-        return redirect('/admin/notifications/notificationtemplate/')
+        return redirect(reverse('admin:notifications_notifytemplate_changelist'))

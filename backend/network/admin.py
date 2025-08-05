@@ -10,7 +10,12 @@ class UnilevelNetworkAdmin(admin.ModelAdmin):
 
 @admin.register(LicensedPoints)
 class LicensedPointsAdmin(admin.ModelAdmin):
-    list_display = ('licensed', 'points', 'description', 'status', 'dtt_record')
+    list_display = ('licensed', 'points', 'description', 'status', 'data_referencia_formatada', 'data_registro_formatada')
     search_fields = ('licensed__user__username', 'description', 'reference')
-   # list_filter = ('status')
-    #readonly_fields = ('dtt_record')
+    list_filter = ('status', 'dtt_ref', 'dtt_record')
+    readonly_fields = ('data_registro_formatada',)
+    
+    fields = (
+        'licensed', 'description', 'points', 'reference', 'status',
+        'dtt_ref', 'data_registro_formatada'
+    )

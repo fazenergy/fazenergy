@@ -1,8 +1,8 @@
 from django.test import TestCase
 from django.utils import timezone
 
-from backend.core.models.User import User
-from backend.core.models.Licensed import Licensed
+from core.models.User import User
+from core.models.Licensed import Licensed
 from plans.models import Plan, PlanAdesion
 from finance.models import VirtualAccount, VirtualAccountTransaction
 

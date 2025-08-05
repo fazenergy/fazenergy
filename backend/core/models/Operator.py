@@ -33,8 +33,8 @@ class Operator(models.Model):
 
     class Meta:
         db_table = 'Operator'
-        verbose_name = "Gerente de Operação"
-        verbose_name_plural = "Gerente de Operações"
+        verbose_name = "Operador"
+        verbose_name_plural = "Operadores"
 
     def __str__(self):
         return self.username

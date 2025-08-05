@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'django_ckeditor_5',
 
     # Apps internas (core primeiro!)
-    'core',
+    'core.apps.CoreConfig',
     'contracts',
     'finance.apps.FinanceConfig',
     'location',
@@ -108,16 +108,56 @@ WSGI_APPLICATION = 'config.wsgi.application'
 CKEDITOR_5_CONFIGS = {
     'default': {
         'toolbar': [
+            'sourceEditing', '|',  # Código HTML - PRIMEIRO para ficar sempre visível
             'heading', '|',
             'bold', 'italic', 'underline', 'link', '|',
             'bulletedList', 'numberedList', 'blockQuote', '|',
-            'insertTable', 'imageUpload', '|',
+            'insertTable', '|',
             'undo', 'redo'
         ],
         'width': '600px',
         'language': 'pt-br',
+        'htmlSupport': {
+            'allow': [
+                {
+                    'name': '/./',
+                    'attributes': True,
+                    'classes': True,
+                    'styles': True
+                }
+            ]
+        },
+        'extraPlugins': [],
+        'removePlugins': []
+    },
+    'contract': {
+        'toolbar': [
+            'sourceEditing', '|',  # Código HTML - PRIMEIRO para ficar sempre visível
+            'heading', 'fontSize', '|',
+            'bold', 'italic', 'underline', '|',
+            'fontColor', 'fontBackgroundColor', '|',
+            'alignment', '|',
+            'bulletedList', 'numberedList', '|',
+            'link', 'insertTable', '|',
+            'undo', 'redo'
+        ],
+        'width': '100%',
+        'height': '600px',
+        'language': 'pt-br',
+        'htmlSupport': {
+            'allow': [
+                {
+                    'name': '/./',
+                    'attributes': True,
+                    'classes': True,
+                    'styles': True
+                }
+            ]
+        },
+        'extraPlugins': [],
+        'removePlugins': []
     }
-}
+}   
 
 # CKEDITOR5_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
 
@@ -159,12 +199,12 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_THOUSAND_SEPARATOR = True
 THOUSAND_SEPARATOR = '.'
 DECIMAL_SEPARATOR = ','
-DATE_FORMAT = "d/m/Y"           # Exibe como 03/07/2025
-DATETIME_FORMAT = "d/m/Y H:i"  # Formato padrão para datas com hora
+DATE_FORMAT = "d/m/Y"                 # Exibe como 03/08/2025
+DATETIME_FORMAT = "d/m/Y H:i:s"       # Formato padrão para datas com hora e segundos
 
 # Formato de entrada (quando você digita no admin ou form)
 DATE_INPUT_FORMATS = ["%d/%m/%Y"]
-DATETIME_INPUT_FORMATS = ["%d/%m/%Y %H:%M"]
+DATETIME_INPUT_FORMATS = ["%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"]
 
 USE_I18N = True
 USE_L10N = False  # Desativa formatação automática baseada no locale
@@ -217,26 +257,52 @@ JAZZMIN_SETTINGS = {
     "site_logo": "logo-fz.png",          # Ícone no topo
     "site_icon": "favicon.ico",
     "welcome_sign": "Bem-vindo ao Painel FazEnergy",
-    "copyright": "FazEnergy © 2025",
+    "copyright": "FazEnergy",
 
     "navigation_expanded": False,  # Inicia os apps fechados (accordion)
     "show_sidebar": True,
-    "hide_apps": [],  # Apps que quer ocultar do menu
-    "hide_models": [],  # Models que quer ocultar do menu
+    "hide_apps": ["auth"],  # Oculta o app auth já que temos grupos no core
+    "hide_models": [],  # Removido auth.Group para permitir que apareça
 
     "order_with_respect_to": [
         "core",
-        "finance",
+        "finance", 
+        "contracts",
+        "revo",
+        "plans",
         "notifications",
+        "network",
         "location",
     ],
 
     "icons": {
-        "auth": "fas fa-users",
+        "auth": "fas fa-shield-alt",
+        "auth.Group": "fas fa-users-cog",  # Ícone para grupos
+        "auth.User": "fas fa-user",        # Ícone para usuários
         "finance": "fas fa-coins",
-        "core.Affiliate": "fas fa-user-tie",
+        "core": "fas fa-cog",
+        "core.User": "fas fa-user-circle",
+        "core.Licensed": "fas fa-user-tie",
+        "core.Operator": "fas fa-user-shield",
+        "core.CoreGroup": "fas fa-users-cog",  # Ícone para grupos no core
+        "contracts": "fas fa-file-contract",
+        "plans": "fas fa-layer-group",
+        "location": "fas fa-map-marker-alt",
+        "notifications": "fas fa-bell",
+        "network": "fas fa-network-wired",
+        "revo": "fas fa-rocket",
         "finance.PaymentLink": "fas fa-link",
     },
+
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Ver Site", "url": "/", "new_window": True},
+    ],
+
+    # Personaliza os nomes dos apps
+    "related_modal_active": False,
+    "use_google_fonts_cdn": True,
+    "show_ui_builder": False,
 
     "custom_css": "css/admin-custom.css",
     "custom_js": None,
@@ -248,26 +314,26 @@ JAZZMIN_UI_TWEAKS = {
     "footer_small_text": False,
     "body_small_text": False,
     "brand_small_text": False,
-    "brand_colour": False,
+    "brand_colour": "navbar-primary",
     "accent": "accent-primary",
     "navbar": "navbar-white navbar-light",
     "no_navbar_border": False,
     "navbar_fixed": False,
     "layout_boxed": False,
     "footer_fixed": False,
-    "sidebar_fixed": False,
+    "sidebar_fixed": True,
     "sidebar": "sidebar-dark-primary",
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
-    "sidebar_nav_child_indent": False,
+    "sidebar_nav_child_indent": True,
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "theme": "pulse",
+    "theme": "flatly",
     "dark_mode_theme": None,
     "button_classes": {
-        "primary": "btn-outline-primary",
-        "secondary": "btn-outline-secondary",
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
         "info": "btn-info",
         "warning": "btn-warning",
         "danger": "btn-danger",

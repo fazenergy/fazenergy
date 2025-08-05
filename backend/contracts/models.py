@@ -8,9 +8,13 @@ class ContractConfig(models.Model):
     lexio_url = models.URLField(default="https://app.lexio.legal/api/receive_document")
     lexio_token = models.CharField(max_length=255, verbose_name="Token de API")
 
-    signer_company_name = models.CharField(max_length=255, verbose_name="Nome Parte Contratante")
-    signer_company_email = models.EmailField(verbose_name="E-mail Parte Contratante")
-    signer_company_function = models.CharField(max_length=255, default="Parte Contratante")
+    # Parte da Empresa que assina o contrato
+    signer_name_partner = models.CharField(max_length=255, verbose_name="Parte da Empresa") # Parte da empresa que assina o contrato
+    signer_mail_partner = models.EmailField(verbose_name="E-mail Parte Empresa")
+
+    # Testemunha parte empresa que assina o contrato
+    signer_name_testmon = models.CharField(max_length=255, verbose_name="Testemunha") 
+    signer_mail_testmon = models.EmailField(verbose_name="E-mail Testemunha")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -27,7 +31,7 @@ class ContractConfig(models.Model):
 class ContractTemplate(models.Model):
     name = models.CharField(max_length=255, unique=True, verbose_name="Nome do Contrato")
     description = models.TextField(blank=True, null=True, verbose_name="Descrição")
-    body = CKEditor5Field(verbose_name="Conteúdo do Contrato (HTML)")
+    body = CKEditor5Field(config_name='contract', verbose_name="Conteúdo do Contrato (HTML)")
     mapping_info = models.TextField(
         blank=True, null=True,
         verbose_name="Instruções de Mapeamento",

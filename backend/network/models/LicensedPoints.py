@@ -40,8 +40,8 @@ class LicensedPoints(models.Model):
 
     class Meta:
         db_table = 'LicensedPoints'
-        verbose_name = "Pontuação do Licenciado"
-        verbose_name_plural = "Pontuações dos Licenciados"
+        verbose_name = "Pontuação"
+        verbose_name_plural = "Pontuações"
         indexes = [
             models.Index(fields=['licensed']),
             models.Index(fields=['status']),
@@ -49,6 +49,20 @@ class LicensedPoints(models.Model):
 
     def __str__(self):
         return f"{self.licensed} - {self.points} pts ({self.status})"
+    
+    def data_referencia_formatada(self):
+        """Retorna a data de referência no formato dd/mm/yyyy"""
+        if self.dtt_ref:
+            return self.dtt_ref.strftime("%d/%m/%Y")
+        return "-"
+    data_referencia_formatada.short_description = "Data Referência"
+    
+    def data_registro_formatada(self):
+        """Retorna a data de registro no formato dd/mm/yyyy hh:mm:ss"""
+        if self.dtt_record:
+            return self.dtt_record.strftime("%d/%m/%Y %H:%M:%S")
+        return "-"
+    data_registro_formatada.short_description = "Data Criação"
 
 
 

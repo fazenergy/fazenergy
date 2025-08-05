@@ -16,8 +16,8 @@ class NotifyConfig(models.Model):
 
     class Meta:
         db_table = 'NotifyConfig'
-        verbose_name = "Configuração de Notificação"
-        verbose_name_plural = "Configurações de Notificação"
+        verbose_name = "Configuração de E-mail"
+        verbose_name_plural = "Configurações de E-mail"
 
     def __str__(self):
         return f"{self.smtp_user} ({self.smtp_host}:{self.smtp_port})"

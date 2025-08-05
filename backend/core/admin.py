@@ -1,11 +1,48 @@
 # core/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from core.models import User, Group, Licensed, Operator
+from core.models import User, Licensed, Operator, CoreGroup
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.utils.html import format_html
+
+# #####################################################################################
+# PAINEL ADMIN - MODELOS DE GRUPOS (usando proxy model)
+# #####################################################################################
+@admin.register(CoreGroup)
+class CoreGroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'permissions_list', 'users_count')
+    search_fields = ('name',)
+    filter_horizontal = ('permissions',)  # Interface melhorada para selecionar permissões
+
+    def permissions_list(self, obj):
+        perms = obj.permissions.all()[:3]  # Mostra apenas as 3 primeiras
+        count = obj.permissions.count()
+        if count > 3:
+            return f"{', '.join([p.name for p in perms])} (+{count-3} mais)"
+        return ", ".join([p.name for p in perms]) or "Nenhuma"
+
+    def users_count(self, obj):
+        # Acessa os usuários através do related_name 'groups' do modelo User
+        count = obj.user_set.count() if hasattr(obj, 'user_set') else 0
+        return f"{count} usuário{'s' if count != 1 else ''}"
+
+    permissions_list.short_description = 'Permissões'
+    users_count.short_description = 'Usuários'
+
+    fieldsets = (
+        (None, {'fields': ('name',)}),
+        ('Permissões', {
+            'fields': ('permissions',),
+            'classes': ('collapse',)  # Seção colapsável
+        }),
+    )
+    
+    def get_queryset(self, request):
+        # Otimiza as consultas prefetch das permissões
+        return super().get_queryset(request).prefetch_related('permissions')
+    
 
 
 # #####################################################################################
