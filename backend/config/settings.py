@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     'network',
     'notifications',
     'plans',
-    'revo',
+    'proposal',
 ]
 
 
@@ -268,7 +268,7 @@ JAZZMIN_SETTINGS = {
         "core",
         "finance", 
         "contracts",
-        "revo",
+        "proposal",
         "plans",
         "notifications",
         "network",
@@ -290,7 +290,7 @@ JAZZMIN_SETTINGS = {
         "location": "fas fa-map-marker-alt",
         "notifications": "fas fa-bell",
         "network": "fas fa-network-wired",
-        "revo": "fas fa-rocket",
+        "proposal": "fas fa-rocket",
         "finance.PaymentLink": "fas fa-link",
     },
 

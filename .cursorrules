@@ -1,0 +1,35 @@
+## Contexto do Projeto
+- Projeto: FazEnergyFinal — plataforma de gestão de energia.
+- Monorepo:
+  - `@backend/` (Django 5 + DRF, Celery, JWT, Redis, PostgreSQL; admin Jazzmin).
+  - `@frontend/` (Vue 3 + Vite, Tailwind, Pinia, Vue Router, Axios).
+- Comunicação: API REST JSON. Execução com Docker.
+- Dev: SQLite é usado no repositório; Produção: preferencialmente PostgreSQL.
+- Apps Django são modulares e evolutivos (novos apps podem surgir e os atuais podem mudar).
+
+## Convenções e Diretrizes
+- Sempre responder em PT-BR.
+- Usar aliases `@backend/` e `@frontend/` ao referenciar pastas.
+- Backend: DRF para APIs, autenticação via JWT, tarefas com Celery.
+- Frontend: Axios para APIs, estado com Pinia, rotas com Vue Router, UI com Tailwind.
+- Evitar listas rígidas de apps; tratar a estrutura como dinâmica.
+
+## Estrutura Atual (não rígida, exemplos)
+- Apps existentes (podem mudar): `core`, `proposal`, `plans`, `contracts`, `finance`, `network`, `location`, `notifications`, `webhooks`.
+
+## Documentação
+- Detalhes e fluxos vivos: ver `ARCHITECTURE.md` na raiz e `docs/SCOPE.md`.
+
+## Contexto de Negócio (alto nível)
+- Plataforma de afiliados MMN unilevel (5 níveis) com:
+  - Adesão anual de afiliados (ativa posição na rede)
+  - Venda de usinas fotovoltaicas com financiamento via REVO
+  - Gestão de rede com bônus, pontos, plano de carreira, compressão dinâmica e recorrência
+- Monetização:
+  - Adesão anual: parte remunera bônus; restante é receita
+  - Usinas: economia do cliente sustenta fluxo recorrente para comissões
+- Regras chave:
+  - Bônus liberado 20 dias após pagamento via cartão
+  - Compressão dinâmica realoca bônus quando há inativos
+- Integrações: REVO (simulação/financiamento/webhooks), Pagar.me (split/saque), Lexo Legal (contratos)
+

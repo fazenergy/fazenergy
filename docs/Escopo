@@ -1,0 +1,126 @@
+# Infomações Levantadas
+
+---
+
+## 🔎 VISÃO GERAL DO PROJETO
+
+### ✅ Objetivo:
+
+Criar uma **plataforma de afiliados** no modelo **MMN unilevel (5 níveis)** para:
+
+1. **Venda de planos de adesão anual** para afiliados;
+2. **Venda de usinas fotovoltaicas** com financiamento via REVO;
+3. **Gestão de rede**, bonificações, pontos, plano de carreira, compressão dinâmica e recorrência.
+
+---
+
+## 🏗️ COMO A EMPRESA GANHA DINHEIRO (modelo de monetização)
+
+### 1. **Venda da adesão anual**
+
+- Cada novo afiliado paga uma **adesão anual** (plano MMN);
+- Isso **ativa sua posição na rede** e permite que ele indique outros e venda usinas;
+- Uma parte desse valor **paga os bônus** da rede, o restante **é receita da empresa**.
+
+### 2. **Venda de usinas fotovoltaicas**
+
+- O afiliado cadastra um lead e simula financiamento com a REVO via API;
+- Após aprovação, a REVO cuida da entrega dos equipamentos (Huawei);
+- A **Faz Energy instala e opera** a usina;
+- O cliente final **economiza na conta de luz**, o que sustenta o modelo de **pagamento recorrente à empresa** (veja abaixo).
+
+### 💡 Ponto-chave: mesmo sem o cliente pagar diretamente à Faz Energy, a geração de energia da usina instalada **gera créditos financeiros** ou **fluxo de receita contratual** (compartilhamento da economia), permitindo pagar comissões de forma sustentável.
+
+---
+
+## 🔁 COMO FUNCIONA A REDE (MMN)
+
+### 🧱 Estrutura:
+
+- Rede **Unilevel de 5 níveis**;
+- Cada novo afiliado gera **300 pontos** e bônus financeiros até 5 níveis acima;
+- Exemplo:
+    - Raiz indicou Aquiles → R$ 300;
+    - Aquiles indicou Rodrigo → Aquiles R$ 300 / Raiz R$ 120 (nível 2).
+
+### 🧠 Ponto técnico importante:
+
+- O bônus **só é liberado 20 dias após o pagamento via cartão** (por segurança);
+- O sistema **exibe projeções** e saldo disponível separadamente.
+
+---
+
+## 📉 COMPREENSÃO DINÂMICA
+
+Sistema que **reorganiza a rede** quando um afiliado está inativo (não pagou ou não renovou adesão anual):
+
+- Se alguém no nível 2 está inativo → o sistema “puxa” o bônus para o próximo qualificado ativo;
+- Evita perda de bonificação por buracos na rede;
+- Garante sustentabilidade e incentivo à ativação.
+
+---
+
+## 🔁 RECORRÊNCIA
+
+Ainda não está 100% definido no plano atual — está sendo reestruturado com o Raphael — mas a ideia é que:
+
+- Cada venda de usina possa gerar **pagamentos mensais durante um período (ex: 24 meses)**;
+- Isso cria **renda passiva** para o afiliado e estabilidade no plano;
+- Precisa ser confirmado se será comissionamento fixo ou variável com base na performance da usina/retorno da REVO.
+
+---
+
+## ⚙️ SISTEMA TÉCNICO: o que o sistema precisa fazer
+
+### 🔧 Módulos principais:
+
+- **Gestão de afiliados:** cadastro, adesão, ativação, renovação;
+- **Gestão da rede:** árvore unilevel, compressão dinâmica;
+- **Gestão financeira:** carteira virtual, saldo disponível, pagamentos (Pagar.me), split, saque;
+- **Plano de carreira:** qualificação por pontos, rotina automatizada no banco;
+- **Venda de usinas:** leads, simulação REVO, envio de documentos, contrato digital, status da proposta via Webhook;
+- **Infra:** EC2 para frontend/backend, banco em EC2, S3 para arquivos, Lexo Legal para contratos.
+
+### 🛠️ Principais tabelas e regras:
+
+- `tb_Plan`: cadastro de planos MMN (pontos e bônus por nível);
+- `tb_PlanAdesion`: controle por afiliado (status, contrato, flags);
+- `tb_Afiliate`: base dos afiliados;
+- `tb_ContaVirtual`, `tb_Transacoes`, `tb_Recebimento`: gestão financeira;
+- Controle de rede com compressão e nível dinâmico;
+- Controle do lead até a instalação da usina (status via API + Webhook REVO);
+- Integração com Lexo Legal para assinatura digital dos contratos.
+
+---
+
+## 🗂️ CHECKLIST DE DEVs
+
+### Aquiles:
+
+- Infra e base da rede, usuários, plano de adesão, contratos, notificações, contas virtuais, compressão;
+- Tarefas pendentes: integração com pagamentos Pagar.me para saque, automação de qualificação, log de falhas.
+
+### Rodrigo:
+
+- Foco total na integração com a REVO (simulações, cadastro, CEP, envio de docs, Webhook).
+
+---
+
+## 🧠 Como sócio, o que você precisa saber:
+
+1. O modelo é sustentável **se o valor recebido da REVO (financiamento)** e da operação da usina for suficiente para cobrir:
+    - O custo da instalação;
+    - Os bônus da rede (inclusive recorrentes);
+    - Os custos administrativos e operacionais.
+2. O sistema **é a espinha dorsal do negócio**:
+    - Se o controle de rede, financeiro e bônus falhar → o negócio desmorona;
+    - A transparência e estabilidade da plataforma são diferenciais competitivos.
+3. O modelo se apoia em **crescimento de rede e volume de vendas** — um equilíbrio delicado entre atratividade para o afiliado e sustentabilidade da operação.
+
+---
+
+![fluxograma_fazenergy.png](attachment:2c3a8504-52cc-40f1-91a9-e43b04e0041b:fluxograma_fazenergy.png)
+
+[Informações sobre lucro](https://www.notion.so/Informa-es-sobre-lucro-234696395c4f80a4bd69e6289477809d?pvs=21)
+
+[Entendimento da Usina Gratuita](https://www.notion.so/Entendimento-da-Usina-Gratuita-234696395c4f8098b3e8d53a2eb4598b?pvs=21)

@@ -1,0 +1,59 @@
+# === Gerais / SO ===
+.DS_Store
+Thumbs.db
+
+# === IDE ===
+.vscode/
+.idea/
+
+# === Python / Django ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.eggs/
+*.log
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+.env
+.env.*        # evita variantes
+*.sqlite3
+
+# Build/artefatos Django
+staticfiles/
+media/
+
+# === Node / Vite (frontend) ===
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/npm-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-lock.yaml.#*
+frontend/.nuxt/          # caso use no futuro
+
+# === Docker ===
+**/tmp/
+**/.docker/
+**/.env.docker
+docker-data/
+db-data/
+
+# === Arquivos grandes/zipados no repo ===
+backend.zip
+
+# === Git ===
+.git/
+.git/**
+
+# === Outros binários e backups ===
+*.bak
+*.swp
+*.swx
+*.zip
+*.tar
+*.tar.gz

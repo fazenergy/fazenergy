@@ -1,19 +1,20 @@
 FROM python:3.11-slim
 
-# Diretório de trabalho
+# DiretÃ³rio de trabalho
 WORKDIR /app
 
 # Evita arquivos `.pyc` e uso de buffer
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Instala dependências
+# Instala dependÃªncias
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 RUN pip install python-dotenv
+RUN pip install debugpy
 
-# Copia o código para dentro do container
+# Copia o cÃ³digo para dentro do container
 COPY . .
 
-# Comando padrão
+# Comando padrÃ£o
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
