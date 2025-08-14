@@ -9,6 +9,8 @@ import Login from '../views/Auth/Login.vue'
 import PreRegister from '../views/Auth/PreRegister.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Network from '../views/Network.vue'
+import Directs from '../views/Directs.vue'
+import NetworkTree from '../views/NetworkTree.vue'
 import Reports from '../views/Reports.vue'
 import Profile from '../views/Profile.vue'
 import Settings from '../views/Settings.vue'
@@ -29,7 +31,9 @@ const routes = [
   
 
   { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true, roles: ['superadmin'] } },
-  { path: '/network', component: Network, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador'] } },
+  { path: '/network', component: Network, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
+  { path: '/network/directs', component: Directs, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
+  { path: '/network/tree', component: NetworkTree, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
   { path: '/reports', component: Reports, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador'] } },
   { path: '/settings', component: Settings, meta: { requiresAuth: true, roles: ['superadmin'] } },
@@ -48,19 +52,7 @@ router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('accessToken')
 
   if (token && !auth.user) {
-    try {
-      await auth.fetchProfile()
-    } catch (e) {
-      // Só faz logout e redireciona se a rota exigir autenticação
-      if (to.meta.requiresAuth) {
-        auth.logout()
-        return next('/login')
-      } else {
-        // Se for rota pública, só limpa o token inválido, mas NÃO redireciona
-        auth.logout()
-        return next()
-      }
-    }
+    await auth.fetchProfile()
   }
 
   // Agora sim, faz as checagens

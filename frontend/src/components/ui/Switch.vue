@@ -13,6 +13,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 
 const props = defineProps({
   modelValue: Boolean
@@ -21,6 +22,6 @@ const emit = defineEmits(['update:modelValue'])
 
 const model = computed({
   get: () => props.modelValue,
-  set: val => emit('update:modelValue', val)
+  set: (val: boolean) => emit('update:modelValue', val)
 })
 </script>

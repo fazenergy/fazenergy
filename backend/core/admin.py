@@ -24,8 +24,11 @@ class CoreGroupAdmin(admin.ModelAdmin):
         return ", ".join([p.name for p in perms]) or "Nenhuma"
 
     def users_count(self, obj):
-        # Acessa os usuários através do related_name 'groups' do modelo User
-        count = obj.user_set.count() if hasattr(obj, 'user_set') else 0
+        # Acessa os usuários através do related_name definido em User.groups
+        # No nosso modelo, o related_name é 'custom_user_set'
+        count = obj.custom_user_set.count() if hasattr(obj, 'custom_user_set') else (
+            obj.user_set.count() if hasattr(obj, 'user_set') else 0
+        )
         return f"{count} usuário{'s' if count != 1 else ''}"
 
     permissions_list.short_description = 'Permissões'
@@ -142,7 +145,7 @@ class OperatorAdmin(admin.ModelAdmin):
 
 
 # #####################################################################################
-# PAINEL ADMIN - MODELOS DE USUÁRIOS AFILIADOS
+# PAINEL ADMIN - MODELOS DE USUÁRIOS LICENCIADOS
 # #####################################################################################
 @admin.register(Licensed)
 class LicensedAdmin(admin.ModelAdmin):
@@ -225,11 +228,11 @@ class LicensedAdmin(admin.ModelAdmin):
 
         super().save_model(request, obj, form, change)
 
-        # Vincula o usuário ao grupo Afiliado se não estiver
+        # Vincula o usuário ao grupo Licenciado se não estiver
         if obj.user:
-            afiliado_group, _ = Group.objects.get_or_create(name='Afiliado')
-            if not obj.user.groups.filter(name='Afiliado').exists():
-                obj.user.groups.add(afiliado_group)
+            licensed_group, _ = Group.objects.get_or_create(name='Licenciado')
+            if not obj.user.groups.filter(name='Licenciado').exists():
+                obj.user.groups.add(licensed_group)
     
     
     

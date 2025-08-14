@@ -36,19 +36,25 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async fetchProfile() {
-      if (!this.accessToken) return
+      if (!this.accessToken) return null
 
-      api.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`
-
-      const res = await api.get('/api/core/profile/')
-      console.log('[DEBUG] Perfil recebido:', res.data); // TO DO: COMENTAR DEPOIS ( bom pra ver como está chegando o perfil do user logado)
-      this.user = res.data
+      try {
+        api.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`
+        const res = await api.get('/api/core/profile/')
+        this.user = res.data
+        return res.data
+      } catch (err) {
+        // Token inválido/expirado: limpa estado e não propaga erro em rotas públicas
+        this.logout({ silent: true })
+        return null
+      }
     },
 
-    logout() {
-      debugger;
-      console.log('[AUTH] logout chamado')
-      console.trace('[AUTH] logout chamado')
+    logout(options = {}) {
+      const { silent = false } = options
+      if (!silent) {
+        console.log('[AUTH] logout chamado')
+      }
       this.user = null
       this.accessToken = ''
       this.refreshToken = ''

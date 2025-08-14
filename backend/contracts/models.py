@@ -52,7 +52,7 @@ class ContractTemplate(models.Model):
         if not self.mapping_info:
             self.mapping_info = """
             {{ licensed.original_indicator }}: ID do Indicador Original
-            {{ licensed.id }}: ID do afiliado
+            {{ licensed.id }}: ID do licenciado
             {{ licensed.nome }}: Nome do licenciado
             {{ licensed.person_type }}: Tipo de Pessoa PF ou PJ
             {{ licensed.cpf_cnpj }}: CPF/CNPJ
@@ -69,8 +69,8 @@ class ContractTemplate(models.Model):
             {{ licensed.state_abbr }}: UF
             {{ licensed.plan.name }}: Nome do Plano de Adesão
             {{ licensed.plan.price }}: Preço do Plano de Adesão
-            {{ licensed.full_name }}: Nome completo do afiliado
-            {{ licensed.dtt_record }}: Data de cadastro do afiliado
+            {{ licensed.full_name }}: Nome completo do licenciado
+            {{ licensed.dtt_record }}: Data de cadastro do licenciado
             {{ licensed.dtt_payment_received }}: Data de recebimento do pagamento
                 """ 
         super().save(*args, **kwargs)

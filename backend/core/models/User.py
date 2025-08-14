@@ -6,9 +6,6 @@ from core.choices import *
 # USUÁRIO
 # --------------------------------------------------------------------------------------------------
 class User(AbstractUser):
-    is_operator = models.BooleanField(default=False, verbose_name="É Operador?")
-    is_licensed = models.BooleanField(default=False, verbose_name="É Licenciado?")
-    is_customer = models.BooleanField(default=False, verbose_name="É Cliente ? ") # usado pra quando o mesmo não é licenciado ainda e sim um cliente
     image_profile = models.ImageField(
         upload_to='profiles/',
         blank=True,

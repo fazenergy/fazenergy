@@ -863,6 +863,45 @@
     }
 }
 
+/* ==========================================================================
+   Ajuste: Botões de data/hora (Hoje | ícone) ao lado do input no Jazzmin
+   ========================================================================== */
+/* Mantém padrão do Jazzmin para outros campos (sem grid genérico) */
+
+/* Mantém os atalhos (Hoje | ícone) na mesma linha do input — quando estão no mesmo wrapper */
+.related-widget-wrapper input.vDateField + .datetimeshortcuts,
+.related-widget-wrapper input.vTimeField + .datetimeshortcuts,
+.related-widget-wrapper input.vDateTimeField + .datetimeshortcuts,
+.related-widget-wrapper input.vDateField ~ .datetimeshortcuts,
+.related-widget-wrapper input.vTimeField ~ .datetimeshortcuts,
+.related-widget-wrapper input.vDateTimeField ~ .datetimeshortcuts {
+    white-space: nowrap;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0 !important;
+    margin-left: 8px !important;
+}
+
+/* Ajuste sutil para o ícone do calendário do Django */
+.datetimeshortcuts a { text-decoration: none; }
+.datetimeshortcuts .date-icon,
+.datetimeshortcuts .time-icon {
+    margin-left: 4px;
+}
+
+/* Abordagem específica: aplica só aos campos Date/Time (não mexe nos ManyToOne add/edit/view) */
+/* Reduz a largura apenas de inputs de data/hora dentro do wrapper para abrir espaço ao lado */
+.related-widget-wrapper input.vDateField,
+.related-widget-wrapper input.vTimeField,
+.related-widget-wrapper input.vDateTimeField {
+    display: inline-block !important;
+    width: calc(100% - 140px) !important;
+    vertical-align: middle;
+}
+
+/* Remove fallback universal para não impactar outros campos */
+
 /* ===== TOOLTIP PARA CABEÇALHO PML ===== */
 /* Adiciona tooltip no cabeçalho da coluna PML */
 th.column-pml_short {

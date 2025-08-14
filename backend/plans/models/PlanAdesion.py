@@ -45,10 +45,10 @@ class PlanAdesion(models.Model):
     dtt_update = models.DateTimeField(auto_now=True)
 
     is_courtesy = models.BooleanField(default=False, verbose_name="Cortesia?")
-    points_generated = models.BooleanField(default=False, verbose_name="Pontos")
+    points_generated = models.BooleanField(default=False, verbose_name="Pontos") # TO DO: ENTENDER DO QUE SE TRATA ESSA FLAG
 
-    ind_processing = models.CharField(max_length=20, choices=PROCESSING_STATUS_CHOICES, default='pending', verbose_name="Stt Process")
-    ind_bonus_status = models.CharField(max_length=20, choices=BONUS_STATUS_CHOICES, default='notApply', verbose_name="Stt Bônus")
+    ind_processing = models.CharField(max_length=20, choices=PROCESSING_STATUS_CHOICES, default='pending', verbose_name="Stt Process") # TO DO: ENTENDER DO QUE SE TRATA 
+    ind_bonus_status = models.CharField(max_length=20, choices=BONUS_STATUS_CHOICES, default='notApply', verbose_name="Stt Bônus") # TO DO: ENTENDER DO QUE SE TRATA 
 
     des_cancel_reason = models.CharField(max_length=500, blank=True, null=True, verbose_name="Motivo Cancelamento")
     contract_status = models.CharField(max_length=50, blank=True, null=True, verbose_name="Status Contrato")

@@ -34,8 +34,8 @@ def create_plan_adesion_for_licensed(sender, instance, created, **kwargs):
         if instance.original_indicator:
             # 1 - Liga nível 1
             UnilevelNetwork.objects.create(
-                parent_licensed=instance.original_indicator,
-                child_licensed=instance,
+                upline_licensed=instance.original_indicator,
+                downline_licensed=instance,
                 level=1
             )
             # 2 - Liga uplines até nível 5
@@ -43,8 +43,8 @@ def create_plan_adesion_for_licensed(sender, instance, created, **kwargs):
             level = 2
             while parent.original_indicator and level <= 5:
                 UnilevelNetwork.objects.create(
-                    parent_licensed=parent.original_indicator,
-                    child_licensed=instance,
+                    upline_licensed=parent.original_indicator,
+                    downline_licensed=instance,
                     level=level
                 )
                 parent = parent.original_indicator

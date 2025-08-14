@@ -2,7 +2,7 @@
   <aside
     :class="[
       mini ? 'w-16' : 'w-52',
-      'text-white flex flex-col justify-between bg-blue-600 h-full text-sm transition-all duration-300'
+      'text-white flex flex-col justify-between bg-blue-600 min-h-screen text-sm transition-all duration-300'
     ]"
   >
     <div>
@@ -23,10 +23,10 @@
                 <span v-if="!mini">Dashboard</span>
               </router-link>
             </li>
-            <li v-if="isAfiliado || isSuperUser">
+            <li v-if="isLicensed || isSuperUser">
               <router-link to="/preRegister" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Cadastrar Afiliado">
                 <UserPlus class="w-4 h-4" />
-                <span v-if="!mini">Cadastrar Afiliado</span>
+                <span v-if="!mini">Cadastrar Licenciado</span>
               </router-link>
             </li>
             <li v-if="isSuperUser">
@@ -54,18 +54,28 @@
           </ul>
         </div>
 
-        <!-- Rede (Afiliado, Operador ou Superadmin) -->
-        <div v-if="isAfiliado || isOperador || isSuperUser">
+          <!-- Rede (Licenciado, Operador ou Superadmin) -->
+          <div v-if="isLicensed || isOperador || isSuperUser">
           <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Rede</h3>
           <ul class="space-y-1">
-            <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Diretos"><ArrowRight class="w-4 h-4" /><span v-if="!mini">Diretos</span></a></li>
+            <li>
+              <router-link to="/network/directs" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Diretos">
+                <ArrowRight class="w-4 h-4" />
+                <span v-if="!mini">Diretos</span>
+              </router-link>
+            </li>
             <li><a href="#" :class="['flex items-center p-4 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Equipe"><Users class="w-4 h-4" /><span v-if="!mini">Equipe</span></a></li>
-            <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Árvore da Rede"><TreePine class="w-4 h-4" /><span v-if="!mini">Árvore da Rede</span></a></li>
+            <li>
+              <router-link to="/network/tree" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Árvore da Rede">
+                <TreePine class="w-4 h-4" />
+                <span v-if="!mini">Árvore da Rede</span>
+              </router-link>
+            </li>
           </ul>
         </div>
 
-        <!-- Geral (Afiliado, Operador ou Superadmin) -->
-        <div v-if="isAfiliado || isOperador || isSuperUser">
+        <!-- Geral (Licenciado, Operador ou Superadmin) -->
+      <div v-if="isLicensed || isOperador || isSuperUser">
           <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Geral</h3>
           <ul class="space-y-1">
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Materiais"><Book class="w-4 h-4" /><span v-if="!mini">Materiais</span></a></li>
@@ -113,6 +123,6 @@ const auth = useAuthStore()
 const isSuperUser = computed(() => auth.user?.is_superuser === true)
 const groups = computed(() => auth.user?.groups || [])
 
-const isAfiliado = computed(() => groups.value.includes('Afiliado'))
+const isLicensed = computed(() => groups.value.includes('Licenciado'))
 const isOperador = computed(() => groups.value.includes('Operador'))
 </script>

@@ -1,24 +1,25 @@
 <template>
   <!-- Se autenticado → mostra com sidebar -->
-  <div v-if="auth.user" class="flex">
-    <Sidebar :mini="false" />
-    <div class="flex-1">
-      <Header />
-      <div class="p-4">
-        <FormContent :referrer-username="route.query.ind || ''" />
+  <div v-if="isAuthenticated" class="min-h-screen flex">
+    <Sidebar :mini="mini" />
+    <div class="flex-1 flex flex-col min-h-screen">
+      <Header @toggle-sidebar="mini = !mini" />
+      <div class="p-4 flex-1 bg-white">
+        <FormContent :referrer-username="referrerQuery" />
       </div>
     </div>
   </div>
 
-  <!-- Visitante (sem login) → mostra layout público -->
+  <!-- Demais casos (visitante) → layout público -->
   <div v-else class="min-h-screen flex items-center justify-center bg-gray-100">
     <div class="w-full max-w-4xl bg-white p-8 rounded shadow">
-      <FormContent :referrer-username="route.query.ind || ''" />
+      <FormContent :referrer-username="referrerQuery" />
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import Sidebar from '@/components/Sidebar.vue'
@@ -27,4 +28,12 @@ import FormContent from '@/components/FormPreRegister.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
+const isAuthenticated = computed(() => !!auth.user)
+const referrerQuery = computed(() => String(route.query.ind || route.query.indicador || ''))
+const mini = ref(false)
+
+// Se houver token mas user ainda não carregado, tenta buscar o perfil para evitar tela em branco
+if (!auth.user && localStorage.getItem('accessToken')) {
+  auth.fetchProfile().catch(() => {})
+}
 </script>

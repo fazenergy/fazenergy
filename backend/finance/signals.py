@@ -25,8 +25,14 @@ def create_transaction_on_plan_payment(sender, instance, created, **kwargs):
     cria a transação de bônus na conta virtual.
     """
     if instance.ind_payment_status == 'confirmed' and not instance.points_generated:
-        # Pega o licensed
-        licensed = instance.licensed
+        # Pega o licensed (precisa buscar o Licensed baseado no User)
+        from core.models.Licensed import Licensed
+        try:
+            licensed = Licensed.objects.get(user=instance.licensed)
+        except Licensed.DoesNotExist:
+            print(f"❌ Licensed não encontrado para o usuário {instance.licensed}")
+            return
+            
         virtual_account, _ = VirtualAccount.objects.get_or_create(licensed=licensed)
 
         # Cria transação

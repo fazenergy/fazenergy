@@ -2,13 +2,13 @@
 <!-- src/views/Dashboard.vue -->
 <template>
 <div>
-   <!-- ✅ Botão visível só para afiliados -->
+   <!-- ✅ Botão visível só para licenciados -->
     <button
       v-if="isLicensed"
       @click="goToPreRegister"
       class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
     >
-      Cadastrar Afiliado
+      Cadastrar Licenciado
     </button>
 </div>
 <div class="flex">
@@ -18,7 +18,7 @@
     <!-- Cards principais -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg hover:scale-[1.01] transition-transform">
-         <template #title><div>Total de Afiliados</div></template>
+         <template #title><div>Total de Licenciados</div></template>
          <template #content><div><p class="text-2xl font-bold">R$ 1.234</p></div></template>
          <template #description><div>+20.1% em relação ao mês passado</div></template>
          <template #icon><UserPlus class="w-5 h-5" /></template>

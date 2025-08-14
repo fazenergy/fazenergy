@@ -93,5 +93,18 @@ def send_doc_adesion_to_lexio(pk: int) -> dict:
         status=result.get("status"),
     )
 
+    # Atualiza o PlanAdesion com o status e token do contrato
+    from plans.models import PlanAdesion
+    try:
+        plan_adesion = PlanAdesion.objects.get(licensed=userLicensed)
+        plan_adesion.contract_status = result.get("status")
+        plan_adesion.contract_token = result.get("document_token")
+        plan_adesion.save()
+        print(f"✅ PlanAdesion atualizado com contract_status: {result.get('status')} e contract_token: {result.get('document_token')}")
+    except PlanAdesion.DoesNotExist:
+        print(f"❌ PlanAdesion não encontrado para o usuário {userLicensed}")
+    except Exception as e:
+        print(f"❌ Erro ao atualizar PlanAdesion: {e}")
+
     return result
 

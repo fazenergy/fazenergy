@@ -14,10 +14,59 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(PlanAdesion)
 class PlanAdesionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'plan', 'licensed', 'ind_payment_status', 'typ_payment', 'is_courtesy', 'points_generated', 'ind_processing')
+    list_display = ('id', 'plan', 'licensed', 'ind_payment_status', 'typ_payment', 'is_courtesy', 'points_generated', 'ind_processing', 'contract_status')
     search_fields = ('licensed__username', 'plan__name')
-    list_filter = ('ind_payment_status', 'typ_payment', 'ind_processing')
-    readonly_fields = ('dtt_update', 'dtt_record')
+    list_filter = ('ind_payment_status', 'typ_payment', 'ind_processing', 'contract_status')
+    readonly_fields = ('dtt_update', 'dtt_record', 'contract_token')
+    actions = ['update_contract_fields']
+    
+    def update_contract_fields(self, request, queryset):
+        """Action para atualizar campos de contrato baseado no ContractLog"""
+        from contracts.models import ContractLog
+        updated_count = 0
+        
+        for plan_adesion in queryset:
+            try:
+                contract_log = ContractLog.objects.filter(
+                    licensed__user=plan_adesion.licensed
+                ).order_by('-id').first()
+                
+                if contract_log:
+                    plan_adesion.contract_status = contract_log.status
+                    plan_adesion.contract_token = contract_log.document_token
+                    plan_adesion.save()
+                    updated_count += 1
+                    
+            except Exception as e:
+                self.message_user(request, f"Erro ao atualizar PlanAdesion {plan_adesion.id}: {e}", level='ERROR')
+        
+        if updated_count > 0:
+            self.message_user(request, f"{updated_count} registros atualizados com sucesso!")
+        else:
+            self.message_user(request, "Nenhum registro foi atualizado.", level='WARNING')
+    
+    update_contract_fields.short_description = "Atualizar campos de contrato"
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('plan', 'licensed', 'is_courtesy')
+        }),
+        ('Status de Pagamento', {
+            'fields': ('ind_payment_status', 'typ_payment', 'dtt_payment', 'points_generated')
+        }),
+        ('Status de Processamento', {
+            'fields': ('ind_processing', 'ind_bonus_status')
+        }),
+        ('Contrato', {
+            'fields': ('contract_status', 'contract_token')
+        }),
+        ('Cancelamento', {
+            'fields': ('des_cancel_reason', 'dtt_cancel')
+        }),
+        ('Timestamps', {
+            'fields': ('dtt_record', 'dtt_update')
+        }),
+    )
 
 
 @admin.register(PlanCareer)

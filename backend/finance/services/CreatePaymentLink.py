@@ -114,7 +114,10 @@ def create_payment_link(plan_adesion):
         print("Resposta do Pagar.me:", json.dumps(data, indent=2))
 
         from core.models.Licensed import Licensed
-        licensed = Licensed.objects.get(user=plan_adesion.licensed)
+        try:
+            licensed = Licensed.objects.get(user=plan_adesion.licensed)
+        except Licensed.DoesNotExist:
+            raise ValueError(f"Licensed não encontrado para o usuário {plan_adesion.licensed}")
 
         payment_link = PaymentLink(
                 adesion=plan_adesion, 

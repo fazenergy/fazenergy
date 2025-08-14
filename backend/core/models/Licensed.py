@@ -12,7 +12,7 @@ class Licensed(models.Model):
 
     original_indicator = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True, 
-        blank=True, related_name='referrals', verbose_name="Indicador")
+        blank=True, related_name='referrals', verbose_name="Indicado por")
     
     person_type = models.CharField(
         max_length=2,
@@ -32,7 +32,7 @@ class Licensed(models.Model):
     district    = models.CharField(max_length=300, blank=True, null=True, verbose_name="Bairro")
     phone       = models.CharField(max_length=14, blank=True, null=True, verbose_name="Telefone")
 
-    plan        = models.ForeignKey('plans.Plan', on_delete=models.PROTECT, verbose_name="Plano de Adesão")
+    plan        = models.ForeignKey('plans.Plan', on_delete=models.PROTECT, verbose_name="Plano") # 
 
      # FK - Conecta com PlanCareer
     previous_career = models.ForeignKey(

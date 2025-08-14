@@ -1,62 +1,66 @@
 <template>
   <div class="space-y-6">
-    <h2 class="text-2xl font-bold text-left mb-4">Pré-cadastro de Afiliado</h2>
+    <h2 class="text-2xl font-bold text-left mb-4">Pré-cadastro de Licenciado</h2>
+    <!-- Alert flutuante para regras de senha -->
+    <div v-if="passwordAlerts.length && showPasswordAlert" class="fixed md:top-4 md:right-4 top-2 right-2 z-50 max-w-md shadow-lg pointer-events-auto">
+      <div class="relative rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+        <button type="button" @click="showPasswordAlert = false" class="absolute top-1 right-2 text-red-500/70 hover:text-red-700 text-lg">×</button>
+        <strong class="font-semibold">Atenção</strong>
+        <ul class="list-disc ml-5 mt-1 text-sm">
+          <li v-for="(msg, idx) in passwordAlerts" :key="idx">{{ msg }}</li>
+        </ul>
+      </div>
+    </div>
     <div v-if="!referrerValid" class="text-red-500 text-center mb-4">
       {{ referrerError }}
     </div>
+    <div class="bg-white rounded-lg shadow border border-gray-200 p-4 md:p-6 relative">
+      <LoadingOverlay v-if="loading" message="Processando..." />
     <form @submit.prevent="handleSubmit" class="grid grid-cols-1 md:grid-cols-6 gap-4">
 
       <!-- Linha 1 -->
-      <FormField label="Indicado por" class="md:col-span-2" v-if="!isSuperUser">
-        <Input v-model="form.referrer" :readonly="!!props.referrerUsername" class="bg-gray-100 text-sm" />
+      <FormField label="Indicado por" class="md:col-span-2" :error="errors.referrer">
+        <Input v-model="form.referrer" :readonly="lockReferrer" class="bg-gray-100 text-sm" />
       </FormField>
-      <FormField label="Nome Completo" :class="isSuperUser ? 'md:col-span-6' : 'md:col-span-4'">
+      <FormField label="Nome Completo" class="md:col-span-3" :error="errors.full_name">
         <Input v-model="form.full_name" placeholder="Seu nome completo" required class="text-sm" />
       </FormField>
+      <div class="md:col-span-1 flex items-center pt-6">
+        <Switch v-model="form.is_root" />
+        <span class="ml-2 text-sm">Indicador raiz</span>
+      </div>
 
       <!-- Linha 2 -->
-      <FormField label="Email" class="md:col-span-2">
+      <FormField label="Email" class="md:col-span-2" :error="errors.email">
         <Input v-model="form.email" type="email" required class="text-sm" />
       </FormField>
-      <FormField label="Usuário" class="md:col-span-2">
+      <FormField label="Usuário" class="md:col-span-2" :error="errors.username">
         <Input v-model="form.username" required class="text-sm" />
       </FormField>
-      <FormField label="Senha" class="md:col-span-1">
-        <InputPass v-model="form.password" required />
-        <span
-          class="block min-h-[18px] text-xs text-red-500 transition-all"
-          :style="{ visibility: passwordError ? 'visible' : 'hidden' }"
-        >
-          {{ passwordError || ' ' }}
-        </span>
+      <FormField label="Senha" class="md:col-span-1" :error="errors.password">
+        <InputPass v-model="form.password" required @focus="showPasswordAlert = true" />
       </FormField>
-      <FormField label="Confirmar Senha" class="md:col-span-1">
+      <FormField label="Confirmar" class="md:col-span-1" :error="errors.confirm_password">
         <InputPass v-model="form.confirm_password" required />
-        <span
-          class="block min-h-[18px] text-xs text-red-500 transition-all"
-          :style="{ visibility: confirmPasswordError ? 'visible' : 'hidden' }"
-        >
-          {{ confirmPasswordError || ' ' }}
-        </span>
       </FormField>
 
       <!-- Linha 3 -->
-      <FormField label="Telefone" class="md:col-span-2">
+      <FormField label="Telefone" class="md:col-span-2" :error="errors.phone">
         <Input v-model="form.phone" mask="(##) #####-####" placeholder="(00) 00000-0000" class="text-sm" />
       </FormField>
-      <FormField label="Tipo de Pessoa" class="md:col-span-2">
+      <FormField label="Tipo de Pessoa" class="md:col-span-2" :error="errors.person_type">
         <Select v-model="form.person_type" required class="text-sm">
           <option disabled value="">Selecione</option>
           <option value="pf">Pessoa Física</option>
           <option value="pj">Pessoa Jurídica</option>
         </Select>
       </FormField>
-      <FormField label="CPF / CNPJ" class="md:col-span-2">
+      <FormField label="CPF / CNPJ" class="md:col-span-2" :error="errors.cpf_cnpj">
         <Input v-model="form.cpfCnpj" v-mask="['###.###.###-##', '##.###.###/####-##']" placeholder="000.000.000-00" class="text-sm" />
       </FormField>
 
       <!-- Linha 4 -->
-      <FormField label="CEP" class="md:col-span-1">
+      <FormField label="CEP" class="md:col-span-1" :error="errors.cep">
         <Input
           v-model="form.cep"
           mask="#####-###"
@@ -65,7 +69,7 @@
           @input="fetchAddress"
         />
       </FormField>
-      <FormField label="Estado" class="md:col-span-1">
+      <FormField label="Estado" class="md:col-span-1" :error="errors.state">
       <Select v-model="form.state" required class="text-sm">
         <option disabled value="">Selecione</option>
         <option v-for="estado in estados" :key="estado.id" :value="String(estado.id)">
@@ -73,7 +77,7 @@
         </option>
       </Select>
     </FormField>
-    <FormField label="Cidade" class="md:col-span-2">
+    <FormField label="Cidade" class="md:col-span-2" :error="errors.city">
      <Select v-model="form.city" required class="text-sm">
       <option disabled value="">Selecione a Cidade</option>
       <option v-for="cidade in cidades" :key="cidade.id" :value="String(cidade.id)">
@@ -81,23 +85,23 @@
       </option>
     </Select>
     </FormField>
-      <FormField label="Bairro" class="md:col-span-2">
+      <FormField label="Bairro" class="md:col-span-2" :error="errors.district">
         <Input v-model="form.district" class="text-sm" />
       </FormField>
 
       <!-- Linha 5 -->
-      <FormField label="Endereço" class="md:col-span-3">
+      <FormField label="Endereço" class="md:col-span-3" :error="errors.address">
         <Input v-model="form.address" class="text-sm" />
       </FormField>
-      <FormField label="Número" class="md:col-span-1">
+      <FormField label="Número" class="md:col-span-1" :error="errors.number">
         <Input v-model="form.number" class="text-sm" />
       </FormField>
-      <FormField label="Complemento" class="md:col-span-2">
+      <FormField label="Complemento" class="md:col-span-2" :error="errors.complement">
         <Input v-model="form.complement" class="text-sm" />
       </FormField>
 
       <!-- Linha 6 -->
-      <FormField label="Plano" class="md:col-span-4">
+      <FormField label="Plano" class="md:col-span-4" :error="errors.plan">
         <Select v-model="form.plan" class="text-sm" required>
           <option disabled value="">Selecione o Plano</option>
           <option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option>
@@ -108,17 +112,21 @@
         <span class="ml-2 text-sm">Li e aceito a <a href="#"> política de privacidade </a> </span>
       </div>
 
-      <!-- Switch Raiz e Botão -->
-      <div class="flex items-center md:col-span-6" v-if="isSuperUser">
-        <Switch v-model="form.is_root" />
-        <span class="ml-2">Indicador raiz</span>
+      <!-- Separador -->
+      <div class="md:col-span-6">
+        <hr class="my-4 border-gray-200" />
       </div>
-      <Button type="submit" class="md:col-span-6 w-full">Cadastrar</Button>
+
+      <!--  Botão -->
+      <div class="md:col-span-6 flex justify-end">
+        <Button type="submit" class="px-6">Cadastrar</Button>
+      </div>
     </form>
+    </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import api from '@/services/axios'
@@ -131,6 +139,7 @@ import Button from '@/components/ui/Button.vue'
 import Switch from '@/components/ui/Switch.vue'
 import Checkbox from '@/components/ui/Checkbox.vue'
 import FormField from '@/components/ui/FormField.vue'
+import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
 
 // PROP
 const props = defineProps({
@@ -144,6 +153,9 @@ const props = defineProps({
 const auth = useAuthStore()
 const isSuperUser = computed(() => auth.user?.is_superuser)
 const isAuthenticated = computed(() => !!auth.user)
+const isVisitor = computed(() => !isAuthenticated.value)
+const isLicensed = computed(() => (auth.user?.groups || []).includes('Licenciado'))
+const lockReferrer = computed(() => (isAuthenticated.value && isLicensed.value) || (!!props.referrerUsername && isVisitor.value))
 
 // 🔐 Indicador atual (usuário logado ou username da URL)
 const currentUser = computed(() => {
@@ -158,6 +170,7 @@ const currentUser = computed(() => {
 })
 
 const plans = ref([])
+const loading = ref(false)
 const referrerValid = ref(true)
 const referrerError = ref('')
 
@@ -183,6 +196,28 @@ const form = ref({
   is_root: false,
 })
 
+const errors = ref({
+  referrer: '',
+  full_name: '',
+  email: '',
+  username: '',
+  password: '',
+  confirm_password: '',
+  phone: '',
+  person_type: '',
+  cpf_cnpj: '',
+  cep: '',
+  state: '',
+  city: '',
+  district: '',
+  address: '',
+  number: '',
+  plan: '',
+})
+
+const passwordAlerts = ref<string[]>([])
+const showPasswordAlert = ref(true)
+
 onMounted(async () => {
   try {
     const res = await api.get('/api/plans/plans/')
@@ -191,8 +226,8 @@ onMounted(async () => {
     plans.value = []
   }
 
-  // ✅ Se visitante, valida username do indicador
-  if (props.referrerUsername && !isAuthenticated.value) {
+  // ✅ Se visitante, valida username do indicador; se superadmin logado, deixa campo livre
+  if (props.referrerUsername && !isSuperUser.value) {
     try {
       const resp = await api.get(`/api/users/validate-referrer/${props.referrerUsername}/`)
       if (!resp.data.valid) {
@@ -209,6 +244,12 @@ onMounted(async () => {
     }
   }
 
+  // Se logado como licenciado, trava e preenche com o próprio username
+  if (isAuthenticated.value && isLicensed.value) {
+    referrerValid.value = true
+    form.value.referrer = auth.user?.username || ''
+  }
+
   // Carrega estados
   const resEstados = await api.get('/api/location/states/')
   estados.value = resEstados.data
@@ -220,6 +261,7 @@ onMounted(async () => {
 });
 // Preenchimento automatico conforme CEP informado
 async function fetchAddress() {
+  loading.value = true
   const cep = form.value.cep.replace(/\D/g, '');
   if (cep.length === 8) {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`).then(r => r.json());
@@ -236,8 +278,9 @@ async function fetchAddress() {
         await onEstadoChange();
 
         // Encontrar a cidade pelo nome retornado
+        const normalize = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
         const cidadeEncontrada = cidades.value.find(
-          c => c.name.toLowerCase() === (res.localidade || '').toLowerCase()
+          c => normalize(c.name) === normalize(res.localidade)
         );
         if (cidadeEncontrada) {
           form.value.city = String(cidadeEncontrada.id); // <-- sempre string
@@ -249,6 +292,7 @@ async function fetchAddress() {
       }
     }
   }
+  loading.value = false
 }
 
 
@@ -262,7 +306,7 @@ async function onEstadoChange() {
     const resCidades = await api.get(`/api/location/cities/?state=${form.value.state}`);
     cidades.value = resCidades.data;
     // Limpa cidade selecionada se não existir mais
-    if (!cidades.value.find(c => c.id === form.value.city)) {
+    if (!cidades.value.find(c => String(c.id) === String(form.value.city))) {
       form.value.city = '';
     }
   } else {
@@ -278,8 +322,45 @@ watch(() => form.value.state, async () => {
 
 // PERSIST: Função de envio do formulário
 async function handleSubmit() {
+  loading.value = true
   if (!referrerValid.value) return;
   if (passwordError.value || confirmPasswordError.value) return;
+
+  // Limpa mensagens anteriores
+  Object.keys(errors.value).forEach(k => errors.value[k] = '')
+
+  // Validação simples dos obrigatórios
+  const required = [
+    ['referrer', 'obrigatório'],
+    ['full_name', 'obrigatório'],
+    ['email', 'obrigatório'],
+    ['username', 'obrigatório'],
+    ['password', 'obrigatório'],
+    ['confirm_password', 'obrigatório'],
+    ['phone', 'obrigatório'],
+    ['person_type', 'obrigatório'],
+    ['cpfCnpj', 'obrigatório'],
+    ['cep', 'obrigatório'],
+    ['state', 'obrigatório'],
+    ['city', 'obrigatório'],
+    ['district', 'obrigatório'],
+    ['address', 'obrigatório'],
+    ['number', 'obrigatório'],
+    ['plan', 'obrigatório'],
+  ]
+  let hasError = false
+  for (const [field, msg] of required) {
+    // @ts-ignore
+    if (!form.value[field]) {
+      hasError = true
+      // mapeia nomes
+      const map = { cpfCnpj: 'cpf_cnpj' }
+      const key = map[field] || field
+      // @ts-ignore
+      errors.value[key] = msg
+    }
+  }
+  if (hasError) return
 
   // Crie uma cópia do form para não alterar o original
   const payload = { ...form.value };
@@ -322,6 +403,7 @@ if (!payload.plan) {
   } catch (error) {
     alert('Erro ao cadastrar. Verifique os dados e tente novamente.');
   }
+  loading.value = false
 }
 
 
@@ -340,24 +422,34 @@ function isSenhaSegura(senha) {
 }
 
 watch(() => form.value.password, (senha) => {
-  if (!isSenhaSegura(senha)) {
-    passwordError.value = 'A senha deve ter ao menos 6 caracteres, incluir letra, número e caractere especial.'
-  } else {
-    passwordError.value = ''
-  }
+  const msgs: string[] = []
+  if (senha.length < 6) msgs.push('A senha deve ter pelo menos 6 caracteres')
+  if (!/[a-zA-Z]/.test(senha)) msgs.push('A senha deve incluir pelo menos uma letra')
+  if (!/\d/.test(senha)) msgs.push('A senha deve incluir pelo menos um número')
+  if (!/[^a-zA-Z0-9]/.test(senha)) msgs.push('A senha deve incluir pelo menos um caractere especial')
+  passwordAlerts.value = msgs
+  passwordError.value = msgs.length ? 'obrigatório' : ''
   // Valida confirmação também ao mudar senha
   if (form.value.confirm_password && senha !== form.value.confirm_password) {
-    confirmPasswordError.value = 'As senhas não coincidem.'
+    confirmPasswordError.value = 'não coincidem.'
+    errors.value.password = 'não coincidem'
   } else {
     confirmPasswordError.value = ''
+    if (errors.value.password === 'coincidem') {
+      errors.value.password = ''
+    }
   }
 })
 
 watch(() => form.value.confirm_password, (conf) => {
   if (conf !== form.value.password) {
-    confirmPasswordError.value = 'As senhas não coincidem.'
+    confirmPasswordError.value = 'não coincidem.'
+    errors.value.password = 'não coincidem'
   } else {
     confirmPasswordError.value = ''
+    if (errors.value.password === 'não coincidem') {
+      errors.value.password = ''
+    }
   }
 })
 
