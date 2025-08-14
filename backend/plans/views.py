@@ -4,6 +4,8 @@ from .models.Plan import Plan
 from .serializers import PlanSerializer
 from .models.PlanAdesion import PlanAdesion
 from .serializers import PlanAdesionSerializer
+from .models import Qualification
+from .serializers import QualificationSerializer
 
 class PlanViewSet(viewsets.ModelViewSet):
     queryset = Plan.objects.all()
@@ -31,3 +33,14 @@ class PlanAdesionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
+
+class QualificationViewSet(viewsets.ModelViewSet):
+    queryset = Qualification.objects.all()
+    serializer_class = QualificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context

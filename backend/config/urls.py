@@ -15,7 +15,8 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/users/', include('core.urls')),  # ou o nome do seu app
     path('api/location/', include('location.urls')),
-    path('api/proposal/', include('proposal.urls')),    
+    path('api/proposal/', include('proposal.urls')),
+    path('api/prospect/', include('prospect.urls')),
 
     # Webhooks
     path('api/webhook/pagarme/', pagarme_webhook, name='webhook-pagarme'),

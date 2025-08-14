@@ -23,8 +23,6 @@ class Licensed(models.Model):
     cep         = models.CharField(max_length=8, blank=True, null=True, verbose_name="CEP")
 
     city_lookup = models.ForeignKey('location.City', on_delete=models.SET_NULL, null=True, blank=True)
-    city_name   = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
-    state_abbr  = models.CharField(max_length=2, blank=True, null=True , verbose_name="UF")
         
     address     = models.CharField(max_length=300, blank=True, null=True, verbose_name="Endereço")
     number      = models.CharField(max_length=8, blank=True, null=True, verbose_name="Número")
@@ -58,6 +56,7 @@ class Licensed(models.Model):
     is_in_network           = models.BooleanField(default=True, verbose_name="Está na Rede ?")
     accept_lgpd             = models.BooleanField(default=False, verbose_name="Aceita LGPD")
     comment                 = models.TextField(blank=True, null=True, verbose_name="Comentário")
+    dtt_activation          = models.DateTimeField(default=timezone.now, verbose_name="Data Ativação")
     dtt_payment_received    = models.DateTimeField(blank=True, null=True, verbose_name="Data Recebimento Pagamento")
 
     dynamic_compression     = models.BooleanField(default=False, verbose_name="Compressão Dinâmica Ativa")  # Indica se o afiliado está com compressão dinâmica ativada (relacionado ao pagamento anual, se estiver em dia então ativa se naõ desativa)

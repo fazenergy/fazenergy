@@ -1,0 +1,141 @@
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('network', '0002_create_product'),
+        ('core', '0004_remove_operator_city_fields'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Prospect',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('lead_name', models.CharField(max_length=255, verbose_name='Nome do Lead')),
+                ('email', models.EmailField(max_length=254, verbose_name='E-mail')),
+                ('cellphone', models.CharField(max_length=20, verbose_name='Celular')),
+                ('zip_code', models.CharField(max_length=10, verbose_name='CEP')),
+                ('property_type', models.CharField(max_length=50, verbose_name='Tipo de Imóvel')),
+                ('electric_bill', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Conta de Luz (R$)')),
+                ('reference_code', models.CharField(blank=True, max_length=100, null=True, verbose_name='Código de Referência')),
+                ('energy_provider_id', models.IntegerField(blank=True, null=True, verbose_name='Distribuidora (ID)')),
+                ('energy_provider_name', models.CharField(blank=True, max_length=100, null=True, verbose_name='Distribuidora (Nome)')),
+                ('owner_name', models.CharField(default='Outro', max_length=100, verbose_name='Proprietário')),
+                ('visit_1_at', models.DateTimeField(blank=True, null=True, verbose_name='Data da 1ª Visita')),
+                ('visit_2_at', models.DateTimeField(blank=True, null=True, verbose_name='Data da 2ª Visita')),
+                ('status', models.CharField(default='Novo', max_length=100, verbose_name='Status')),
+                ('person_type', models.CharField(choices=[('PF', 'Pessoa Física'), ('PJ', 'Pessoa Jurídica')], default='PF', max_length=2, verbose_name='Tipo de Pessoa')),
+                ('fiscal_number', models.CharField(blank=True, max_length=20, null=True, verbose_name='CPF/CNPJ (sem máscara)')),
+                ('legal_name', models.CharField(blank=True, max_length=255, null=True, verbose_name='Razão Social (se PJ)')),
+                ('usr_record', models.CharField(max_length=50, verbose_name='Usuário Registro')),
+                ('dtt_record', models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')),
+                ('usr_update', models.CharField(blank=True, max_length=50, null=True, verbose_name='Usuário Atualização')),
+                ('dtt_update', models.DateTimeField(auto_now=True, verbose_name='Data Atualização')),
+                ('licensed', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='prospects', to='core.licensed', verbose_name='Licenciado (Indicador)')),
+                ('product', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='prospects', to='network.product', verbose_name='Produto')),
+            ],
+            options={
+                'verbose_name': 'Prospect',
+                'verbose_name_plural': 'Prospects',
+                'db_table': 'Prospect',
+                'ordering': ['-dtt_record'],
+            },
+        ),
+        migrations.AddIndex(
+            model_name='prospect',
+            index=models.Index(fields=['reference_code'], name='prospect_refcode_idx'),
+        ),
+        migrations.AddIndex(
+            model_name='prospect',
+            index=models.Index(fields=['status'], name='prospect_status_idx'),
+        ),
+        migrations.AddIndex(
+            model_name='prospect',
+            index=models.Index(fields=['person_type'], name='prospect_persontype_idx'),
+        ),
+        migrations.CreateModel(
+            name='Proposal',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('reference_code', models.CharField(max_length=50, verbose_name='Código de Referência')),
+                ('zip_code', models.CharField(max_length=10, verbose_name='CEP')),
+                ('address', models.CharField(max_length=255, verbose_name='Endereço')),
+                ('number', models.CharField(blank=True, max_length=20, null=True, verbose_name='Número')),
+                ('complement', models.CharField(blank=True, max_length=255, null=True, verbose_name='Complemento')),
+                ('neighborhood', models.CharField(blank=True, max_length=255, null=True, verbose_name='Bairro')),
+                ('city', models.CharField(max_length=255, verbose_name='Cidade')),
+                ('state', models.CharField(max_length=2, verbose_name='UF')),
+                ('contract_person', models.CharField(choices=[('PF', 'Pessoa Física'), ('PJ', 'Pessoa Jurídica')], max_length=100, verbose_name='Tipo de Contratante')),
+                ('owner', models.CharField(max_length=100, verbose_name='Proprietário')),
+                ('seller_email', models.EmailField(blank=True, max_length=254, null=True, verbose_name='E-mail do Vendedor')),
+                ('nsu', models.CharField(blank=True, max_length=100, null=True, verbose_name='NSU')),
+                ('cpf_cnpj', models.CharField(blank=True, max_length=20, null=True, verbose_name='CPF/CNPJ')),
+                ('legal_name', models.CharField(blank=True, max_length=255, null=True, verbose_name='Razão Social')),
+                ('email', models.EmailField(blank=True, max_length=254, null=True, verbose_name='E-mail do Cliente')),
+                ('electric_bill_amount', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True, verbose_name='Conta de Luz (R$)')),
+                ('consumer_unit', models.CharField(blank=True, max_length=100, null=True, verbose_name='Unidade Consumidora')),
+                ('consumer_group', models.CharField(blank=True, max_length=100, null=True, verbose_name='Grupo de Consumo')),
+                ('status', models.CharField(default='Aguardando', max_length=100, verbose_name='Status')),
+                ('usr_record', models.CharField(max_length=50, verbose_name='Usuário Registro')),
+                ('dtt_record', models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')),
+                ('dtt_expired', models.DateTimeField(blank=True, null=True, verbose_name='Data Expiração')),
+                ('usr_update', models.CharField(blank=True, max_length=50, null=True, verbose_name='Usuário Atualização')),
+                ('dtt_update', models.DateTimeField(auto_now=True, verbose_name='Data Atualização')),
+                ('prospect', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='proposals', to='prospect.prospect', verbose_name='Prospect')),
+            ],
+            options={
+                'verbose_name': 'Proposta (Prospect)',
+                'verbose_name_plural': 'Propostas (Prospect)',
+                'db_table': 'ProspectProposal',
+            },
+        ),
+        migrations.CreateModel(
+            name='ProposalResult',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('contract_type', models.CharField(max_length=100, verbose_name='Tipo de Contrato')),
+                ('contract_duration_months', models.IntegerField(blank=True, null=True, verbose_name='Duração (meses)')),
+                ('discount_percentage', models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True, verbose_name='Desconto (%)')),
+                ('discount_amount', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True, verbose_name='Desconto (R$)')),
+                ('annual_economy', models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True, verbose_name='Economia Anual (R$)')),
+                ('economy_in_three_years', models.DecimalField(blank=True, decimal_places=2, max_digits=14, null=True, verbose_name='Economia em 3 Anos (R$)')),
+                ('installment_amount', models.DecimalField(decimal_places=2, max_digits=12, verbose_name='Parcela (R$)')),
+                ('total_installments', models.IntegerField(verbose_name='Total de Parcelas')),
+                ('total_amount', models.DecimalField(decimal_places=2, max_digits=12, verbose_name='Valor Total (R$)')),
+                ('kwp', models.DecimalField(blank=True, decimal_places=2, max_digits=6, null=True, verbose_name='kWp')),
+                ('kwh_annual', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True, verbose_name='kWh Anual')),
+                ('required_area', models.IntegerField(blank=True, null=True, verbose_name='Área Necessária (m²)')),
+                ('qty_modules', models.IntegerField(blank=True, null=True, verbose_name='Qtd Módulos')),
+                ('energy_provider_id', models.IntegerField(blank=True, null=True, verbose_name='Distribuidora (ID)')),
+                ('energy_provider_name', models.CharField(blank=True, max_length=255, null=True, verbose_name='Distribuidora (Nome)')),
+                ('provider_costs', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True, verbose_name='Custos Distribuidora (R$)')),
+                ('revo_costs', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True, verbose_name='Custos REVO (R$)')),
+                ('electric_bill_value', models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True, verbose_name='Conta de Luz (R$)')),
+                ('consumer_unit', models.CharField(blank=True, max_length=50, null=True, verbose_name='Unidade Consumidora')),
+                ('consumer_group', models.CharField(blank=True, max_length=100, null=True, verbose_name='Grupo de Consumo')),
+                ('proposal_expiration_at', models.DateTimeField(verbose_name='Expiração da Proposta')),
+                ('status', models.CharField(default='Ativo', max_length=50, verbose_name='Status')),
+                ('usr_record', models.CharField(max_length=50, verbose_name='Usuário Registro')),
+                ('dtt_record', models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')),
+                ('proposal', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='results', to='prospect.proposal', verbose_name='Proposta')),
+            ],
+            options={
+                'verbose_name': 'Resultado de Proposta (Prospect)',
+                'verbose_name_plural': 'Resultados de Proposta (Prospect)',
+                'db_table': 'ProspectProposalResult',
+            },
+        ),
+        migrations.AddIndex(
+            model_name='proposalresult',
+            index=models.Index(fields=['proposal'], name='prospect_result_proposal_idx'),
+        ),
+        migrations.AddIndex(
+            model_name='proposalresult',
+            index=models.Index(fields=['status'], name='prospect_result_status_idx'),
+        ),
+    ]

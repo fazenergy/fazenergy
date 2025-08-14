@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from .models.Plan import Plan
 from .models.PlanAdesion import PlanAdesion
+from .models import Qualification
 
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:
@@ -104,3 +105,10 @@ class PlanAdesionSerializer(serializers.ModelSerializer):
             adesion.save()
 
         return adesion
+
+
+class QualificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Qualification
+        fields = ['id', 'licensed', 'plan_career', 'dtt_qualification']
+        read_only_fields = ['dtt_qualification']

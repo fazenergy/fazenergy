@@ -34,7 +34,6 @@ class LicensedSerializer(serializers.ModelSerializer):
             'person_type',
             'cpf_cnpj',
             'cep',
-            'state_abbr',
             'city_lookup',
             'district',
             'address',
@@ -42,7 +41,9 @@ class LicensedSerializer(serializers.ModelSerializer):
             'complement',
             'plan',
             'accept_lgpd',
-            'is_root'
+            'is_root',
+            'root_network_name',
+            'dtt_activation',
         ]
 
     def validate(self, data):
