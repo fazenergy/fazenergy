@@ -16,8 +16,8 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(PlanAdesion)
 class PlanAdesionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'plan', 'licensed', 'ind_payment_status', 'typ_payment', 'is_courtesy', 'points_generated', 'ind_processing', 'contract_status')
-    search_fields = ('licensed__username', 'plan__name')
+    list_display = ('id', 'plan', 'product', 'licensed', 'ind_payment_status', 'typ_payment', 'is_courtesy', 'points_generated', 'ind_processing', 'contract_status')
+    search_fields = ('licensed__username', 'plan__name', 'product__name')
     list_filter = ('ind_payment_status', 'typ_payment', 'ind_processing', 'contract_status')
     readonly_fields = ('dtt_update', 'dtt_record', 'contract_token')
     actions = ['update_contract_fields']
@@ -51,7 +51,7 @@ class PlanAdesionAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('plan', 'licensed', 'is_courtesy')
+            'fields': ('plan', 'product', 'licensed', 'is_courtesy')
         }),
         ('Status de Pagamento', {
             'fields': ('ind_payment_status', 'typ_payment', 'dtt_payment', 'points_generated')

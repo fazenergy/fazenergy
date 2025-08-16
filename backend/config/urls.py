@@ -16,8 +16,6 @@ urlpatterns = [
     path('api/users/', include('core.urls')),  # ou o nome do seu app
     path('api/location/', include('location.urls')),
     path('api/network/', include('network.urls')),
-    path('api/proposal/', include('proposal.urls')),    
-    path('api/proposal/', include('proposal.urls')),
     path('api/prospect/', include('prospect.urls')),
 
     # Webhooks

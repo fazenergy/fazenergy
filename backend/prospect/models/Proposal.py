@@ -3,6 +3,7 @@ from django.db import models
 
 class Proposal(models.Model):
     prospect = models.ForeignKey('prospect.Prospect', on_delete=models.CASCADE, related_name='proposals', verbose_name='Prospect')
+    product = models.ForeignKey('network.Product', on_delete=models.PROTECT, related_name='proposals', verbose_name='Produto', null=True, blank=True)
 
     # Referência (REVO360)
     reference_code = models.CharField(max_length=50, verbose_name='Código de Referência')
