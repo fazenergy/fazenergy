@@ -98,14 +98,22 @@ class OperatorAdmin(admin.ModelAdmin):
     def formatted_dtt_record(self, obj):
         return obj.dtt_record.strftime('%d/%m/%Y %H:%M')
     
+    @admin.display(description='Cidade')
+    def city_name(self, obj):
+        return obj.city_lookup.name if obj.city_lookup else "-"
+
+    @admin.display(description='UF')
+    def state_abbr(self, obj):
+        return obj.city_lookup.state.uf if obj.city_lookup else "-"
+    
     list_display = (
         'id','username', 'cpf_cnpj', 'gender', 'marital_status',
         'phone', 'city_name', 'state_abbr', 'stt_record', 'formatted_dtt_record'
     )
-    list_filter = ('gender', 'marital_status','city_name', 'state_abbr', 'stt_record', 'dtt_record')
+    list_filter = ('gender', 'marital_status', 'city_lookup', 'stt_record', 'dtt_record')
     search_fields = ('username', 'cpf_cnpj', 'phone')
     readonly_fields = ('dtt_record', 'dtt_update')
-
+    list_select_related = ('city_lookup', 'city_lookup__state')
 
     autocomplete_fields = ['city_lookup']     # Campos para buscar na Location (opcional, usando raw_id_fields ou autocomplete_fields)
 
@@ -127,12 +135,6 @@ class OperatorAdmin(admin.ModelAdmin):
         return form
 
     def save_model(self, request, obj, form, change):
-        if obj.city_lookup:
-            obj.city_name = obj.city_lookup.name
-            obj.state_abbr = obj.city_lookup.state.uf
-        else:
-            obj.city_name = ''
-            obj.state_abbr = ''
         if obj.user:
             obj.username = obj.user.username   
         super().save_model(request, obj, form, change)
@@ -214,14 +216,6 @@ class LicensedAdmin(admin.ModelAdmin):
         
     # PERSISTENCIA
     def save_model(self, request, obj, form, change):
-        # Preencher nome da cidade e sigla do estado
-        if obj.city_lookup:
-            obj.city_name = obj.city_lookup.name
-            obj.state_abbr = obj.city_lookup.state.uf
-        else:
-            obj.city_name = ''
-            obj.state_abbr = ''
-
         # Regra: não pode ter carreira atual sem carreira anterior
         if obj.current_career and not obj.previous_career:
             raise ValidationError("Não é permitido definir uma carreira atual sem definir uma carreira anterior.")

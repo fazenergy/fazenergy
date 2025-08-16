@@ -16,8 +16,6 @@ class Operator(models.Model):
     id_document_issuer  = models.CharField(max_length=20, blank=True, null=True, verbose_name="Órgão Emissor")
     
     city_lookup         = models.ForeignKey('location.City', on_delete=models.SET_NULL, null=True, blank=True)
-    city_name           = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
-    state_abbr          = models.CharField(max_length=2, blank=True, null=True, verbose_name="UF")
             
     cep                 = models.CharField(max_length=8, blank=True, null=True, verbose_name="CEP")
     address             = models.CharField(max_length=300, blank=True, null=True, verbose_name="Endereço")

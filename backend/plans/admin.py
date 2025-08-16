@@ -5,6 +5,7 @@ from django.utils.html import format_html
 from .models import Plan
 from .models import PlanAdesion
 from .models import PlanCareer
+from .models import Qualification
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
@@ -139,4 +140,12 @@ class PlanCareerAdmin(admin.ModelAdmin):
         'stt_record', 'data_criacao_formatada', 'data_atualizacao_formatada'
     )
     #ordering = ('id',)  # ASCENDENTE por padrão
+    
+
+@admin.register(Qualification)
+class QualificationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'licensed', 'plan_career', 'dtt_qualification')
+    list_filter = ('plan_career',)
+    search_fields = ('licensed__user__username', 'plan_career__stage_name')
+    autocomplete_fields = ['licensed', 'plan_career']
     

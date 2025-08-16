@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UnilevelNetwork, LicensedPoints
+from .models import UnilevelNetwork, LicensedPoints, Product
 
 @admin.register(UnilevelNetwork)
 class UnilevelNetworkAdmin(admin.ModelAdmin):
@@ -19,3 +19,10 @@ class LicensedPointsAdmin(admin.ModelAdmin):
         'licensed', 'description', 'points', 'reference', 'status',
         'dtt_ref', 'data_registro_formatada'
     )
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'dtt_record', 'dtt_update')
+    search_fields = ('name',)
+    list_filter = ('dtt_record',)
+    readonly_fields = ('dtt_record', 'dtt_update')

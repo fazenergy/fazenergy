@@ -45,6 +45,18 @@
 - Sustentabilidade: receitas da REVO/oper. precisam cobrir instalação, bônus (incl. recorrentes) e custos
 - Robustez do sistema (rede/financeiro/bônus) é essencial; transparência/estabilidade = diferencial
 
+## Mudanças recentes (técnico)
+- `core.Licensed`: removidos `city_name`/`state_abbr`; manter apenas `city_lookup`. Adicionado `dtt_activation` (DateTimeField).
+- `core.Operator`: removidos `city_name`/`state_abbr`; manter apenas `city_lookup`.
+- `network.Product`: novo model (`name`, timestamps) para catalogar produtos (ex.: usina, licença).
+- `prospect` (novo app): `Prospect` (FK `network.Product`, FK `core.Licensed`), `Proposal` (FK `Prospect`), `ProposalResult` (FK `Proposal`). Rotas: `api/prospect/...`.
+  - Observação: tabelas criadas com nomes iniciando em maiúsculas exigem aspas em SQL/IDE ("Prospect", "ProspectProposal", "ProspectProposalResult").
+
+## Pendências técnicas alinhadas ao DER
+- `plans.PlanAdesion.licensed` deve referenciar `core.Licensed` (hoje aponta para `User`).
+- Ajustar `finance.PaymentLink.approve_payment` para usar `ind_payment_status`, `typ_payment`, `dtt_payment` em `PlanAdesion`.
+- Corrigir `core.signals` para usar `network.UnilevelNetwork` com campos `upline_licensed/downline_licensed` (em vez de parent_licensed/child_licensed).
+
 ## Referências
 - `docs/Faz Energy - Apresentação Institucional 2025.pptx`
 - Notion: lucro e usina gratuita (links no arquivo `docs/Escopo`)

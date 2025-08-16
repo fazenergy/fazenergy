@@ -6,7 +6,7 @@ Ambiente de desenvolvimento local com Docker, Django (backend), Vue.js (frontend
 
 ---
 
-## ?? Como rodar o projeto localmente
+## Como rodar o projeto localmente
 
 ```bash
 git clone <repo-url>
@@ -18,63 +18,63 @@ docker-compose up --build
 - Backend Django: http://localhost:8000
 - Frontend Vue.js: http://localhost:5173
 
-### ?? Ap�s subir os containers:
+### Após subir os containers:
 
 ```bash
 # Acessar o container do backend
-docker exec -it fazenergy-backend-1 bash
+docker exec -it fazenergy-backend bash
 
-# Rodar migra��es do Django
+# Rodar migrações do Django
 python manage.py migrate
 
-# Criar um superusu�rio
+# Criar um superusuário
 python manage.py createsuperuser
 
-# (Opcional) Coletar arquivos est�ticos
+# (Opcional) Coletar arquivos estáticos
 python manage.py collectstatic
 ```
 
 ---
 
-## ?? Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 FazEnergy/
-??? backend/             # Django Backend
-?   ??? Dockerfile
-??? frontend/            # Vue Frontend
-?   ??? Dockerfile
-??? docker-compose.yml   # Orquestra todos os servi�os
-??? .env                 # Vari�veis de ambiente
-??? .env.example         # Modelo de vari�veis
+├── backend/             # Django Backend
+│   └── Dockerfile
+├── frontend/            # Vue Frontend
+│   └── Dockerfile
+├── docker-compose.yml   # Orquestra todos os serviços
+├── .env                 # Variáveis de ambiente
+└── .env.example         # Modelo de variáveis
 ```
 
 ---
 
-## ?? Comandos �teis
+## Comandos úteis
 
 ```bash
 # Acessar container do backend
-docker exec -it fazenergy-backend-1 bash
+docker exec -it fazenergy-backend bash
 
-# Rodar migra��es
+# Rodar migrações
 python manage.py migrate
 
-# Criar superusu�rio
+# Criar superusuário
 python manage.py createsuperuser
 ```
 
 ---
 
-## ?? Servi�os
+## Serviços
 
-- **backend**: Django + Gunicorn
-- **frontend**: Vue.js com Vite (modo dev)
-- **db**: PostgreSQL 15 com volume persistente
+- backend: Django
+- frontend: Vue.js com Vite (modo dev)
+- db: PostgreSQL 15 com volume persistente
 
 ---
 
-## ?? Vari�veis de Ambiente (`.env.example`)
+## Variáveis de Ambiente (.env.example)
 
 ```env
 DJANGO_SECRET_KEY=your-secret-key-here
@@ -89,4 +89,4 @@ POSTGRES_PORT=5432
 
 ---
 
-> ?? Este setup � focado em ambiente local com Docker + WSL2. Em produ��o, recomenda-se separar frontend/backend e configurar nginx, CI/CD e builds otimizados.
+> Este setup é focado em ambiente local com Docker + WSL2. Em produção, recomenda-se separar frontend/backend e configurar nginx, CI/CD e builds otimizados.
