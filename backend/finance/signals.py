@@ -1,7 +1,6 @@
 # core/signals.py
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.db import transaction
 from plans.models import PlanAdesion
 from .models import VirtualAccount, Transaction
 from core.models.Licensed import Licensed
@@ -21,40 +20,40 @@ def create_virtual_account(sender, instance, created, **kwargs):
 # cria uma transação de bônus na conta virtual do afiliado. 
 @receiver(post_save, sender=PlanAdesion)
 def create_transaction_on_plan_payment(sender, instance, created, **kwargs):
-    """Após confirmar pagamento, cria a transação e atualiza saldos somente após o commit."""
-    if instance.ind_payment_status != 'confirmed' or instance.points_generated:
-        return
-
-    def process_after_commit():
+    """
+    Quando um PlanAdesion for salvo, se o pagamento for confirmado e não processado,
+    cria a transação de bônus na conta virtual.
+    """
+    if instance.ind_payment_status == 'confirmed' and not instance.points_generated:
+        # Pega o licensed (precisa buscar o Licensed baseado no User)
         from core.models.Licensed import Licensed
         try:
             licensed = Licensed.objects.get(user=instance.licensed)
         except Licensed.DoesNotExist:
             print(f"❌ Licensed não encontrado para o usuário {instance.licensed}")
             return
+            
+        virtual_account, _ = VirtualAccount.objects.get_or_create(licensed=licensed)
 
-        va, _ = VirtualAccount.objects.get_or_create(licensed=licensed, defaults={
-            'name_licensed': licensed.user.username,
-        })
-
-        tx = Transaction.objects.create(
-            virtual_account=va,
+        # Cria transação
+        transaction = Transaction.objects.create(
+            virtual_account=virtual_account,
             product=f"Plano Adesão MMN: {instance.plan.id}",
             description=f"Bônus de Indicação: ID {licensed.id}",
             status='blocked',
             operation='credit',
             amount=instance.plan.bonus_level_1,
             is_processed=True,
-            reference_date=timezone.now().date(),
+            reference_date=timezone.now().date()
         )
 
-        va.balance_blocked += tx.amount
-        va.save(update_fields=["balance_blocked"])
+        # Atualiza saldos
+        virtual_account.blocked_balance += transaction.amount
+        virtual_account.save()
 
-        # Evita loop de signals: atualiza flag sem disparar novas operações pesadas
-        PlanAdesion.objects.filter(pk=instance.pk, points_generated=False).update(points_generated=True)
-
-    transaction.on_commit(process_after_commit)
+        # Marca como processado
+        instance.points_generated = True
+        instance.save()
 
 
 
@@ -62,23 +61,43 @@ def create_transaction_on_plan_payment(sender, instance, created, **kwargs):
 from finance.models import PaymentLink
 
 @receiver(post_save, sender=PaymentLink)
-def post_save_payment_link(sender, instance: PaymentLink, created, **kwargs):
-    """Executa aprovação/cancelamento do PaymentLink após commit para evitar transação quebrada."""
+def post_save_payment_link(instance, created, **kwargs):
+    """
+    Signal para capturar ou cancelar pagamento na nova estrutura.
+    """
     if created:
         return
 
-    def process_after_commit():
-        if not instance.is_captured and not instance.is_canceled and instance.status in ("paid", "authorized"):
-            try:
-                instance.approve_payment()
-            except Exception as e:
-                print(f"Erro ao aprovar PaymentLink {instance.pk}: {e}")
-            return
+    # Se ainda não capturado e pago
+    if not instance.is_captured and not instance.is_canceled:
+        if instance.status == "paid":
+            # Atualiza o Licensed
+            licensed = instance.licensed
+            licensed.active = True
+            licensed.activated_at = timezone.now()
+            licensed.save(update_fields=["active", "activated_at"])
 
-        if instance.status == "canceled" and not instance.is_canceled:
+            # Atualiza o Product (opcional)
+            product = instance.product
+            product.status = 'paid'
+            product.paid_at = timezone.now()
+            product.save(update_fields=["status", "paid_at"])
+
+            # Marca PaymentLink como capturado
+            instance.is_captured = True
+            instance.closed_at = timezone.now()
+            instance.save(update_fields=["is_captured", "closed_at"])
+
+    # Se precisar cancelar (exemplo)
+    if instance.is_captured and not instance.is_canceled:
+        if instance.status == "paid" and instance.cancel_response and instance.canceled_at:
+            licensed = instance.licensed
+            licensed.active = False
+            licensed.save(update_fields=["active"])
+
+            product = instance.product
+            product.status = 'canceled'
+            product.save(update_fields=["status"])
+
             instance.is_canceled = True
-            if not instance.canceled_at:
-                instance.canceled_at = timezone.now()
-            instance.save(update_fields=["is_canceled", "canceled_at"]) 
-
-    transaction.on_commit(process_after_commit)
+            instance.save(update_fields=["is_canceled"])
