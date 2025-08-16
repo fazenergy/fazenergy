@@ -34,6 +34,7 @@ class PlanAdesion(models.Model):
     ]
 
     plan = models.ForeignKey('plans.Plan', on_delete=models.PROTECT, related_name='adesions', verbose_name="Plano de Adesão")
+    product = models.ForeignKey('network.Product', on_delete=models.PROTECT, related_name='plan_adesions', verbose_name='Produto', null=True, blank=True)
     licensed = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='adesions', verbose_name="Licenciado")
 
     ind_payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending', verbose_name="Stt Pagamento")

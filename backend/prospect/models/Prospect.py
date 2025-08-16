@@ -3,10 +3,6 @@ from django.db import models
 
 class Prospect(models.Model):
     # Relações principais (logo após a PK)
-    product = models.ForeignKey(
-        'network.Product', on_delete=models.PROTECT,
-        related_name='prospects', verbose_name='Produto'
-    )
     licensed = models.ForeignKey(
         'core.Licensed', on_delete=models.PROTECT,
         related_name='prospects', verbose_name='Licenciado (Indicador)'
