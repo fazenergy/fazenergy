@@ -70,6 +70,7 @@ class PaymentLink(models.Model):
 
     request_payload = models.TextField(_('Request Payload'), blank=True, null=True)
     response_payload = models.TextField(_('Response Payload'), blank=True, null=True)
+    observation      = models.CharField(_('Observação'), max_length=255, blank=True, null=True)
 
     is_captured     = models.BooleanField(_('Captured?'), default=False)
     is_canceled     = models.BooleanField(_('Canceled?'), default=False)
@@ -95,19 +96,67 @@ class PaymentLink(models.Model):
             self.save(update_fields=['is_captured', 'closed_at'])
 
             if self.adesion:
+                # Sincroniza com PlanAdesion (status textual do app)
                 adesion = self.adesion
-                adesion.status = 2
-                adesion.dtt_payment_received = self.closed_at
+                try:
+                    # Campos compatíveis com o modelo PlanAdesion atual
+                    adesion.ind_payment_status = 'confirmed'
+                    adesion.dtt_payment = self.closed_at
+                    # mapeia método do gateway para choices do PlanAdesion
+                    method_map = {'credit_card': 'creditCard', 'pix': 'pix', 'boleto': 'money'}
+                    adesion.typ_payment = method_map.get(self.payment_method, adesion.typ_payment)
+                    adesion.save(update_fields=['ind_payment_status', 'dtt_payment', 'typ_payment'])
+                except Exception as e:
+                    print(f"Aviso: não foi possível sincronizar PlanAdesion: {e}")
 
-                mp_map = {'credit_card': 1, 'pix': 2, 'boleto': 3}
-                adesion.payment_type = mp_map.get(self.payment_method, 0)
+                # Atualiza licenciado (modelo core.Licensed)
+                try:
+                    licensed = Licensed.objects.get(user=adesion.licensed)
+                    licensed.dtt_payment_received = self.closed_at
+                    licensed.is_in_network = True if licensed.is_in_network is False else licensed.is_in_network
+                    licensed.save(update_fields=['dtt_payment_received', 'is_in_network'])
+                except Exception as e:
+                    print(f"Aviso: não foi possível atualizar Licensed: {e}")
 
-                adesion.save(update_fields=['status', 'dtt_payment_received', 'payment_type'])
+                # Garante criação na Unilevel e pontos (idempotente)
+                try:
+                    from network.models import UnilevelNetwork
+                    from network.models.LicensedPoints import LicensedPoints
+                    from decimal import Decimal
 
-                # Atualiza licenciado
-                licensed = adesion.licensed
-                licensed.dtt_payment_received = self.closed_at
-                licensed.save(update_fields=['dtt_payment_received'])
+                    # Unilevel (nível 1..5)
+                    if licensed.original_indicator:
+                        current = licensed.original_indicator
+                        lvl = 1
+                        while current and lvl <= 5:
+                            UnilevelNetwork.objects.get_or_create(
+                                upline_licensed=current,
+                                downline_licensed=licensed,
+                                level=lvl,
+                            )
+                            current = current.original_indicator
+                            lvl += 1
+
+                    # Pontos de adesão
+                    ref = f"ADES-{adesion.id}"
+                    LicensedPoints.objects.get_or_create(
+                        licensed=licensed,
+                        reference=ref,
+                        defaults={
+                            'description': f"Pontos de adesão do plano {adesion.plan.name}",
+                            'points': adesion.plan.points,
+                            'dtt_ref': timezone.now().date(),
+                            'status': 'valid',
+                        }
+                    )
+                    # Marca flag na adesão
+                    try:
+                        from plans.models import PlanAdesion as PA
+                        PA.objects.filter(pk=adesion.pk, points_generated=False).update(points_generated=True)
+                    except Exception:
+                        pass
+                except Exception as e:
+                    print(f"Aviso: não foi possível garantir Unilevel/Pontos: {e}")
 
             else:
                 print("Sem adesão vinculada a este PaymentLink.")

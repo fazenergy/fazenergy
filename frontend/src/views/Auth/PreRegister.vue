@@ -1,6 +1,6 @@
 <template>
-  <!-- Se autenticado → mostra com sidebar -->
-  <div v-if="isAuthenticated" class="min-h-screen flex">
+  <!-- Se autenticado e não embed → mostra com sidebar -->
+  <div v-if="isAuthenticated && !isEmbed" class="min-h-screen flex">
     <Sidebar :mini="mini" />
     <div class="flex-1 flex flex-col min-h-screen">
       <Header @toggle-sidebar="mini = !mini" />
@@ -10,7 +10,7 @@
     </div>
   </div>
 
-  <!-- Demais casos (visitante) → layout público -->
+  <!-- Demais casos (visitante ou embed) → layout público/embutido -->
   <div v-else class="min-h-screen flex items-center justify-center bg-gray-100">
     <div class="w-full max-w-4xl bg-white p-8 rounded shadow">
       <FormContent :referrer-username="referrerQuery" />
@@ -29,6 +29,7 @@ import FormContent from '@/components/FormPreRegister.vue'
 const route = useRoute()
 const auth = useAuthStore()
 const isAuthenticated = computed(() => !!auth.user)
+const isEmbed = computed(() => String(route.query.embed || '').toLowerCase() === '1' || String(route.query.embed || '').toLowerCase() === 'true')
 const referrerQuery = computed(() => String(route.query.ind || route.query.indicador || ''))
 const mini = ref(false)
 

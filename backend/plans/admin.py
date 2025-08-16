@@ -1,5 +1,6 @@
 # core/admin.py ou plans/admin.py
 from django.contrib import admin
+from django.db import transaction
 from django.utils.html import format_html
 from .models import Plan
 from .models import PlanAdesion
@@ -67,6 +68,48 @@ class PlanAdesionAdmin(admin.ModelAdmin):
             'fields': ('dtt_record', 'dtt_update')
         }),
     )
+
+    def save_model(self, request, obj, form, change):
+        """Ao confirmar pagamento pela adesão, sincroniza PaymentLink e registra observação com usuário."""
+        was_confirmed = False
+        if change:
+            try:
+                old = PlanAdesion.objects.get(pk=obj.pk)
+                was_confirmed = (old.ind_payment_status == 'confirmed')
+            except PlanAdesion.DoesNotExist:
+                was_confirmed = False
+
+        super().save_model(request, obj, form, change)
+
+        if obj.ind_payment_status == 'confirmed' and not was_confirmed:
+            def sync_pl_after_commit():
+                try:
+                    from finance.models import PaymentLink
+                    from decimal import Decimal
+                    from django.utils import timezone
+                    pl = PaymentLink.objects.filter(adesion=obj).order_by('-created_at').first()
+                    if pl:
+                        pl.status = 'paid'
+                        pl.is_captured = True
+                        if not pl.closed_at:
+                            pl.closed_at = timezone.now()
+                        pl.amount = Decimal(obj.plan.price)
+                        note = f"Pagamento manual via edição de plano de adesão pelo usuário {request.user.username}"
+                        # Limita observação a 255 chars
+                        safe_note = (note if len(note) <= 255 else note[:252] + '...')
+                        try:
+                            merged = f"{pl.observation} | {safe_note}" if pl.observation else safe_note
+                            pl.observation = merged[:255]
+                            update_fields = ['status', 'is_captured', 'closed_at', 'amount', 'observation']
+                        except Exception:
+                            # Caso a migration do campo observation ainda não tenha sido aplicada
+                            update_fields = ['status', 'is_captured', 'closed_at', 'amount']
+                        pl.save(update_fields=update_fields)
+                except Exception as e:
+                    # Evita quebrar a transação do admin
+                    print(f"Aviso: sync PaymentLink pós-commit falhou: {e}")
+
+            transaction.on_commit(sync_pl_after_commit)
 
 
 @admin.register(PlanCareer)

@@ -58,7 +58,7 @@ INSTALLED_APPS = [
     'location',
     'network',
     'notifications',
-    'plans',
+    'plans.apps.PlansConfig',
     'proposal',
 ]
 

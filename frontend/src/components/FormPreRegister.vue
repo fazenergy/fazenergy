@@ -1,6 +1,5 @@
 <template>
   <div class="space-y-6">
-    <h2 class="text-2xl font-bold text-left mb-4">Pré-cadastro de Licenciado</h2>
     <!-- Alert flutuante para regras de senha -->
     <div v-if="passwordAlerts.length && showPasswordAlert" class="fixed md:top-4 md:right-4 top-2 right-2 z-50 max-w-md shadow-lg pointer-events-auto">
       <div class="relative rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3">
@@ -14,7 +13,7 @@
     <div v-if="!referrerValid" class="text-red-500 text-center mb-4">
       {{ referrerError }}
     </div>
-    <div class="bg-white rounded-lg shadow border border-gray-200 p-4 md:p-6 relative">
+    <div class="bg-white rounded-lg p-4 md:p-6 relative">
       <LoadingOverlay v-if="loading" message="Processando..." />
     <form @submit.prevent="handleSubmit" class="grid grid-cols-1 md:grid-cols-6 gap-4">
 

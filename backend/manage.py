@@ -2,15 +2,16 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
-import debugpy
-
-
-# Protege para só ativar o debug uma vez (evita erro de porta)
-if os.environ.get("RUN_MAIN") != "true":
-    import debugpy
-    debugpy.listen(("0.0.0.0", 5678))
-    print("🔍 Aguardando debugger conectar na porta 5678...")
-    # debugpy.wait_for_client()  # opcional se quiser pausar
+try:
+    import debugpy  # type: ignore
+    # Protege para só ativar o debug uma vez (evita erro de porta)
+    if os.environ.get("RUN_MAIN") != "true":
+        debugpy.listen(("0.0.0.0", 5678))
+        print("🔍 Aguardando debugger conectar na porta 5678...")
+        # debugpy.wait_for_client()  # opcional se quiser pausar
+except Exception:
+    # Se não existir debugpy no ambiente, ignora silenciosamente
+    debugpy = None
 
 def main():
     """Run administrative tasks."""

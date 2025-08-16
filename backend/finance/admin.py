@@ -32,12 +32,33 @@ class PaymentLinkAdmin(admin.ModelAdmin):
         'amount',
         'status',
         'gateway',
+        'observation',
         'is_captured',
         'is_canceled',
         'created_at',
     )
     list_filter = ('status', 'is_captured', 'is_canceled')
     search_fields = ('order_id', 'charge_id', 'licensed__user__username')  
+
+    def save_model(self, request, obj, form, change):
+        """Quando status é alterado manualmente para pago/autorizado, registra observação com o usuário."""
+        was_paid = False
+        if change:
+            try:
+                old = PaymentLink.objects.get(pk=obj.pk)
+                was_paid = old.status in ('paid', 'authorized')
+            except PaymentLink.DoesNotExist:
+                was_paid = False
+        super().save_model(request, obj, form, change)
+
+        if obj.status in ('paid', 'authorized') and not was_paid:
+            note = f"Pagamento manual via edição de link de pagamento pelo usuário {request.user.username}"
+            try:
+                # Anexa/define observação
+                obj.observation = f"{obj.observation} | {note}" if obj.observation else note
+                obj.save(update_fields=['observation'])
+            except Exception:
+                pass
 
 
 # finance/admin.py

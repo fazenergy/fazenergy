@@ -1,95 +1,98 @@
 <template>
-  <div class="gene-node">
-    <!-- Card estilizado -->
-    <div class="card">
-      <div class="card-header">
-        <div class="avatar-wrap">
-          <img :src="avatarSrc" alt="avatar" class="avatar" />
-          <span class="status" title="Ativo">✓</span>
+  <div class="gene-node" :class="{ 'has-children': hasChildren }">
+    <!-- Card simplificado -->
+    <div class="card" :class="levelClass">
+      <img :src="avatarSrc" alt="avatar" class="avatar" />
+      <div class="info">
+        <div class="name">{{ displayName }}</div>
+        <div class="username">@{{ username }}</div>
+        <div class="stats">
+          <span>👥 Diretos: {{ directsCount }}</span>
+          <span>▦ Nvl. {{ level }}</span>
         </div>
-        <div class="info">
-          <div class="name">{{ displayName }}</div>
-          <div class="username">@{{ username }}</div>
-          <div class="meta">
-            <span class="meta-item">📅 {{ joinDate }}</span>
-            <span class="meta-item">👥 Diretos: {{ directsCount }}</span>
-            <span class="meta-item">🧩 Equipe: {{ teamCount }}</span>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn-actions" @click="toggleMenu">Ações ▾</button>
-          <div v-if="showMenu" class="menu" @click.stop>
-            <button class="menu-item" @click="emit('viewProfile', node)">Ver Perfil</button>
-            <button class="menu-item" @click="emit('message', node)">Enviar Mensagem</button>
-          </div>
-        </div>
-      </div>
-      <div class="card-footer">
-        <span class="level">▦ Nvl. {{ level }}</span>
       </div>
     </div>
 
-    <!-- Filhos -->
-    <div v-if="node.children?.length" class="gene-children">
-      <GenealogyNode v-for="child in node.children" :key="child.id" :node="child" />
+    <!-- Conector vertical pai → linha horizontal dos filhos -->
+    <div v-if="hasChildren" class="connector-v"></div>
+
+    <!-- Conexões + Filhos -->
+    <div v-if="hasChildren" class="gene-children">
+      <div class="children-hline"></div>
+      <div class="children-wrap">
+        <div v-for="child in node.children" :key="child.id" class="child-slot">
+          <div class="child-vline"></div>
+          <GenealogyNode :node="child" />
+        </div>
+      </div>
     </div>
   </div>
-  
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
+defineOptions({ name: 'GenealogyNode' })
 
 const props = defineProps({ node: { type: Object, required: true } })
-const emit = defineEmits(['viewProfile','message'])
 
 const username = computed(() => props.node.user?.username || 'usuario')
 const displayName = computed(() => props.node.display_name || username.value.toUpperCase())
 const directsCount = computed(() => props.node.children?.length || 0)
+const level = computed(() => Number(props.node.level || 1))
+const hasChildren = computed(() => (props.node.children && props.node.children.length > 0))
+const defaultAvatar =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="64" height="64">
+      <circle cx="12" cy="8" r="4" fill="#cbd5e1" />
+      <path d="M4 20c0-3.3137 3.134-6 8-6s8 2.6863 8 6" fill="#e2e8f0" />
+      <circle cx="12" cy="12" r="11" fill="none" stroke="#94a3b8" stroke-width="1.5" />
+    </svg>`
+  )
+const avatarSrc = computed(() => props.node.user?.image_profile || defaultAvatar)
 
-function countDesc(n) {
-  return 1 + (n.children?.reduce((acc, c) => acc + countDesc(c), 0) || 0)
-}
-const teamCount = computed(() => Math.max(countDesc(props.node) - 1, 0))
-const level = computed(() => props.node.level || 1)
-const joinDate = computed(() => {
-  const iso = props.node.dtt_record
-  if (!iso) return '-'
-  const d = new Date(iso)
-  return d.toLocaleDateString('pt-BR')
-})
-const avatarSrc = computed(() => props.node.user?.image_profile || 'https://placehold.co/64x64/png')
-
-const showMenu = ref(false)
-function toggleMenu(ev) {
-  ev?.stopPropagation?.()
-  showMenu.value = !showMenu.value
-  if (showMenu.value) {
-    const onDoc = () => { showMenu.value = false; document.removeEventListener('click', onDoc) }
-    document.addEventListener('click', onDoc)
+const levelClass = computed(() => {
+  switch (level.value) {
+    case 1: return 'lvl-1'
+    case 2: return 'lvl-2'
+    case 3: return 'lvl-3'
+    case 4: return 'lvl-4'
+    case 5: return 'lvl-5'
+    default: return 'lvl-6'
   }
-}
+})
 </script>
 
 <style scoped>
-.gene-node { text-align: left; display: inline-block; }
-.card { width: 310px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); overflow: hidden; }
-.card-header { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
-.avatar-wrap { position: relative; }
-.avatar { width: 52px; height: 52px; border-radius: 9999px; object-fit: cover; border: 3px solid #22c55e; }
-.status { position: absolute; right: -2px; bottom: -2px; background: #22c55e; color: #fff; border-radius: 9999px; font-size: 10px; width: 16px; height: 16px; display: grid; place-items: center; border: 2px solid #fff; }
-.info { flex: 1; min-width: 0; }
-.name { font-weight: 700; font-size: 14px; line-height: 1.1; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.username { font-size: 12px; color: #64748b; }
-.meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; font-size: 12px; color: #334155; }
-.meta-item { display: inline-flex; align-items: center; gap: 4px; }
-.actions { position: relative; }
-.btn-actions { background: #0ea5e9; color: #fff; border: none; border-radius: 9999px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
-.menu { position: absolute; right: 0; top: 30px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 10px 20px rgba(15,23,42,.08); min-width: 140px; z-index: 10; }
-.menu-item { display: block; width: 100%; text-align: left; padding: 8px 10px; background: transparent; border: none; cursor: pointer; font-size: 12px; }
-.menu-item:hover { background: #f1f5f9; }
-.card-footer { border-top: 1px solid #e5e7eb; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; }
-.level { font-size: 12px; color: #475569; }
-.gene-children { display: flex; justify-content: center; gap: 16px; margin-top: 14px; }
+.gene-node { text-align: center; display: inline-block; position: relative; padding: 10px 12px; }
+
+.card { width: 200px; background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 8px; display: inline-flex; align-items: center; gap: 10px; }
+.avatar { width: 40px; height: 40px; border-radius: 9999px; object-fit: cover; border: 3px solid #e5e7eb; }
+.info { text-align: left; }
+.name { font-weight: 700; font-size: 13px; line-height: 1.1; color: #0f172a; }
+.username { font-size: 11px; color: #64748b; margin-top: 2px; }
+.stats { margin-top: 4px; display: flex; gap: 8px; font-size: 11px; color: #334155; }
+
+/* Children connectors */
+.connector-v { width: 2px; height: 12px; background: #cbd5e1; margin: 0 auto; }
+.gene-children { margin-top: -2px; }
+.children-hline { height: 2px; background: #cbd5e1; width: 100%; position: relative; left: 0; }
+.children-wrap { display: flex; justify-content: center; gap: 18px; margin-top: 0; }
+.child-slot { position: relative; padding-top: 8px; }
+.child-vline { position: absolute; top: 0; left: 50%; width: 2px; height: 20px; background: #cbd5e1; transform: translateX(-50%); }
+
+/* Level colors */
+.lvl-1 { border-color: #22c55e; }
+.lvl-1 .avatar { border-color: #22c55e; }
+.lvl-2 { border-color: #2563eb; }
+.lvl-2 .avatar { border-color: #2563eb; }
+.lvl-3 { border-color: #f59e0b; }
+.lvl-3 .avatar { border-color: #f59e0b; }
+.lvl-4 { border-color: #a855f7; }
+.lvl-4 .avatar { border-color: #a855f7; }
+.lvl-5 { border-color: #ef4444; }
+.lvl-5 .avatar { border-color: #ef4444; }
+.lvl-6 { border-color: #64748b; }
+.lvl-6 .avatar { border-color: #64748b; }
 </style>
 

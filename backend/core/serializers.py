@@ -117,3 +117,18 @@ class LicensedListSerializer(serializers.ModelSerializer):
 
     def get_city_lookup(self, obj):
         return {'name': obj.city_lookup.name} if getattr(obj, 'city_lookup', None) else None
+
+
+class DownlineListSerializer(LicensedListSerializer):
+    level = serializers.SerializerMethodField()
+    upline = serializers.SerializerMethodField()
+
+    class Meta(LicensedListSerializer.Meta):
+        fields = LicensedListSerializer.Meta.fields + ['level', 'upline']
+
+    def get_level(self, obj):
+        return (self.context.get('levels') or {}).get(obj.id, None)
+
+    def get_upline(self, obj):
+        uname = (self.context.get('uplines') or {}).get(obj.id, None)
+        return {'username': uname} if uname else None

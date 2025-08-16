@@ -64,6 +64,12 @@
                 <span v-if="!mini">Diretos</span>
               </router-link>
             </li>
+            <li>
+              <router-link to="/network/downlines" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Rede Completa">
+                <Users class="w-4 h-4" />
+                <span v-if="!mini">Rede Completa</span>
+              </router-link>
+            </li>
             <li><a href="#" :class="['flex items-center p-4 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Equipe"><Users class="w-4 h-4" /><span v-if="!mini">Equipe</span></a></li>
             <li>
               <router-link to="/network/tree" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Árvore da Rede">

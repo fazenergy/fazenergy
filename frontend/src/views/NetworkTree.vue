@@ -20,7 +20,9 @@
     <div class="bg-white border rounded p-3 min-h-[400px]">
       <!-- VIEW 1: Árvore Genealógica (simples) -->
       <div v-if="view==='genealogy'">
-        <GenealogyNode :node="root" />
+        <div class="flex justify-center">
+          <GenealogyNode :node="root" />
+        </div>
       </div>
 
       <!-- VIEW 2: Treeview vertical com contagens -->
@@ -44,21 +46,22 @@ import DataTable from '@/components/ui/DataTable.vue'
 import api from '@/services/axios'
 import GenealogyNode from '@/components/network/GenealogyNode.vue'
 import TreeNode from '@/components/network/TreeNode.vue'
+import { useAuthStore } from '@/store/auth'
 
 const view = ref('genealogy')
 const search = ref('')
 const loading = ref(false)
-const root = ref({ id: null, user: { username: '' }, children: [] })
+const root = ref({ id: null, user: { username: '' }, level: 0, children: [] })
+const auth = useAuthStore()
 
 async function fetchTree() {
   try {
     loading.value = true
-    const { data } = await api.get('/api/core/directs/')
-    // Por enquanto, monta uma árvore rasa (1 nível) com os diretos do licenciado logado
-    root.value = {
-      id: 0,
-      user: { username: 'Eu' },
-      children: data.map(d => ({ id: d.id, user: { username: d.user?.username }, children: [], city: d.city_lookup?.name || d.city_name, plan: d.plan?.name }))
+    const { data } = await api.get('/api/network/tree/')
+    if (data?.root) {
+      root.value = data.root
+    } else {
+      root.value = { id: null, user: { username: auth.user?.username || 'faz.raiz' }, level: 0, children: [] }
     }
   } finally {
     loading.value = false

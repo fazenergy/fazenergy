@@ -10,6 +10,7 @@ import PreRegister from '../views/Auth/PreRegister.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Network from '../views/Network.vue'
 import Directs from '../views/Directs.vue'
+import Downlines from '../views/Downlines.vue'
 import NetworkTree from '../views/NetworkTree.vue'
 import Reports from '../views/Reports.vue'
 import Profile from '../views/Profile.vue'
@@ -33,6 +34,7 @@ const routes = [
   { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/network', component: Network, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/network/directs', component: Directs, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
+  { path: '/network/downlines', component: Downlines, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
   { path: '/network/tree', component: NetworkTree, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
   { path: '/reports', component: Reports, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador'] } },
