@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0003_coregroup_alter_operator_options_and_more'),
+        ('core', '0004_alter_licensed_original_indicator'),
         ('core', '0004_remove_operator_city_fields'),
     ]
 
