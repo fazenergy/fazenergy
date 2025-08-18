@@ -12,16 +12,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='qualification',
-            new_name='Qualificati_license_7a7138_idx',
-            old_name='plans_quali_licensed_idx',
-        ),
-        migrations.RenameIndex(
-            model_name='qualification',
-            new_name='Qualificati_plan_ca_6b30ba_idx',
-            old_name='plans_quali_career_idx',
-        ),
         migrations.AddField(
             model_name='planadesion',
             name='product',

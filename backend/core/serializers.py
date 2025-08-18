@@ -13,10 +13,68 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     groups = serializers.StringRelatedField(many=True)
+    # Campos extras do Licensed
+    phone = serializers.SerializerMethodField()
+    cpf_cnpj = serializers.SerializerMethodField()
+    city = serializers.SerializerMethodField()
+    address = serializers.SerializerMethodField()
+    number = serializers.SerializerMethodField()
+    complement = serializers.SerializerMethodField()
+    plan = serializers.SerializerMethodField()
+    # Atualização de senha opcional
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'image_profile', 'is_superuser', 'groups']
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name', 'image_profile',
+            'is_superuser', 'groups',
+            'phone', 'cpf_cnpj', 'city', 'address', 'number', 'complement', 'plan',
+            'password'
+        ]
+
+    def _get_licensed(self, obj):
+        try:
+            return Licensed.objects.select_related('plan', 'city_lookup').get(user=obj)
+        except Licensed.DoesNotExist:
+            return None
+
+    def get_phone(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(lic, 'phone', None) if lic else None
+
+    def get_cpf_cnpj(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(lic, 'cpf_cnpj', None) if lic else None
+
+    def get_city(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(getattr(lic, 'city_lookup', None), 'name', None) if lic else None
+
+    def get_address(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(lic, 'address', None) if lic else None
+
+    def get_number(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(lic, 'number', None) if lic else None
+
+    def get_complement(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(lic, 'complement', None) if lic else None
+
+    def get_plan(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(getattr(lic, 'plan', None), 'name', None) if lic else None
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 
 class LicensedSerializer(serializers.ModelSerializer):
@@ -29,6 +87,7 @@ class LicensedSerializer(serializers.ModelSerializer):
         fields = [
             'user',
             'full_name',
+            'referrer',
             'original_indicator_id',
             'phone',
             'person_type',
@@ -106,7 +165,7 @@ class LicensedListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Licensed
         fields = [
-            'id', 'user', 'cpf_cnpj', 'phone', 'city_name', 'city_lookup',
+            'id', 'user', 'cpf_cnpj', 'phone', 'city_lookup',
             'plan', 'dtt_record'
         ]
 

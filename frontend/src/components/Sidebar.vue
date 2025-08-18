@@ -17,7 +17,7 @@
         <div class="mt-3">
           <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Menu Principal</h3>
           <ul class="space-y-1">
-            <li v-if="isSuperUser">
+            <li v-if="isSuperUser || isLicensed || isOperador">
               <router-link to="/dashboard" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Dashboard">
                 <LayoutDashboard class="w-4 h-4" />
                 <span v-if="!mini">Dashboard</span>

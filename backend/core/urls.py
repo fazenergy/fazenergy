@@ -7,6 +7,7 @@ from .views import (
     LicensedPreRegisterView,
     DirectLicensedListView,
     DownlineTreeListView,
+    DashboardView,
 )
 
 router = DefaultRouter()
@@ -19,4 +20,5 @@ urlpatterns = [
     path('pre-register/', LicensedPreRegisterView.as_view(), name='pre-register'),
     path('directs/', DirectLicensedListView.as_view(), name='licensed-directs'),
     path('downlines/', DownlineTreeListView.as_view(), name='licensed-downlines'),
+    path('dashboard/', DashboardView.as_view(), name='dashboard-data'),
 ]

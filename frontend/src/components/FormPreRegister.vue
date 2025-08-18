@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Alert flutuante para regras de senha -->
-    <div v-if="passwordAlerts.length && showPasswordAlert" class="fixed md:top-4 md:right-4 top-2 right-2 z-50 max-w-md shadow-lg pointer-events-auto">
+    <div v-if="passwordAlerts.length && showPasswordAlert && (form.password?.length > 0)" class="fixed md:top-4 md:right-4 top-2 right-2 z-50 max-w-md shadow-lg pointer-events-auto">
       <div class="relative rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3">
         <button type="button" @click="showPasswordAlert = false" class="absolute top-1 right-2 text-red-500/70 hover:text-red-700 text-lg">×</button>
         <strong class="font-semibold">Atenção</strong>
@@ -15,7 +15,7 @@
     </div>
     <div class="bg-white rounded-lg p-4 md:p-6 relative">
       <LoadingOverlay v-if="loading" message="Processando..." />
-    <form @submit.prevent="handleSubmit" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+    <form id="preRegisterForm" @submit.prevent="handleSubmit" class="grid grid-cols-1 md:grid-cols-6 gap-4">
 
       <!-- Linha 1 -->
       <FormField label="Indicado por" class="md:col-span-2" :error="errors.referrer">
@@ -25,7 +25,7 @@
         <Input v-model="form.full_name" placeholder="Seu nome completo" required class="text-sm" />
       </FormField>
       <div class="md:col-span-1 flex items-center pt-6">
-        <Switch v-model="form.is_root" />
+        <Switch v-model="form.is_root" :disabled="!isAdmin" />
         <span class="ml-2 text-sm">Indicador raiz</span>
       </div>
 
@@ -37,7 +37,7 @@
         <Input v-model="form.username" required class="text-sm" />
       </FormField>
       <FormField label="Senha" class="md:col-span-1" :error="errors.password">
-        <InputPass v-model="form.password" required @focus="showPasswordAlert = true" />
+        <InputPass v-model="form.password" required @focus="showPasswordAlert = true" @blur="showPasswordAlert = false" />
       </FormField>
       <FormField label="Confirmar" class="md:col-span-1" :error="errors.confirm_password">
         <InputPass v-model="form.confirm_password" required />
@@ -112,13 +112,13 @@
       </div>
 
       <!-- Separador -->
-      <div class="md:col-span-6">
+      <div v-if="!inModal" class="md:col-span-6">
         <hr class="my-4 border-gray-200" />
       </div>
 
-      <!--  Botão -->
-      <div class="md:col-span-6 flex justify-end">
-        <Button type="submit" class="px-6">Cadastrar</Button>
+      <!--  Botão (oculto quando usado no modal) -->
+      <div v-if="!inModal" class="md:col-span-6 flex justify-end">
+        <Button type="submit" class="px-6">Gravar</Button>
       </div>
     </form>
     </div>
@@ -145,12 +145,17 @@ const props = defineProps({
   referrerUsername: {
     type: String,
     default: ''
+  },
+  inModal: {
+    type: Boolean,
+    default: false
   }
 })
 
 // AUTH
 const auth = useAuthStore()
 const isSuperUser = computed(() => auth.user?.is_superuser)
+const isAdmin = computed(() => auth.user?.is_superuser || (auth.user?.groups || []).includes('Administrador'))
 const isAuthenticated = computed(() => !!auth.user)
 const isVisitor = computed(() => !isAuthenticated.value)
 const isLicensed = computed(() => (auth.user?.groups || []).includes('Licenciado'))
@@ -215,9 +220,10 @@ const errors = ref({
 })
 
 const passwordAlerts = ref<string[]>([])
-const showPasswordAlert = ref(true)
+const showPasswordAlert = ref(false)
 
 onMounted(async () => {
+  resetForm()
   try {
     const res = await api.get('/api/plans/plans/')
     plans.value = res.data
@@ -243,10 +249,13 @@ onMounted(async () => {
     }
   }
 
-  // Se logado como licenciado, trava e preenche com o próprio username
+  // Se logado como licenciado, trava e preenche apenas o indicadopor; email/senha ficam vazios
   if (isAuthenticated.value && isLicensed.value) {
     referrerValid.value = true
     form.value.referrer = auth.user?.username || ''
+    form.value.email = ''
+    form.value.password = ''
+    form.value.confirm_password = ''
   }
 
   // Carrega estados
@@ -258,6 +267,34 @@ onMounted(async () => {
   //   await onEstadoChange();
   // }
 });
+
+function resetForm() {
+  form.value = {
+    referrer: '',
+    full_name: '',
+    email: '',
+    username: '',
+    password: '',
+    confirm_password: '',
+    phone: '',
+    person_type: '',
+    cpfCnpj: '',
+    cep: '',
+    state: '',
+    city: '',
+    district: '',
+    address: '',
+    number: '',
+    complement: '',
+    plan: '',
+    accept_lgpd: false,
+    is_root: false,
+  }
+  Object.keys(errors.value).forEach(k => errors.value[k] = '')
+  // evita abrir o alerta no carregamento inicial
+  passwordAlerts.value = []
+  showPasswordAlert.value = false
+}
 // Preenchimento automatico conforme CEP informado
 async function fetchAddress() {
   loading.value = true

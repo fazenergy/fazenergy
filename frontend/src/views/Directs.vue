@@ -51,7 +51,13 @@
   <!-- Modal Novo Licenciado -->
   <Modal v-model="showNew" :header-blue="true" :no-header-border="true">
     <template #title>Novo Licenciado</template>
-    <FormPreRegister />
+    <FormPreRegister :in-modal="true" :key="formKey" />
+    <template #footer>
+      <div class="flex items-center justify-end gap-2">
+        <button @click="showNew=false" class="px-4 py-2 rounded border">Fechar</button>
+        <button form="preRegisterForm" type="submit" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Gravar</button>
+      </div>
+    </template>
   </Modal>
 </template>
 
@@ -185,7 +191,11 @@ function printGrid() {
 }
 
 const showNew = ref(false)
-function openNewModal() { showNew.value = true }
+const formKey = ref(0)
+function openNewModal() { 
+  formKey.value += 1
+  showNew.value = true
+}
 
 // filtro por upline removido
 

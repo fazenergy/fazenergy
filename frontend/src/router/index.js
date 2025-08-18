@@ -31,13 +31,13 @@ const routes = [
   { path: '/preRegister', name: 'PreRegister', component: PreRegister, meta: { public: true } },
   
 
-  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado', 'operador'] } },
   { path: '/network', component: Network, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/network/directs', component: Directs, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
   { path: '/network/downlines', component: Downlines, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
   { path: '/network/tree', component: NetworkTree, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
   { path: '/reports', component: Reports, meta: { requiresAuth: true, roles: ['superadmin'] } },
-  { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador'] } },
+  { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/settings', component: Settings, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/accessDenied', name: 'accessDenied', component: AccessDenied },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound, meta: { public: true } }
