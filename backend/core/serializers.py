@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .models.User import User
 from .models.Licensed import Licensed
 from django.contrib.auth.models import Group
+from django.db import transaction, IntegrityError
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -119,8 +120,9 @@ class LicensedSerializer(serializers.ModelSerializer):
             )
         # Resolve indicador (original_indicator)
         request = self.context.get('request')
-        # username vindo do payload (ex.: form.referrer)
-        ref_username = self.initial_data.get('referrer') or data.pop('referrer', None)
+        # username vindo do payload (ex.: form.referrer) — sempre remova de data
+        ref_username = self.initial_data.get('referrer', None)
+        data.pop('referrer', None)
 
         indicator = None
         if request and request.user and request.user.is_authenticated:
@@ -148,14 +150,20 @@ class LicensedSerializer(serializers.ModelSerializer):
         nomes = full_name.strip().split(' ', 1)
         user_data['first_name'] = nomes[0]
         user_data['last_name'] = nomes[1] if len(nomes) > 1 else ''
-        user = User.objects.create_user(**user_data)
 
-        # Adiciona o usuário ao grupo "Licenciado"
-        licenciado_group, _ = Group.objects.get_or_create(name='Licenciado')
-        user.groups.add(licenciado_group)
-
-        licensed = Licensed.objects.create(user=user, **validated_data)
-        return licensed
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(**user_data)
+                # Adiciona o usuário ao grupo "Licenciado"
+                licenciado_group, _ = Group.objects.get_or_create(name='Licenciado')
+                user.groups.add(licenciado_group)
+                licensed = Licensed.objects.create(user=user, **validated_data)
+                return licensed
+        except IntegrityError as e:
+            # Se algo falhar (ex.: cpf_cnpj duplicado), a transação é revertida (não deixa User órfão)
+            raise serializers.ValidationError({
+                'non_field_errors': [str(e)]
+            })
 
 class LicensedListSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()

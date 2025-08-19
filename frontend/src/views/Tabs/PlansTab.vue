@@ -1,61 +1,47 @@
-<!-- src/views/Tabs/PlansTab.vue -->
 <template>
   <div>
-  <!-- Cabeçalho com botão alinhado à direita -->
-   <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-semibold">Gerenciar Planos</h2>
-
-     <!-- Botão criar -->
-      <button 
-        @click="newPlan"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-        Novo Plano
-      </button>
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Gerenciar Planos</h2>
+      <button @click="newPlan" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Novo Plano</button>
     </div>
 
-    <!-- Tabela de planos -->
-    <table class="w-full text-sm">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="p-2 text-left">Nome</th>
-          <th class="p-2 text-left">Preço</th>
-          <th class="p-2 text-left">Pontos</th>
-          <th class="p-2 text-left">Status</th>
-          <th class="p-2 text-left">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="plan in plans" :key="plan.id" class="border-b">
-          <td class="p-2">{{ plan.name }}</td>
-          <td class="p-2">R$ {{ plan.price }}</td>
-          <td class="p-2">{{ plan.points }}</td>
-          <td class="p-2">
-            <span :class="plan.stt_record ? 'text-green-600' : 'text-red-600'">
-              {{ plan.stt_record ? 'Ativo' : 'Inativo' }}
-            </span>
-          </td>
-          <td class="p-2 space-x-2">
-            <button @click="editPlan(plan)" class="text-blue-600">Editar</button>
-            <button @click="deletePlan(plan.id)" class="text-red-600">Excluir</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-   
+    <div ref="gridWrapper">
+      <DataTable :columns="columns" :rows="decoratedRows" :loading="loading" :min-height="gridMinHeight">
+        <template #title>Planos</template>
+        <template #col:actions="{ row }">
+          <button
+            @click="editPlan(row)"
+            class="h-[27px] w-7 grid place-items-center bg-blue-600 hover:bg-blue-700 text-white rounded-md shadow-sm transition"
+            title="Editar"
+          >
+            <Pencil class="w-3.5 h-3.5" :stroke-width="1.75" />
+          </button>
+        </template>
+        <template #col:id="{ row }">{{ row.id }}</template>
+        <template #col:name="{ row }">{{ row.name }}</template>
+        <template #col:price="{ row }">R$ {{ row.price }}</template>
+        <template #col:points="{ row }">{{ row.points }}</template>
+        <template #col:last_update="{ row }">
+          <div class="text-[11px] leading-tight text-gray-700">
+            <div>{{ row.usr_update_username || '-' }}</div>
+            <div>{{ formatDate(row.dtt_update) }}</div>
+          </div>
+        </template>
+        <template #col:stt_record="{ row }">
+          <span :class="row.stt_record
+            ? 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-300'
+            : 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-800 border border-rose-300'">
+            {{ row.stt_record ? 'Ativo' : 'Inativo' }}
+          </span>
+        </template>
+      </DataTable>
+    </div>
 
     <!-- Modal criar/editar -->
-    <div
-      v-if="showModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white p-6 rounded w-full max-w-xl overflow-y-auto max-h-[90vh]">
-        <h3 class="text-lg font-semibold mb-4">
-          {{ form.id ? 'Editar Plano' : 'Cadastrar Novo Plano' }}
-        </h3>
-
-        <div class="grid grid-cols-1 gap-4">
-          <!-- Nome -->
+    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded w-full max-w-xl overflow-y-auto max-h-[90vh]">
+        <div class="p-3 border-b font-semibold bg-blue-800 text-white">{{ form.id ? 'Editar Plano' : 'Cadastrar Novo Plano' }}</div>
+        <div class="p-4 grid grid-cols-1 gap-4">
           <div class="flex items-center justify-between gap-4">
             <div class="flex-1">
               <label class="block mb-1">Nome</label>
@@ -72,97 +58,80 @@
             </div>
           </div>
 
-          <!-- Upload imagem -->
           <div>
             <label class="block mb-1">Imagem (400x400)</label>
-            <input
-              type="file"
-              @change="handleImageUpload"
-              class="w-full border rounded px-2 py-1"
-            />
+            <input type="file" @change="handleImageUpload" class="w-full border rounded px-2 py-1" />
             <div v-if="previewImage" class="mt-2">
-              <img
-                :src="previewImage"
-                alt="Preview"
-                class="w-32 h-32 object-cover border rounded"
-              />
+              <img :src="previewImage" alt="Preview" class="w-32 h-32 object-cover border rounded" />
             </div>
           </div>
 
-          <!-- Preço e Pontos -->
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block mb-1">Preço</label>
-              <input
-                v-model="form.price"
-                type="number"
-                step="0.01"
-                class="w-full border rounded px-2 py-1"
-              />
+              <input v-model="form.price" type="number" step="0.01" class="w-full border rounded px-2 py-1" />
             </div>
             <div>
               <label class="block mb-1">Pontos</label>
-              <input
-                v-model="form.points"
-                type="number"
-                class="w-full border rounded px-2 py-1"
-              />
+              <input v-model="form.points" type="number" class="w-full border rounded px-2 py-1" />
             </div>
           </div>
 
-          <!-- Bônus níveis -->
           <div class="grid grid-cols-2 gap-2">
             <div v-for="n in 5" :key="n">
               <label class="block mb-1">Bônus Nível {{ n }}</label>
-              <input
-                v-model="form[`bonus_level_${n}`]"
-                type="number"
-                step="0.01"
-                class="w-full border rounded px-2 py-1"
-              />
+              <input v-model="form[`bonus_level_${n}`]" type="number" step="0.01" class="w-full border rounded px-2 py-1" />
             </div>
           </div>
-
         </div>
-
-        <!-- Botões -->
-        <div class="flex justify-end space-x-2 mt-6">
-          <button
-            @click="savePlan"
-            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            Salvar
-          </button>
-          <button
-            @click="showModal = false"
-            class="px-4 py-2 border rounded hover:bg-gray-100"
-          >
-            Cancelar
-          </button>
+        <div class="p-3 border-t flex justify-end gap-2">
+          <button @click="showModal = false" class="px-3 py-1.5 rounded border">Fechar</button>
+          <button @click="savePlan" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white">Gravar</button>
         </div>
       </div>
     </div>
   </div>
+  
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import DataTable from '@/components/ui/DataTable.vue'
 import api from '@/services/axios'
+import { Pencil } from 'lucide-vue-next'
 
-const plans = ref([])
+const rows = ref([])
+const loading = ref(false)
 const showModal = ref(false)
 const form = ref({})
 const previewImage = ref(null)
 const selectedImageFile = ref(null)
 
-onMounted(() => {
-  fetchPlans()
-})
+const columns = [
+  { key: 'actions', label: 'Ações' },
+  { key: 'id', label: 'ID' },
+  { key: 'name', label: 'Nome' },
+  { key: 'price', label: 'Preço' },
+  { key: 'points', label: 'Pontos' },
+  { key: 'last_update', label: 'Última Edição' },
+  { key: 'stt_record', label: 'Status' },
+]
+
+onMounted(fetchPlans)
 
 function fetchPlans() {
+  loading.value = true
   api.get('/api/plans/plans/').then(res => {
-    plans.value = res.data
-  })
+    rows.value = res.data
+  }).finally(() => loading.value = false)
+}
+
+const decoratedRows = computed(() => rows.value)
+
+function formatDate(iso) {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  return d.toLocaleString('pt-BR')
 }
 
 function newPlan() {
@@ -205,7 +174,6 @@ function savePlan() {
   const config = {
     headers: {
       'Content-Type': 'multipart/form-data',
-      // 👇 ISSO É CRÍTICO! Inclua o token manualmente se sobrescrever headers:
       Authorization: `Bearer ${localStorage.getItem('accessToken')}`
     }
   }
@@ -223,9 +191,18 @@ function savePlan() {
   }
 }
 
-function deletePlan(id) {
-  if (confirm('Tem certeza que deseja excluir este plano?')) {
-    api.delete(`/api/plans/plans/${id}/`).then(fetchPlans)
-  }
+function updateGridHeight() {
+  if (!gridWrapper.value) return
+  const rect = gridWrapper.value.getBoundingClientRect()
+  const available = window.innerHeight - rect.top - 16
+  gridMinHeight.value = `${Math.max(available, 300)}px`
 }
+
+const gridWrapper = ref(null)
+const gridMinHeight = ref('300px')
+onMounted(() => {
+  updateGridHeight()
+  window.addEventListener('resize', updateGridHeight)
+})
+onUnmounted(() => window.removeEventListener('resize', updateGridHeight))
 </script>

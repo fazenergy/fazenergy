@@ -283,4 +283,36 @@ class DashboardView(APIView):
             {'label': 'Cadastrar Licenciado', 'route': '/preRegister'},
             {'label': 'Árvore da Rede', 'route': '/network/tree'},
         ]
+
+        # Billing banner: se não é raiz, tem adesão pendente e não é cortesia
+        try:
+            from plans.models.PlanAdesion import PlanAdesion
+            from finance.models.PaymentLink import PaymentLink
+            last_adesion = (
+                PlanAdesion.objects
+                .filter(licensed=user)
+                .order_by('-dtt_record')
+                .first()
+            )
+            pending = False
+            pay_url = None
+            adesion_id = None
+            if last_adesion:
+                adesion_id = last_adesion.id
+                if not current_licensed.is_root and not last_adesion.is_courtesy and last_adesion.ind_payment_status != 'confirmed':
+                    pending = True
+                    pl = PaymentLink.objects.filter(adesion=last_adesion).order_by('-created_at').first()
+                    pay_url = getattr(pl, 'url', None) if pl else None
+            data['billing'] = {
+                'pending_annual_payment': pending,
+                'payment_link_url': pay_url,
+                'adesion_id': adesion_id,
+            }
+        except Exception:
+            data['billing'] = {
+                'pending_annual_payment': False,
+                'payment_link_url': None,
+                'adesion_id': None,
+            }
+
         return Response(data)

@@ -1,5 +1,18 @@
 <template>
   <div class="space-y-6">
+    <!-- Sucesso de cadastro: card/alert -->
+    <div v-if="showSuccess" class="border-l-4 border-emerald-500 bg-emerald-50 text-emerald-800 p-4 rounded">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <div class="font-semibold">{{ successMessage.title }}</div>
+          <div class="text-sm">{{ successMessage.body }}</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button @click="openPaymentNow" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm">Pagar Agora</button>
+          <button @click="showSuccess=false" class="px-3 py-1.5 rounded border text-sm">Fechar</button>
+        </div>
+      </div>
+    </div>
     <!-- Alert flutuante para regras de senha -->
     <div v-if="passwordAlerts.length && showPasswordAlert && (form.password?.length > 0)" class="fixed md:top-4 md:right-4 top-2 right-2 z-50 max-w-md shadow-lg pointer-events-auto">
       <div class="relative rounded border border-red-200 bg-red-50 text-red-700 px-4 py-3">
@@ -15,7 +28,17 @@
     </div>
     <div class="bg-white rounded-lg p-4 md:p-6 relative">
       <LoadingOverlay v-if="loading" message="Processando..." />
-    <form id="preRegisterForm" @submit.prevent="handleSubmit" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div v-if="completed" class="min-h-[220px] grid place-items-center text-center p-6">
+        <div class="max-w-xl">
+          <div class="text-emerald-700 font-semibold text-lg">Cadastro realizado com sucesso!</div>
+          <div class="text-gray-600 mt-1">Enviamos o contrato e o link de pagamento para o e-mail informado. Você pode abrir o pagamento agora para concluir a ativação.</div>
+          <div class="mt-4 flex items-center justify-center gap-2">
+            <button @click="openPaymentNow" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Pagar Agora</button>
+            <button @click="emitClose" class="px-4 py-2 rounded border">Fechar</button>
+          </div>
+        </div>
+      </div>
+    <form v-else id="preRegisterForm" @submit.prevent="handleSubmit" class="grid grid-cols-1 md:grid-cols-6 gap-4">
 
       <!-- Linha 1 -->
       <FormField label="Indicado por" class="md:col-span-2" :error="errors.referrer">
@@ -118,7 +141,7 @@
 
       <!--  Botão (oculto quando usado no modal) -->
       <div v-if="!inModal" class="md:col-span-6 flex justify-end">
-        <Button type="submit" class="px-6">Gravar</Button>
+        <Button type="submit" class="px-6" :disabled="loading || completed">Gravar</Button>
       </div>
     </form>
     </div>
@@ -154,6 +177,7 @@ const props = defineProps({
 
 // AUTH
 const auth = useAuthStore()
+const emit = defineEmits(['close','completed'])
 const isSuperUser = computed(() => auth.user?.is_superuser)
 const isAdmin = computed(() => auth.user?.is_superuser || (auth.user?.groups || []).includes('Administrador'))
 const isAuthenticated = computed(() => !!auth.user)
@@ -221,12 +245,13 @@ const errors = ref({
 
 const passwordAlerts = ref<string[]>([])
 const showPasswordAlert = ref(false)
+const completed = ref(false)
 
 onMounted(async () => {
   resetForm()
   try {
     const res = await api.get('/api/plans/plans/')
-    plans.value = res.data
+    plans.value = (res.data || []).filter((p:any) => p.stt_record === true)
   } catch (err) {
     plans.value = []
   }
@@ -330,8 +355,17 @@ async function fetchAddress() {
   }
   loading.value = false
 }
+function openPaymentNow() {
+  // Tenta abrir o payment link mais recente do usuário criado
+  const username = form.value.username
+  if (!username) { return }
+  // redireciona para a tela de pagamento que ajusta zoom/iframe; busca pelo username quando adesion ainda não está no contexto
+  window.location.href = `/payment?licensed=${encodeURIComponent(username)}`
+}
 
-
+function emitClose(){
+  emit('close')
+}
 
 
 const estados = ref([])
@@ -434,8 +468,11 @@ if (!payload.plan) {
   delete payload.confirm_password;
 
   try {
-    await api.post('/api/users/pre-register/', payload);
-    alert('Pré-cadastro realizado com sucesso!');
+    // envia apenas campos esperados pelo backend; 'referrer' é usado, mas removido antes de criar Licensed
+    const { referrer, ...rest } = payload
+    await api.post('/api/users/pre-register/', { ...rest, referrer });
+    completed.value = true
+    emit('completed')
   } catch (error) {
     alert('Erro ao cadastrar. Verifique os dados e tente novamente.');
   }

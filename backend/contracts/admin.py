@@ -1,6 +1,6 @@
 # contracts/admin.py
 from django.contrib import admin
-from .models import ContractConfig, ContractTemplate, ContractLog
+from .models import ContractConfig, ContractTemplate
 
 @admin.register(ContractConfig)
 class ContractConfigAdmin(admin.ModelAdmin):
@@ -14,12 +14,7 @@ class ContractConfigAdmin(admin.ModelAdmin):
         }),
     )
 
-@admin.register(ContractLog)
-class ContractLogAdmin(admin.ModelAdmin):
-    list_display = ('licensed', 'contract_template', 'document_token', 'status', 'created_at')
-    search_fields = ('licensed__cpf_cnpj', 'document_token', 'status')
-    list_filter = ('status', 'created_at')
-    readonly_fields = ('licensed', 'contract_template', 'document_token', 'status', 'created_at')
+# ContractLog removido do admin
 
 
 

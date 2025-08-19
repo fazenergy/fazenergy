@@ -9,6 +9,18 @@ class ScoreReference(models.Model):
 
     points_amount = models.PositiveIntegerField("Pontos")
 
+    STATUS_CHOICES = [
+        ('valid', 'Válido'),
+        ('pending', 'Pendente'),
+        ('canceled', 'Cancelado'),
+    ]
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='Status',
+    )
+
     receiver_licensed = models.ForeignKey(
         'core.Licensed',
         on_delete=models.CASCADE,
@@ -44,6 +56,7 @@ class ScoreReference(models.Model):
         indexes = [
             models.Index(fields=['receiver_licensed']),
             models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['status']),
         ]
 
     def __str__(self) -> str:

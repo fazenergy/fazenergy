@@ -4,8 +4,8 @@ from django.utils import timezone
 from django.db import transaction
 from plans.models.PlanAdesion import PlanAdesion
 from core.models.Licensed import Licensed
-from network.models import UnilevelNetwork
-from network.models.LicensedPoints import LicensedPoints
+from network.models import UnilevelNetwork, ScoreReference
+from django.contrib.contenttypes.models import ContentType
 
 # CHAMA O METODO QUE CRIA O LINK DE PAGAMENTO NA PAGARME E GRAVA NO BANCO NO 
 # MOMENTO EM QUE É INSERIDO UM NOVO PLANO DE ADESÃO PARA AQUELE AFILIADO
@@ -63,16 +63,16 @@ def ensure_network_and_points_on_confirmation(sender, instance: PlanAdesion, cre
                     current = current.original_indicator
                     lvl += 1
 
-            # Pontuação (idempotente)
-            ref = f"ADES-{instance.id}"
-            LicensedPoints.objects.get_or_create(
-                licensed=licensed,
-                reference=ref,
+            # Pontuação (idempotente) via ScoreReference
+            ct = ContentType.objects.get(app_label='plans', model='planadesion')
+            ScoreReference.objects.get_or_create(
+                receiver_licensed=licensed,
+                content_type=ct,
+                object_id=instance.id,
                 defaults={
-                    'description': f"Pontos de adesão do plano {instance.plan.name}",
-                    'points': instance.plan.points,
-                    'dtt_ref': timezone.now().date(),
+                    'points_amount': int(instance.plan.points),
                     'status': 'valid',
+                    'triggering_licensed': licensed,
                 }
             )
 

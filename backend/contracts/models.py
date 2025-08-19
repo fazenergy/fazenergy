@@ -75,19 +75,4 @@ class ContractTemplate(models.Model):
                 """ 
         super().save(*args, **kwargs)
 
-# auditoria de contrato assinado
-class ContractLog(models.Model):
-    licensed = models.ForeignKey(Licensed, on_delete=models.CASCADE, null=True)
-    contract_template = models.ForeignKey(ContractTemplate, on_delete=models.CASCADE, null=True)
-    document_token = models.CharField(max_length=255, null=True)
-    status = models.CharField(max_length=50, null=True)
-    response = models.JSONField(blank=True, null=True)  # opcional: salva resposta completa
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'ContractLog'
-        verbose_name = "Log de Contrato"
-        verbose_name_plural = "Log de Contrato"
-
-    def __str__(self):
-        return f"{self.licensed} - {self.contract_template} - {self.status}"
+# ContractLog removido do modelo

@@ -33,13 +33,6 @@ class Licensed(models.Model):
     plan        = models.ForeignKey('plans.Plan', on_delete=models.PROTECT, verbose_name="Plano") # 
 
      # FK - Conecta com PlanCareer
-    previous_career = models.ForeignKey(
-        'plans.PlanCareer',
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name='previous_licensed',
-        verbose_name="Carreira Anterior")
-
     current_career = models.ForeignKey(
         'plans.PlanCareer',
         on_delete=models.SET_NULL,
@@ -47,7 +40,6 @@ class Licensed(models.Model):
         related_name='current_licensed',
         verbose_name="Carreira Atual")
 
-    dtt_previous_career     = models.DateTimeField(blank=True, null=True, verbose_name="Data Carreira Anterior")
     dtt_current_career      = models.DateTimeField(blank=True, null=True, verbose_name="Data Carreira Atual")
 
     is_root                 = models.BooleanField(default=False, verbose_name="É Raiz ? ")
@@ -122,11 +114,9 @@ class Licensed(models.Model):
 
             print(f"Parabéns! Qualificado para {plano.stage_name} — Prêmio: {plano.reward_description}")
 
-            self.previous_career = self.current_career
             self.current_career = plano
-            self.dtt_previous_career = self.dtt_current_career
             self.dtt_current_career = timezone.now()
-            self.save(update_fields=['previous_career', 'current_career', 'dtt_previous_career', 'dtt_current_career'])
+            self.save(update_fields=['current_career', 'dtt_current_career'])
             break
 
 

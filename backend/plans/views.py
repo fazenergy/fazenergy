@@ -6,6 +6,8 @@ from .models.PlanAdesion import PlanAdesion
 from .serializers import PlanAdesionSerializer
 from .models import Qualification
 from .serializers import QualificationSerializer
+from .models.PlanCareer import PlanCareer
+from .serializers import PlanCareerSerializer
 
 class PlanViewSet(viewsets.ModelViewSet):
     queryset = Plan.objects.all()
@@ -38,6 +40,17 @@ class PlanAdesionViewSet(viewsets.ModelViewSet):
 class QualificationViewSet(viewsets.ModelViewSet):
     queryset = Qualification.objects.all()
     serializer_class = QualificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
+
+
+class PlanCareerViewSet(viewsets.ModelViewSet):
+    queryset = PlanCareer.objects.all().order_by('required_points')
+    serializer_class = PlanCareerSerializer
     permission_classes = [IsAuthenticated]
 
     def get_serializer_context(self):

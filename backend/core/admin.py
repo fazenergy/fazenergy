@@ -155,7 +155,7 @@ class LicensedAdmin(admin.ModelAdmin):
     list_display = (
         'original_indicator', 'get_username', 'person_type', 'cpf_cnpj', 'plan', 
         'city_name', 
-        'get_previous_career_name', 'get_current_career_name',
+        'get_current_career_name',
         'is_root', 'is_in_network', 'accept_lgpd',
         'formatted_dtt_record', 'formatted_dtt_update', 'stt_record'
     )
@@ -169,7 +169,7 @@ class LicensedAdmin(admin.ModelAdmin):
     fieldsets = (
             ('Rede',                         {'fields': ('user', 'original_indicator', 'is_root', 'is_in_network')}), 
             ('Informações de Usuário',       {'fields': ('stt_record', 'person_type', 'cpf_cnpj')}),
-            ('Plano e Carreira',             {'fields': ('plan', 'previous_career', 'current_career', 'dtt_previous_career', 'dtt_current_career')}),
+            ('Plano e Carreira',             {'fields': ('plan', 'current_career', 'dtt_current_career')}),
             ('Contato e Endereço',           {'fields': ('phone', 'cep', 'city_lookup', 'address', 'number', 'complement', 'district')}),
             ('Outros',                       {'fields': ('comment','accept_lgpd')}),
         )
@@ -196,10 +196,6 @@ class LicensedAdmin(admin.ModelAdmin):
     def original_indicator(self, obj):
         return obj.original_indicator.name
     
-    @admin.display(description='Carreira Anterior')
-    def get_previous_career_name(self, obj):
-        return obj.previous_career.stage_name if obj.previous_career else "-"
-
     @admin.display(description='Carreira Atual')
     def get_current_career_name(self, obj):
         return obj.current_career.stage_name if obj.current_career else "-"
@@ -216,10 +212,6 @@ class LicensedAdmin(admin.ModelAdmin):
         
     # PERSISTENCIA
     def save_model(self, request, obj, form, change):
-        # Regra: não pode ter carreira atual sem carreira anterior
-        if obj.current_career and not obj.previous_career:
-            raise ValidationError("Não é permitido definir uma carreira atual sem definir uma carreira anterior.")
-
         super().save_model(request, obj, form, change)
 
         # Vincula o usuário ao grupo Licenciado se não estiver
