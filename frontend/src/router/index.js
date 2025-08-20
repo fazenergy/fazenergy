@@ -12,7 +12,11 @@ import Network from '../views/Network.vue'
 import Directs from '../views/Directs.vue'
 import Downlines from '../views/Downlines.vue'
 import NetworkTree from '../views/NetworkTree.vue'
+import Adesions from '../views/Adesions.vue'
 import Reports from '../views/Reports.vue'
+import PointsReport from '../views/Reports/PointsReport.vue'
+import BonusReport from '../views/Reports/BonusReport.vue'
+import PaymentIframe from '../views/PaymentIframe.vue'
 import Profile from '../views/Profile.vue'
 import Settings from '../views/Settings.vue'
 import AccessDenied from '../views/AccessDenied.vue'
@@ -35,9 +39,14 @@ const routes = [
   { path: '/network', component: Network, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/network/directs', component: Directs, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
   { path: '/network/downlines', component: Downlines, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
+  { path: '/network/adesions', component: Adesions, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/network/tree', component: NetworkTree, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
-  { path: '/reports', component: Reports, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  // Relatórios
+  { path: '/reports', redirect: '/reports/points' },
+  { path: '/reports/points', component: PointsReport, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  { path: '/reports/bonus', component: BonusReport, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
+  { path: '/payment', component: PaymentIframe, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/settings', component: Settings, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/accessDenied', name: 'accessDenied', component: AccessDenied },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound, meta: { public: true } }

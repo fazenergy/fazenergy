@@ -5,7 +5,7 @@ from core.models.User import User
 from core.models.Licensed import Licensed
 
 import requests
-from contracts.models import ContractConfig, ContractLog, ContractTemplate
+from contracts.models import ContractConfig, ContractTemplate
 
 def send_doc_lexio_api(filename, base_document, signers, resumo, send_email=True, order_by=False):
     config = ContractConfig.objects.first()
@@ -86,12 +86,7 @@ def send_doc_adesion_to_lexio(pk: int) -> dict:
         resumo=f"Contrato de Adesão MMN - Faz Energy - Cliente {pk}",
     )
 
-    ContractLog.objects.create(
-        licensed=licensed,
-        contract_template=template,
-        document_token=result.get("document_token"),
-        status=result.get("status"),
-    )
+    # Log removido (ContractLog excluído do projeto)
 
     # Atualiza o PlanAdesion com o status e token do contrato
     from plans.models import PlanAdesion

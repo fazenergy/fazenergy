@@ -11,12 +11,15 @@ urlpatterns = [
     path('api/users/', include('core.urls')),
     path('api/core/', include('core.urls')),
     path('api/plans/', include('plans.urls')),
+    path('api/finance/', include('finance.urls')),
+    path('api/notifications/', include('notifications.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/users/', include('core.urls')),  # ou o nome do seu app
     path('api/location/', include('location.urls')),
     path('api/network/', include('network.urls')),
     path('api/prospect/', include('prospect.urls')),
+    path('api/contracts/', include('contracts.urls')),
 
     # Webhooks
     path('api/webhook/pagarme/', pagarme_webhook, name='webhook-pagarme'),

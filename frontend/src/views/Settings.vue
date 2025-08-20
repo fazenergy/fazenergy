@@ -13,7 +13,7 @@
         :class="[
           'px-4 py-2 rounded-t',
           activeTab === tab
-            ? 'bg-white border border-b-0'
+            ? 'bg-green-600 text-white border border-b-0'
             : 'bg-gray-100 hover:bg-gray-200'
         ]"
       >
@@ -31,23 +31,36 @@
 <script setup>
 import { ref, computed } from 'vue'
 import PlansTab from './Tabs/PlansTab.vue'
+import CareerPlansTab from './Tabs/CareerPlansTab.vue'
+import NotificationsTab from './Tabs/NotificationsTab.vue'
+import GatewayTab from './Tabs/GatewayTab.vue'
+import ContractsTab from './Tabs/ContractsTab.vue'
+import GeneralTab from './Tabs/GeneralTab.vue'
 
-const tabs = ['Geral', 'Comissões', 'Pagamentos', 'Planos', 'Notificações', 'Webhooks', 'APIs', 'Contratos']
+const GenericTab = {
+  template: `<div class="text-gray-500">Aba <strong>{{ tab }}</strong> ainda não implementada.</div>`,
+  props: ['tab']
+}
+
+const tabs = ['Geral', 'Comissões', 'Gateway', 'Planos', 'Planos de Carreira', 'Notificações', 'Webhooks', 'APIs', 'Contratos']
 const activeTab = ref('Planos') // já abre na aba Planos
 
 const currentTabComponent = computed(() => {
   switch (activeTab.value) {
     case 'Planos':
       return PlansTab
+    case 'Geral':
+      return GeneralTab
+    case 'Planos de Carreira':
+      return CareerPlansTab
+    case 'Gateway':
+      return GatewayTab
+    case 'Notificações':
+      return NotificationsTab
     // depois você pode registrar outros tabs aqui
     default:
-      return {
-        template: `<div class="text-gray-500">Aba <strong>{{ tab }}</strong> ainda não implementada.</div>`,
-        props: ['tab'],
-        setup() {
-          return { tab: activeTab }
-        },
-      }
+      if (activeTab.value === 'Contratos') return ContractsTab
+      return GenericTab
   }
 })
 

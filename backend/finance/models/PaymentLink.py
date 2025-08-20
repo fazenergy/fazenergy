@@ -3,6 +3,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from core.models.Licensed import Licensed  # ajuste para o seu app
+# Generic relations para ScoreReference
+from django.contrib.contenttypes.models import ContentType
 #from products.models import Product  # ou onde estiver o seu model de produto
 
 # ########################################################################################
@@ -120,8 +122,7 @@ class PaymentLink(models.Model):
 
                 # Garante criação na Unilevel e pontos (idempotente)
                 try:
-                    from network.models import UnilevelNetwork
-                    from network.models.LicensedPoints import LicensedPoints
+                    from network.models import UnilevelNetwork, ScoreReference
                     from decimal import Decimal
 
                     # Unilevel (nível 1..5)
@@ -137,16 +138,16 @@ class PaymentLink(models.Model):
                             current = current.original_indicator
                             lvl += 1
 
-                    # Pontos de adesão
-                    ref = f"ADES-{adesion.id}"
-                    LicensedPoints.objects.get_or_create(
-                        licensed=licensed,
-                        reference=ref,
+                    # Pontos de adesão via ScoreReference (idempotente por origem + recebedor)
+                    ct = ContentType.objects.get(app_label='plans', model='planadesion')
+                    ScoreReference.objects.get_or_create(
+                        receiver_licensed=licensed,
+                        content_type=ct,
+                        object_id=adesion.id,
                         defaults={
-                            'description': f"Pontos de adesão do plano {adesion.plan.name}",
-                            'points': adesion.plan.points,
-                            'dtt_ref': timezone.now().date(),
+                            'points_amount': int(adesion.plan.points),
                             'status': 'valid',
+                            'triggering_licensed': licensed,
                         }
                     )
                     # Marca flag na adesão

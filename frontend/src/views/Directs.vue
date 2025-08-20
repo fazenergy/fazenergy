@@ -51,7 +51,7 @@
   <!-- Modal Novo Licenciado -->
   <Modal v-model="showNew" :header-blue="true" :no-header-border="true">
     <template #title>Novo Licenciado</template>
-    <FormPreRegister :in-modal="true" :key="formKey" />
+    <FormPreRegister :in-modal="true" :key="formKey" @close="showNew=false" />
     <template #footer>
       <div class="flex items-center justify-end gap-2">
         <button @click="showNew=false" class="px-4 py-2 rounded border">Fechar</button>

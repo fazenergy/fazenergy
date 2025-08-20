@@ -29,17 +29,40 @@
                 <span v-if="!mini">Cadastrar Licenciado</span>
               </router-link>
             </li>
-            <li v-if="isSuperUser">
-              <router-link to="/reports" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Relatório Geral">
-                <FileText class="w-4 h-4" />
-                <span v-if="!mini">Relatórios</span>
-              </router-link>
-            </li>
+            
             <li v-if="isSuperUser">
               <router-link to="/settings" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Configurações">
                 <Settings class="w-4 h-4" />
                 <span v-if="!mini">Configurações</span>
               </router-link>
+            </li>
+
+            <!-- Relatórios (pai com submenu expansível) -->
+            <li v-if="isSuperUser">
+              <button type="button" @click="reportsOpen = !reportsOpen" :class="['w-full flex items-center p-2 rounded hover:bg-blue-800 cursor-pointer', mini ? 'justify-center' : 'justify-between']" title="Relatórios">
+                <span class="flex items-center gap-2">
+                  <FileText class="w-4 h-4" />
+                  <span v-if="!mini">Relatórios</span>
+                </span>
+                <span v-if="!mini" class="ml-2 inline-flex items-center">
+                  <ChevronRight v-if="!reportsOpen" class="w-3.5 h-3.5 opacity-80" />
+                  <ChevronDown v-else class="w-3.5 h-3.5 opacity-80" />
+                </span>
+              </button>
+              <ul v-show="reportsOpen && !mini" class="ml-6 mt-1 space-y-1">
+                <li>
+                  <router-link to="/reports/points" :class="['flex items-center p-2 rounded hover:bg-blue-800 gap-2']" active-class="bg-blue-800" title="Relatório de Pontos">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                    <span>Relatório de Pontos</span>
+                  </router-link>
+                </li>
+                <li>
+                  <router-link to="/reports/bonus" :class="['flex items-center p-2 rounded hover:bg-blue-800 gap-2']" active-class="bg-blue-800" title="Relatório de Bônus">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>
+                    <span>Relatório de Bônus</span>
+                  </router-link>
+                </li>
+              </ul>
             </li>
           </ul>
         </div>
@@ -53,6 +76,8 @@
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Grupos"><Link class="w-4 h-4" /><span v-if="!mini">Grupos</span></a></li>
           </ul>
         </div>
+
+        
 
           <!-- Rede (Licenciado, Operador ou Superadmin) -->
           <div v-if="isLicensed || isOperador || isSuperUser">
@@ -70,7 +95,13 @@
                 <span v-if="!mini">Rede Completa</span>
               </router-link>
             </li>
-            <li><a href="#" :class="['flex items-center p-4 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Equipe"><Users class="w-4 h-4" /><span v-if="!mini">Equipe</span></a></li>
+            <li v-if="isOperador || isSuperUser">
+              <router-link to="/network/adesions" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Adesões">
+                <Users class="w-4 h-4" />
+                <span v-if="!mini">Adesões</span>
+              </router-link>
+            </li>
+            
             <li>
               <router-link to="/network/tree" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Árvore da Rede">
                 <TreePine class="w-4 h-4" />
@@ -119,10 +150,11 @@ defineProps({
 
 import {
   Zap, LayoutDashboard, FileText, Settings, Users, User, Link,
-  ArrowRight, TreePine, Book, LifeBuoy, BarChart, UserCircle, UserPlus
+  ArrowRight, TreePine, Book, LifeBuoy, BarChart, UserCircle, UserPlus,
+  ChevronDown, ChevronRight
 } from 'lucide-vue-next'
 
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '@/store/auth'
 
 const auth = useAuthStore()
@@ -131,4 +163,7 @@ const groups = computed(() => auth.user?.groups || [])
 
 const isLicensed = computed(() => groups.value.includes('Licenciado'))
 const isOperador = computed(() => groups.value.includes('Operador'))
+
+// Estado de expansão dos relatórios
+const reportsOpen = ref(false)
 </script>

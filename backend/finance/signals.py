@@ -48,7 +48,7 @@ def create_transaction_on_plan_payment(sender, instance, created, **kwargs):
         )
 
         # Atualiza saldos
-        virtual_account.blocked_balance += transaction.amount
+        virtual_account.balance_blocked += transaction.amount
         virtual_account.save()
 
         # Marca como processado

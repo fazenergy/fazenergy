@@ -18,6 +18,10 @@ class PlanCareer(models.Model):
         verbose_name="Imagem de Capa"
     )
 
+    usr_record = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='plan_careers_created', on_delete=models.SET_NULL,
+                                   null=True, blank=True, verbose_name="User Record")
+    usr_update = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='plan_careers_updated', on_delete=models.SET_NULL,
+                                   null=True, blank=True, verbose_name="User Update")
     dtt_record = models.DateTimeField(auto_now_add=True, verbose_name="Data Criação")
     dtt_update = models.DateTimeField(auto_now=True, verbose_name="Data Atualização")
     stt_record = models.BooleanField(default=True, verbose_name="Ativo")

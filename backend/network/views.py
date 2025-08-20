@@ -1,9 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets
 from django.contrib.auth.models import Group
 from core.models.Licensed import Licensed
-from .models import UnilevelNetwork
+from .models import UnilevelNetwork, ScoreReference
+from .serializers import ScoreReferenceSerializer
 
 
 class DirectsTreeView(APIView):
@@ -166,4 +168,9 @@ class DirectsTreeView(APIView):
 
         return Response({'root': root})
 
+
+class ScoreReferenceViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ScoreReference.objects.select_related('receiver_licensed__user', 'triggering_licensed__user').all()
+    serializer_class = ScoreReferenceSerializer
+    permission_classes = [IsAuthenticated]
 
