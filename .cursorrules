@@ -15,7 +15,7 @@
 - Evitar listas rígidas de apps; tratar a estrutura como dinâmica.
 
 ## Estrutura Atual (não rígida, exemplos)
-- Apps existentes (podem mudar): `core`, `proposal`, `plans`, `contracts`, `finance`, `network`, `location`, `notifications`, `webhooks`, `prospect`.
+- Apps existentes (podem mudar): `core`, `plans`, `contracts`, `finance`, `network`, `location`, `notifications`, `webhooks`, `prospect`.
 
 ## Documentação
 - Detalhes e fluxos vivos: ver `ARCHITECTURE.md` na raiz e `docs/SCOPE.md`.
@@ -34,23 +34,33 @@
 - Integrações: REVO (simulação/financiamento/webhooks), Pagar.me (split/saque), Lexo Legal (contratos)
 
 ## Notas técnicas atuais (curtas)
+- Rotas ativas: `api/core/`, `api/plans/`, `api/location/`, `api/network/`, `api/prospect/`.
 - `core.Licensed`:
   - Removidos `city_name` e `state_abbr`; manter apenas `city_lookup -> location.City`.
   - Adicionado `dtt_activation` (DateTimeField) — ver migração `core/0003_update_licensed_activation_city_cleanup.py`.
 - `core.Operator`:
   - Removidos `city_name` e `state_abbr`; manter apenas `city_lookup` — ver migração `core/0004_remove_operator_city_fields.py`.
 - `network.Product`:
-  - Novo model simples (`name`, `dtt_record`, `dtt_update`) — migração `network/0002_create_product.py`.
-- `prospect` (novo app):
-  - Models: `Prospect` (FK `network.Product`, FK `core.Licensed`), `Proposal` (FK `Prospect`), `ProposalResult` (FK `Proposal`).
-  - Rotas: `api/prospect/prospects/`, `api/prospect/proposals/`, `api/prospect/proposal-results/`.
-  - Tabelas criadas com nomes iniciando em maiúsculas: `"Prospect"`, `"ProspectProposal"`, `"ProspectProposalResult"` (usar aspas em SQL/clients).
+  - Model simples (`name`, `dtt_record`, `dtt_update`) — migração `network/0002_create_product.py`.
+- `prospect`:
+  - `Prospect`: FK `core.Licensed` (indicador). Sem `Product`.
+  - `Proposal`: FK `Prospect` e FK `network.Product` (temporariamente nullable para migração rápida; objetivo: obrigatória).
+  - `ProposalResult`: FK `Proposal`.
+  - Tabelas com nomes iniciando em maiúsculas: `"Prospect"`, `"ProspectProposal"`, `"ProspectProposalResult"` (usar aspas em SQL/clients).
+- `plans.PlanAdesion`:
+  - Agora possui FK `network.Product` (temporariamente nullable para migração rápida; objetivo: obrigatória).
+- `network.ScoreReference` (novo):
+  - Registra pontuação com GenericForeignKey para origem `prospect.Proposal` ou `plans.PlanAdesion`.
+  - FKs: `receiver_licensed` (obrigatória) e `triggering_licensed` (opcional) → `core.Licensed`.
+  - Índices em `receiver_licensed` e `(content_type, object_id)`.
 - `backend/manage.py`:
   - Debugpy opcional via `ENABLE_DEBUGPY=1` e porta via `DEBUGPY_PORT`; por padrão só ativa no `runserver`.
+- App `proposal` (legacy) removido do projeto.
 
 ## Pendências de alinhamento (planejadas)
 - `plans.PlanAdesion.licensed` apontar para `core.Licensed` (hoje aponta para `User`).
 - Ajustar `finance.PaymentLink.approve_payment` para usar `ind_payment_status`, `typ_payment`, `dtt_payment` de `PlanAdesion`.
 - Corrigir `core.signals` para usar `network.UnilevelNetwork` com `upline_licensed/downline_licensed`.
+- Tornar `product` obrigatório (null=False) em `prospect.Proposal` e `plans.PlanAdesion` após migração e backfill.
 - (Opcional) Padronizar nomes de tabelas do app `prospect` para snake_case (evitar necessidade de aspas em SQL/IDE).
 

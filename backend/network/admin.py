@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UnilevelNetwork, LicensedPoints, Product
+from .models import UnilevelNetwork, LicensedPoints, Product, ScoreReference
 
 @admin.register(UnilevelNetwork)
 class UnilevelNetworkAdmin(admin.ModelAdmin):
@@ -26,3 +26,17 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     list_filter = ('dtt_record',)
     readonly_fields = ('dtt_record', 'dtt_update')
+
+@admin.register(ScoreReference)
+class ScoreReferenceAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'points_amount', 'receiver_licensed', 'triggering_licensed',
+        'content_type', 'object_id', 'created_at'
+    )
+    list_filter = ('content_type', 'created_at')
+    search_fields = (
+        'receiver_licensed__user__username',
+        'triggering_licensed__user__username',
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    list_select_related = ('receiver_licensed', 'triggering_licensed')

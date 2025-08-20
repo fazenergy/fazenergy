@@ -29,33 +29,30 @@
 - Infraestrutura: EC2 (front/back/DB), S3 para arquivos, integrações (REVO, Lexo, Pagar.me)
 
 ## Entidades/Tabelas citadas (alto nível)
-- `tb_Plan` — cadastro de planos MMN (pontos, bônus por nível)
-- `tb_PlanAdesion` — controle por afiliado (status/contrato/flags)
-- `tb_Afiliate` — base de afiliados
-- `tb_ContaVirtual`, `tb_Transacoes`, `tb_Recebimento` — gestão financeira
-- Estruturas de rede com compressão e níveis
-- Pipeline de lead→financiamento→instalação (status via API + Webhook REVO)
+- `Plan` — cadastro de planos MMN (pontos, bônus por nível, template de contrato)
+- `PlanAdesion` — transação de adesão (agora com FK `network.Product`)
+- `Prospect` — lead/prospect (FK `core.Licensed`)
+- `ProspectProposal` — proposta (FK `Prospect` e FK `network.Product`)
+- `ProspectProposalResult` — resultado da proposta (FK `ProspectProposal`)
+- `Product` — catálogo de produtos (ex.: “Usina”, “Licença/Adesão”)
+- `ScoreReference` — referência de pontuação (origem genérica: `ProspectProposal` ou `PlanAdesion`)
 
-## Responsabilidades (DEV)
-- Aquiles: rede, usuários, adesão, contratos, notificações, contas virtuais, compressão
-  - Pendências: Pagar.me (saque), automação de qualificação, log de falhas
-- Rodrigo: integrações com REVO (simulações, CEP, envio de docs, Webhook)
-
-## Pontos Críticos de Negócio
-- Sustentabilidade: receitas da REVO/oper. precisam cobrir instalação, bônus (incl. recorrentes) e custos
-- Robustez do sistema (rede/financeiro/bônus) é essencial; transparência/estabilidade = diferencial
+## Rotas Ativas
+- Backend: `api/core/`, `api/plans/`, `api/location/`, `api/network/`, `api/prospect/`
 
 ## Mudanças recentes (técnico)
-- `core.Licensed`: removidos `city_name`/`state_abbr`; manter apenas `city_lookup`. Adicionado `dtt_activation` (DateTimeField).
-- `core.Operator`: removidos `city_name`/`state_abbr`; manter apenas `city_lookup`.
-- `network.Product`: novo model (`name`, timestamps) para catalogar produtos (ex.: usina, licença).
-- `prospect` (novo app): `Prospect` (FK `network.Product`, FK `core.Licensed`), `Proposal` (FK `Prospect`), `ProposalResult` (FK `Proposal`). Rotas: `api/prospect/...`.
-  - Observação: tabelas criadas com nomes iniciando em maiúsculas exigem aspas em SQL/IDE ("Prospect", "ProspectProposal", "ProspectProposalResult").
+- `prospect.Prospect`: removido relacionamento com `Product`.
+- `prospect.Proposal`: adicionada FK `network.Product` (temporariamente nullable para migração rápida; objetivo: obrigatória).
+- `plans.PlanAdesion`: adicionada FK `network.Product` (temporariamente nullable para migração rápida; objetivo: obrigatória).
+- `network.ScoreReference`: criado com GenericForeignKey para origem (`ProspectProposal` ou `PlanAdesion`) e FKs para `core.Licensed`.
+- App `proposal` (legado) removido do projeto.
+- Observação: tabelas do app `prospect` usam nomes com maiúsculas e exigem aspas em SQL/IDE ("Prospect", "ProspectProposal", "ProspectProposalResult").
 
 ## Pendências técnicas alinhadas ao DER
 - `plans.PlanAdesion.licensed` deve referenciar `core.Licensed` (hoje aponta para `User`).
 - Ajustar `finance.PaymentLink.approve_payment` para usar `ind_payment_status`, `typ_payment`, `dtt_payment` em `PlanAdesion`.
 - Corrigir `core.signals` para usar `network.UnilevelNetwork` com campos `upline_licensed/downline_licensed` (em vez de parent_licensed/child_licensed).
+- Tornar `product` obrigatório (null=False) em `Proposal` e `PlanAdesion` após backfill.
 
 ## Referências
 - `docs/Faz Energy - Apresentação Institucional 2025.pptx`
