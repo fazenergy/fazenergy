@@ -1,7 +1,9 @@
 from django.apps import AppConfig
 
 
-class ProspectConfig(AppConfig):
+class ContractorConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'prospect'
+    name = 'contractor'
     verbose_name = 'Contractors e Propostas'
+
+

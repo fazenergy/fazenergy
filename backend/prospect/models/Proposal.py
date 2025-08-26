@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Proposal(models.Model):
-    prospect = models.ForeignKey('prospect.Prospect', on_delete=models.CASCADE, related_name='proposals', verbose_name='Prospect')
+    prospect = models.ForeignKey('contractor.Contractor', on_delete=models.CASCADE, related_name='proposals', verbose_name='Contractor')
     product = models.ForeignKey('network.Product', on_delete=models.PROTECT, related_name='proposals', verbose_name='Produto', null=True, blank=True)
 
     # Referência (REVO360)
@@ -19,7 +19,9 @@ class Proposal(models.Model):
 
     # Dados para simulação
     contract_person = models.CharField(max_length=100, choices=[('PF', 'Pessoa Física'), ('PJ', 'Pessoa Jurídica')], verbose_name='Tipo de Contratante')
+    property_type = models.CharField(max_length=50, null=True, blank=True, verbose_name='Tipo de Imóvel')
     owner = models.CharField(max_length=100, verbose_name='Proprietário')
+    is_owner_self = models.BooleanField(default=True, verbose_name='Imóvel Próprio?')
     seller_email = models.EmailField(null=True, blank=True, verbose_name='E-mail do Vendedor')
     nsu = models.CharField(max_length=100, null=True, blank=True, verbose_name='NSU')
     cpf_cnpj = models.CharField(max_length=20, null=True, blank=True, verbose_name='CPF/CNPJ')
@@ -28,6 +30,9 @@ class Proposal(models.Model):
     electric_bill_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Conta de Luz (R$)')
     consumer_unit = models.CharField(max_length=100, null=True, blank=True, verbose_name='Unidade Consumidora')
     consumer_group = models.CharField(max_length=100, null=True, blank=True, verbose_name='Grupo de Consumo')
+    monthly_consumption = models.JSONField(null=True, blank=True, verbose_name='Consumo Mensal (kWh)')
+    energy_provider_id = models.IntegerField(null=True, blank=True, verbose_name='Distribuidora (ID)')
+    energy_provider_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='Distribuidora (Nome)')
 
     # Status
     status = models.CharField(max_length=100, default='Aguardando', verbose_name='Status')
@@ -40,9 +45,9 @@ class Proposal(models.Model):
     dtt_update = models.DateTimeField(auto_now=True, verbose_name='Data Atualização')
 
     class Meta:
-        db_table = 'ProspectProposal'
-        verbose_name = 'Proposta (Prospect)'
-        verbose_name_plural = 'Propostas (Prospect)'
+        db_table = 'ContractorProposal'
+        verbose_name = 'Proposta (Contractor)'
+        verbose_name_plural = 'Propostas (Contractor)'
 
     def __str__(self):
         return f"Proposta #{self.pk} para {self.prospect.lead_name}"

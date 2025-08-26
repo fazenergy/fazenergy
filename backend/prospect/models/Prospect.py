@@ -13,18 +13,11 @@ class Prospect(models.Model):
     email = models.EmailField(verbose_name='E-mail')
     cellphone = models.CharField(max_length=20, verbose_name='Celular')
 
-    # Endereço / imóvel
+    # Endereço / imóvel (instalação preferencial)
     zip_code = models.CharField(max_length=10, verbose_name='CEP')
-    property_type = models.CharField(max_length=50, verbose_name='Tipo de Imóvel')
-
-    # Conta / consumo
-    electric_bill = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Conta de Luz (R$)')
 
     # Integração
     reference_code = models.CharField(max_length=100, null=True, blank=True, verbose_name='Código de Referência')
-    energy_provider_id = models.IntegerField(null=True, blank=True, verbose_name='Distribuidora (ID)')
-    energy_provider_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='Distribuidora (Nome)')
-    owner_name = models.CharField(max_length=100, default='Outro', verbose_name='Proprietário')
 
     # Datas de visita técnica
     visit_1_at = models.DateTimeField(null=True, blank=True, verbose_name='Data da 1ª Visita')
@@ -33,7 +26,7 @@ class Prospect(models.Model):
     # Status
     status = models.CharField(max_length=100, default='Novo', verbose_name='Status')
 
-    # Pessoa / documento
+    # Pessoa / documento (contractor)
     person_type = models.CharField(
         max_length=2,
         choices=[('PF', 'Pessoa Física'), ('PJ', 'Pessoa Jurídica')],
@@ -43,6 +36,21 @@ class Prospect(models.Model):
     fiscal_number = models.CharField(max_length=20, null=True, blank=True, verbose_name='CPF/CNPJ (sem máscara)')
     legal_name = models.CharField(max_length=255, null=True, blank=True, verbose_name='Razão Social (se PJ)')
 
+    # Endereço do contractor (para payload REVO)
+    contractor_zip_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='CEP (Contratante)')
+    contractor_address = models.CharField(max_length=255, null=True, blank=True, verbose_name='Endereço (Contratante)')
+    contractor_number = models.CharField(max_length=20, null=True, blank=True, verbose_name='Número (Contratante)')
+    contractor_complement = models.CharField(max_length=255, null=True, blank=True, verbose_name='Complemento (Contratante)')
+    contractor_neighborhood = models.CharField(max_length=255, null=True, blank=True, verbose_name='Bairro (Contratante)')
+    contractor_city = models.CharField(max_length=255, null=True, blank=True, verbose_name='Cidade (Contratante)')
+    contractor_st = models.CharField(max_length=2, null=True, blank=True, verbose_name='UF (Contratante)')
+
+    # Últimos dados usados em simulações (para pré-preencher)
+    preferred_property_type = models.CharField(max_length=50, null=True, blank=True, verbose_name='Tipo de Imóvel Preferido')
+    last_electric_bill = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Última Conta de Luz (R$)')
+    last_energy_provider_id = models.IntegerField(null=True, blank=True, verbose_name='Última Distribuidora (ID)')
+    last_energy_provider_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='Última Distribuidora (Nome)')
+
     # Metadados obrigatórios
     usr_record = models.CharField(max_length=50, verbose_name='Usuário Registro')
     dtt_record = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
@@ -50,9 +58,9 @@ class Prospect(models.Model):
     dtt_update = models.DateTimeField(auto_now=True, verbose_name='Data Atualização')
 
     class Meta:
-        db_table = 'Prospect'
-        verbose_name = 'Prospect'
-        verbose_name_plural = 'Prospects'
+        db_table = 'Contractor'
+        verbose_name = 'Contractor'
+        verbose_name_plural = 'Contractors'
         ordering = ['-dtt_record']
         indexes = [
             models.Index(fields=['reference_code']),

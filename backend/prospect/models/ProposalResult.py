@@ -2,7 +2,7 @@ from django.db import models
 
 
 class ProposalResult(models.Model):
-    proposal = models.ForeignKey('prospect.Proposal', on_delete=models.CASCADE, related_name='results', verbose_name='Proposta')
+    proposal = models.ForeignKey('contractor.Proposal', on_delete=models.CASCADE, related_name='results', verbose_name='Proposta')
 
     # Dados principais
     contract_type = models.CharField(max_length=100, verbose_name='Tipo de Contrato')
@@ -41,9 +41,9 @@ class ProposalResult(models.Model):
     dtt_record = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
 
     class Meta:
-        db_table = 'ProspectProposalResult'
-        verbose_name = 'Resultado de Proposta (Prospect)'
-        verbose_name_plural = 'Resultados de Proposta (Prospect)'
+        db_table = 'ContractorProposalResult'
+        verbose_name = 'Resultado de Proposta (Contractor)'
+        verbose_name_plural = 'Resultados de Proposta (Contractor)'
 
     def __str__(self):
         return f"Resultado #{self.pk} - Proposta {self.proposal_id}"
