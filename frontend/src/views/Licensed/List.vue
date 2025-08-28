@@ -3,10 +3,10 @@
     <!-- Toolbar padrão (Exportar, Imprimir, Pesquisar) -->
     <div class="mb-3 bg-white border rounded p-3 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
       <div class="flex items-center gap-2 flex-wrap">
-        <button @click="exportExcel" class="px-2 py-1 h-8 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Exportar XLS</button>
-        <button @click="printGrid" class="px-2 py-1 h-8 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Imprimir / PDF</button>
         <!-- Botão de cadastrar visível apenas para SUPERADMIN -->
         <button v-if="isSuperadmin" @click="showNew = true" class="px-2 py-1 h-8 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Cadastrar Licenciado</button>
+        <button @click="exportExcel" class="px-2 py-1 h-8 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Exportar XLS</button>
+        <button @click="printGrid" class="px-2 py-1 h-8 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Imprimir / PDF</button>
       </div>
       <div class="flex items-center gap-2 flex-1">
         <input v-model.trim="q" type="text" placeholder="Pesquisar..." class="w-full md:w-80 border rounded px-2 py-1 h-8 text-xs" />

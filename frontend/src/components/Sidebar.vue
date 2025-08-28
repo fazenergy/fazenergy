@@ -23,12 +23,7 @@
                 <span v-if="!mini">Dashboard</span>
               </router-link>
             </li>
-            <li v-if="isLicensed || isSuperUser">
-              <router-link to="/preRegister" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Cadastrar Afiliado">
-                <UserPlus class="w-4 h-4" />
-                <span v-if="!mini">Cadastrar Licenciado</span>
-              </router-link>
-            </li>
+            
             
             <li v-if="isSuperUser">
               <router-link to="/settings" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Configurações">
@@ -169,7 +164,7 @@ defineProps({
 
 import {
   Zap, LayoutDashboard, FileText, Settings, Users, User, Link,
-  ArrowRight, TreePine, Book, LifeBuoy, BarChart, UserCircle, UserPlus,
+  ArrowRight, TreePine, Book, LifeBuoy, BarChart, UserCircle,
   ChevronDown, ChevronRight
 } from 'lucide-vue-next'
 
