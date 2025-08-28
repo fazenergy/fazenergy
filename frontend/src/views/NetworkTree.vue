@@ -11,6 +11,11 @@
         </select>
       </div>
       <div class="flex-1"></div>
+      <!-- Controles para Treeview vertical: expandir/recolher -->
+      <div class="flex items-center gap-2" v-if="view==='treeview'">
+        <button @click="expandAll" class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm">Expandir tudo</button>
+        <button @click="collapseAll" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm">Recolher tudo</button>
+      </div>
       <div class="flex items-center gap-2">
         <input v-model.trim="search" type="text" placeholder="Pesquisar usuário..." class="border rounded px-3 py-2 text-sm md:w-80" />
         <button @click="search=''; fetchTree()" class="px-3 py-2 text-sm border rounded hover:bg-gray-50">Limpar</button>
@@ -28,7 +33,7 @@
       <!-- VIEW 2: Treeview vertical com contagens -->
       <div v-else-if="view==='treeview'" class="overflow-auto">
         <ul class="tree">
-          <TreeNode :node="root" />
+          <TreeNode :node="root" :level="0" :indent="32" :collapsed-set="collapsedSet" :on-toggle="toggleNode" />
         </ul>
       </div>
 
@@ -53,6 +58,9 @@ const search = ref('')
 const loading = ref(false)
 const root = ref({ id: null, user: { username: '' }, level: 0, children: [] })
 const auth = useAuthStore()
+const indent = ref(24)
+const collapsedSet = ref(new Set())
+const geneDepth = ref(3)
 
 async function fetchTree() {
   try {
@@ -81,6 +89,28 @@ const columns = [
   { key: 'city', label: 'Cidade' },
   { key: 'plan', label: 'Plano' },
 ]
+
+function expandAll() { collapsedSet.value = new Set() }
+function collapseAll() {
+  const s = new Set()
+  // marca todos os nós exceto a raiz
+  function walk(n) {
+    for (const c of (n.children||[])) { s.add(c.id || c.user?.username); walk(c) }
+  }
+  walk(root.value)
+  collapsedSet.value = s
+}
+function toggleNode(n) {
+  const id = n.id || n.user?.username
+  const s = new Set(collapsedSet.value)
+  if (s.has(id)) s.delete(id); else s.add(id)
+  collapsedSet.value = s
+}
+
+function increaseDepth() { geneDepth.value = Math.min(geneDepth.value + 1, 10) }
+function decreaseDepth() { geneDepth.value = Math.max(geneDepth.value - 1, 1) }
+function expandGeneAll() { geneDepth.value = 10 }
+function collapseGeneAll() { geneDepth.value = 1 }
 </script>
 
 <style scoped>

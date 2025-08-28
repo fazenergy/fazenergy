@@ -1,6 +1,6 @@
 <template>
   <div class="gene-node" :class="{ 'has-children': hasChildren }">
-    <!-- Card simplificado -->
+    <!-- Card do licenciado -->
     <div class="card" :class="levelClass">
       <img :src="avatarSrc" alt="avatar" class="avatar" />
       <div class="info">
@@ -11,16 +11,18 @@
           <span>▦ Nvl. {{ level }}</span>
         </div>
       </div>
+      <!-- Toggle central inferior, preso ao card -->
+      <button v-if="hasChildren" class="toggle-btn" @click="collapse = !collapse">{{ collapse ? '+' : '−' }}</button>
     </div>
 
     <!-- Conector vertical pai → linha horizontal dos filhos -->
-    <div v-if="hasChildren" class="connector-v"></div>
+    <div v-if="hasChildren && !collapse" class="connector-v"></div>
 
     <!-- Conexões + Filhos -->
-    <div v-if="hasChildren" class="gene-children">
+    <div v-if="hasChildren && !collapse" class="gene-children">
       <div class="children-hline"></div>
       <div class="children-wrap">
-        <div v-for="child in node.children" :key="child.id" class="child-slot">
+        <div v-for="child in limitedChildren" :key="child.id" class="child-slot">
           <div class="child-vline"></div>
           <GenealogyNode :node="child" />
         </div>
@@ -30,7 +32,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 defineOptions({ name: 'GenealogyNode' })
 
 const props = defineProps({ node: { type: Object, required: true } })
@@ -61,12 +63,16 @@ const levelClass = computed(() => {
     default: return 'lvl-6'
   }
 })
+
+// Colapso individual (por nó)
+const collapse = ref(false)
+const limitedChildren = computed(() => props.node.children || [])
 </script>
 
 <style scoped>
 .gene-node { text-align: center; display: inline-block; position: relative; padding: 10px 12px; }
 
-.card { width: 200px; background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 8px; display: inline-flex; align-items: center; gap: 10px; }
+.card { position: relative; width: 200px; background: #fff; border: 2px solid #e5e7eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.06); padding: 8px; display: inline-flex; align-items: center; gap: 10px; }
 .avatar { width: 40px; height: 40px; border-radius: 9999px; object-fit: cover; border: 3px solid #e5e7eb; }
 .info { text-align: left; }
 .name { font-weight: 700; font-size: 13px; line-height: 1.1; color: #0f172a; }
@@ -94,5 +100,21 @@ const levelClass = computed(() => {
 .lvl-5 .avatar { border-color: #ef4444; }
 .lvl-6 { border-color: #64748b; }
 .lvl-6 .avatar { border-color: #64748b; }
+
+/* Toggle button central */
+.toggle-btn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -12px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 6px;
+  line-height: 1;
+  font-weight: 700;
+  z-index: 1;
+}
 </style>
 
