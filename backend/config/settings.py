@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     'network',
     'notifications',
     'plans',
-    'prospect',
+    'contractor.apps.ContractorConfig',
 ]
 
 
@@ -272,7 +272,7 @@ JAZZMIN_SETTINGS = {
         "notifications",
         "network",
         "location",
-        "prospect",
+        "contractor",
     ],
 
     "icons": {
@@ -291,7 +291,7 @@ JAZZMIN_SETTINGS = {
         "location": "fas fa-map-marker-alt",
         "notifications": "fas fa-bell",
         "network": "fas fa-network-wired",
-        "prospect": "fas fa-user-plus",
+        "contractor": "fas fa-user-plus",
         "finance.PaymentLink": "fas fa-link",
     },
 

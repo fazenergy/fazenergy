@@ -1,16 +1,15 @@
 import re
 from rest_framework import serializers
-from contractor.models import Contractor as Prospect, Proposal, ProposalResult, ProposalLeadActor
+from .models import Contractor, Proposal, ProposalLeadActor, ProposalResult
 
 
-class ProspectSerializer(serializers.ModelSerializer):
+class ContractorSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Prospect
+        model = Contractor
         fields = '__all__'
         read_only_fields = ['dtt_record', 'dtt_update']
 
     def validate(self, data):
-        # normalizações simples
         if 'cellphone' in data:
             data['cellphone'] = re.sub(r'\D', '', data['cellphone'])[:20]
         if 'zip_code' in data:
@@ -41,3 +40,5 @@ class ProposalResultSerializer(serializers.ModelSerializer):
         model = ProposalResult
         fields = '__all__'
         read_only_fields = ['dtt_record']
+
+
