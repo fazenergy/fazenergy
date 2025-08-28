@@ -284,6 +284,7 @@ JAZZMIN_SETTINGS = {
         "core.User": "fas fa-user-circle",
         "core.Licensed": "fas fa-user-tie",
         "core.Operator": "fas fa-user-shield",
+        "core.LicensedDocument": "fas fa-id-card",
         "core.CoreGroup": "fas fa-users-cog",  # Ícone para grupos no core
         "contracts": "fas fa-file-contract",
         "plans": "fas fa-layer-group",

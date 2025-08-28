@@ -111,6 +111,25 @@
           </ul>
         </div>
 
+        <!-- Licenciados (Operador/Superadmin) -->
+        <div v-if="isOperador || isSuperUser">
+          <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Licenciados</h3>
+          <ul class="space-y-1">
+            <li>
+              <router-link to="/licensed" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Cadastro de Licenciados">
+                <Users class="w-4 h-4" />
+                <span v-if="!mini">Cadastro</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/documents/review" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Revisar Documentos">
+                <FileText class="w-4 h-4" />
+                <span v-if="!mini">Revisar Docs</span>
+              </router-link>
+            </li>
+          </ul>
+        </div>
+
         <!-- Geral (Licenciado, Operador ou Superadmin) -->
       <div v-if="isLicensed || isOperador || isSuperUser">
           <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Geral</h3>

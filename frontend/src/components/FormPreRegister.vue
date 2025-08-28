@@ -42,7 +42,20 @@
 
       <!-- Linha 1 -->
       <FormField label="Indicado por" class="md:col-span-2" :error="errors.referrer">
-        <Input v-model="form.referrer" :readonly="lockReferrer" class="bg-gray-100 text-sm" />
+        <div class="relative">
+          <div class="flex items-center">
+            <Input v-model="form.referrer" :readonly="lockReferrer" class="bg-gray-100 text-sm" @input="onReferrerInput" @focus="onReferrerFocus" @blur="onReferrerBlur" />
+            <button v-if="!lockReferrer" type="button" class="ml-2 px-2 py-1 text-xs rounded border hover:bg-gray-50" @click="manualLookup">
+              🔍
+            </button>
+          </div>
+          <div v-if="showReferrerDropdown && suggestions.length" class="absolute z-10 mt-1 w-full bg-white border rounded shadow-sm max-h-56 overflow-auto">
+            <div v-for="s in suggestions" :key="s.username" class="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" @mousedown.prevent="pickReferrer(s.username)">
+              <span class="font-medium">{{ s.username }}</span>
+              <span v-if="s.full_name" class="text-gray-500"> — {{ s.full_name }}</span>
+            </div>
+          </div>
+        </div>
       </FormField>
       <FormField label="Nome Completo" class="md:col-span-3" :error="errors.full_name">
         <Input v-model="form.full_name" placeholder="Seu nome completo" required class="text-sm" />
@@ -201,6 +214,9 @@ const plans = ref([])
 const loading = ref(false)
 const referrerValid = ref(true)
 const referrerError = ref('')
+const suggestions = ref([] as Array<{ username: string; full_name?: string }>)
+const showReferrerDropdown = ref(false)
+let referrerDebounce: any = null
 
 const form = ref({
   referrer: '', // Indicado por, será preenchido automaticamente
@@ -365,6 +381,45 @@ function openPaymentNow() {
 
 function emitClose(){
   emit('close')
+}
+
+async function doLookup(term: string) {
+  if (!term || lockReferrer.value) { suggestions.value = []; return }
+  try {
+    const { data } = await api.get('/api/core/lookup/licensed/', { params: { q: term } })
+    suggestions.value = data || []
+  } catch { suggestions.value = [] }
+}
+
+function onReferrerInput(e: any) {
+  if (lockReferrer.value) return
+  const val = (e?.target?.value || '').trim()
+  clearTimeout(referrerDebounce)
+  referrerDebounce = setTimeout(() => doLookup(val), 250)
+  showReferrerDropdown.value = !!val
+}
+
+function onReferrerFocus() {
+  if (!lockReferrer.value && form.value.referrer) {
+    showReferrerDropdown.value = true
+    doLookup(form.value.referrer)
+  }
+}
+
+function onReferrerBlur() {
+  // fecha após pequeno delay para permitir clique
+  setTimeout(() => showReferrerDropdown.value = false, 150)
+}
+
+function pickReferrer(username: string) {
+  form.value.referrer = username
+  showReferrerDropdown.value = false
+}
+
+function manualLookup() {
+  if (lockReferrer.value) return
+  doLookup(form.value.referrer)
+  showReferrerDropdown.value = true
 }
 
 

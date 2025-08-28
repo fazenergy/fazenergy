@@ -9,6 +9,7 @@ from .CoreGroup import CoreGroup
 from .Licensed import Licensed
 from .Operator import Operator  
 # from .auth_customer import Customer  # descomente quando existir
+from .LicensedDocument import LicensedDocument
 
 __all__ = [
     "User",
@@ -17,5 +18,6 @@ __all__ = [
     "CoreGroup",
     "Licensed",
     "Operator",
+    "LicensedDocument",
     # "Customer",
 ]

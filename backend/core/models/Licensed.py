@@ -48,6 +48,7 @@ class Licensed(models.Model):
     is_in_network           = models.BooleanField(default=True, verbose_name="Está na Rede ?")
     accept_lgpd             = models.BooleanField(default=False, verbose_name="Aceita LGPD")
     comment                 = models.TextField(blank=True, null=True, verbose_name="Comentário")
+    stt_document            = models.CharField(max_length=10, choices=[('pending','Pendente'),('rejected','Reprovado'),('approved','Aprovado')], default='pending', verbose_name="Status Documentação")
     dtt_activation          = models.DateTimeField(default=timezone.now, verbose_name="Data Ativação")
     dtt_payment_received    = models.DateTimeField(blank=True, null=True, verbose_name="Data Recebimento Pagamento")
 

@@ -4,6 +4,9 @@ from .models.User import User
 from .models.Licensed import Licensed
 from django.contrib.auth.models import Group
 from django.db import transaction, IntegrityError
+from core.models.LicensedDocument import LicensedDocument
+from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES
+from notifications.utils import send_email
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -185,6 +188,48 @@ class LicensedListSerializer(serializers.ModelSerializer):
 
     def get_city_lookup(self, obj):
         return {'name': obj.city_lookup.name} if getattr(obj, 'city_lookup', None) else None
+
+
+class LicensedDocumentSerializer(serializers.ModelSerializer):
+    licensed = serializers.PrimaryKeyRelatedField(read_only=True)
+    licensed_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LicensedDocument
+        fields = [
+            'id', 'licensed', 'licensed_username', 'document_type', 'file', 'observation',
+            'stt_validate', 'rejection_reason', 'dtt_record', 'dtt_update'
+        ]
+        read_only_fields = ['dtt_record', 'dtt_update']
+
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        # Disparo de e-mail para operadores ao anexar conjunto de docs
+        try:
+            user = instance.licensed.user
+            # Operadores: grupo Operador
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            operators = User.objects.filter(groups__name='Operador').values_list('email', flat=True)
+            recipients = [e for e in operators if e]
+            if recipients:
+                send_email(
+                    'LicensedDocsSubmitted',
+                    {
+                        'nome': user.get_full_name() or user.username,
+                        'username': user.username,
+                    },
+                    recipients
+                )
+        except Exception:
+            pass
+        return instance
+
+    def get_licensed_username(self, obj):
+        try:
+            return getattr(getattr(obj.licensed, 'user', None), 'username', None)
+        except Exception:
+            return None
 
 
 class DownlineListSerializer(LicensedListSerializer):

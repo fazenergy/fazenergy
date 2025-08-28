@@ -8,10 +8,13 @@ from .views import (
     DirectLicensedListView,
     DownlineTreeListView,
     DashboardView,
+    LicensedDocumentViewSet,
+    LicensedLookupView,
 )
 
 router = DefaultRouter()
 router.register(r'licensed', LicensedViewSet)
+router.register(r'licensed-documents', LicensedDocumentViewSet, basename='licensed-documents')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -21,4 +24,5 @@ urlpatterns = [
     path('directs/', DirectLicensedListView.as_view(), name='licensed-directs'),
     path('downlines/', DownlineTreeListView.as_view(), name='licensed-downlines'),
     path('dashboard/', DashboardView.as_view(), name='dashboard-data'),
+    path('lookup/licensed/', LicensedLookupView.as_view(), name='lookup-licensed'),
 ]

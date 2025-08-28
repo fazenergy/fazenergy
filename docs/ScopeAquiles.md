@@ -45,6 +45,24 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
 - Badges de status unificados.
 - `RichTextEditor.vue` e `CodeEditor.vue` adicionados (rich + monoespaçado), com props de tamanho.
 
+#### Padrão de Grid (obrigatório em todas as telas)
+- Toolbar superior com:
+  - Campo de pesquisa (Pesquisar) e botão Pesquisar/Limpar
+  - Botões Exportar XLS e Imprimir/PDF
+- Layout com rodapé fixo via min-height responsivo (como em Rede Completa).
+- Colunas: a primeira deve ser Ações; a segunda o ID da linha; a última também apresenta o ID quando aplicável.
+
+### Documentos do Licenciado (Novo)
+- Rotas:
+  - `/documents` (licenciado) — anexar/reenviar CPF, RG, Comprovante de Endereço, PIS; grid + modal padrão.
+  - `/documents/review` (operador/superadmin) — revisar/aprovar/reprovar documentos pendentes.
+- Dashboard:
+  - Card “Documentação do Licenciado” com gradiente amarelo/laranja.
+  - Alertas no topo quando pendente e quick action “Enviar Documentos”.
+- UX:
+  - Botões: “Anexar” no grid; modal com “Fechar/Gravar”.
+  - Erros de anexos exibidos dentro do modal (sem alert).
+
 ## Backend (Django + DRF)
 ### Plans
 - `PlanCareer` API
@@ -76,7 +94,20 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
 - Admin: registrado `ScoreReference` (listagem, filtros, busca) em `network/admin.py`.
 
 ### Core
+- `LicensedDocument` (novo)
+  - Campos: `licensed`, `document_type`, `file`, `observation`, `stt_validate` (pending/rejected/approved), `rejection_reason`, timestamps.
+  - Unicidade: (`licensed`, `document_type`).
+  - Admin: registro com listagem/filtros/busca e link para arquivo.
 - `Licensed`
+  - Campo `stt_document` (pending/rejected/approved) usado pelo Dashboard.
+  - Regras de sinal: recalcula automaticamente o `stt_document` quando documentos são criados/atualizados/excluídos.
+- API
+  - `api/core/licensed-documents/` (CRUD autenticado)
+    - Licenciado cria/edita apenas os próprios; operador vê todos e pode aprovar/reprovar.
+    - Upload via multipart; `licensed` inferido do usuário (operador deve informar explicitamente).
+  - Dashboard expõe `documents.status` e `documents.pending`.
+- Notificações
+  - Envio de e-mail para operadores quando o conjunto obrigatório estiver completo e pendente de validação (template: `LicensedDocsSubmitted`).
   - Removidos campos `previous_career` e `dtt_previous_career`.
   - Ajustes no método de qualificação para carreira atual.
   - Admin `LicensedAdmin` atualizado (sem carreira anterior, `fieldsets` e validações ajustados).
@@ -86,10 +117,11 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
 - Notifications: `api/notifications/config/`, `api/notifications/templates/`, `api/notifications/templates/{id}/test/`
 - Finance: `api/finance/gateway-config/`
 - Contracts: `api/contracts/config/`, `api/contracts/templates/`
+- Core: `api/core/licensed-documents/`, `api/core/licensed-documents/pending/` (pendentes para operador)
 
 ## Migrações
 - Contracts: deleção de `ContractLog`.
-- Core: remoção de `Licensed.previous_career` e `Licensed.dtt_previous_career`.
+- Core: criação de `LicensedDocument`; inclusão de `Licensed.stt_document`.
 - Plans/Notifications/Finance/Contracts: novas rotas/serializers/views sem alterações de esquema além das citadas.
 
 ## Pendências/Operação

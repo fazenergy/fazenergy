@@ -3,9 +3,11 @@ from core.tasks import verificar_plano_de_carreira_task
 # Quando licenciado efetua compra:
 #verificar_plano_de_carreira_task.delay(licensed.id)
 
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from core.models.Licensed import Licensed  # ajuste para seu import real
+from core.models.LicensedDocument import LicensedDocument
+from notifications.utils import send_email
 from plans.models import PlanAdesion  
 from network.models import UnilevelNetwork
 from contracts.services import send_doc_adesion_to_lexio
@@ -62,3 +64,67 @@ def send_contract_api_lexo(sender, instance, created, **kwargs):
             print("Enviado para Lexio:", resultado)
         except Exception as e:
             print(f"Erro ao enviar contrato Lexio: {e}")
+
+
+# ------------------------------------------------------------------------------------
+# Recalcular status geral de documentação do Licensed quando documentos mudarem
+# Regra:
+# - pending se qualquer documento estiver pendente ou se faltar algum tipo exigido
+# - rejected se algum estiver reprovado e nenhum pendente
+# - approved somente se todos os tipos exigidos existirem e estiverem aprovados
+# ------------------------------------------------------------------------------------
+REQUIRED_DOC_TYPES = { 'cpf', 'rg', 'comprovante_endereco', 'pis' }
+
+def _recalculate_licensed_document_status(licensed: Licensed):
+    docs = list(LicensedDocument.objects.filter(licensed=licensed))
+    existing_types = {d.document_type for d in docs}
+
+    # Faltando algum obrigatório => pendente
+    complete_set = REQUIRED_DOC_TYPES.issubset(existing_types)
+    if not complete_set:
+        new_status = 'pending'
+    else:
+        statuses = {d.stt_validate for d in docs if d.document_type in REQUIRED_DOC_TYPES}
+        if 'pending' in statuses:
+            new_status = 'pending'
+        elif 'rejected' in statuses:
+            new_status = 'rejected'
+        else:
+            new_status = 'approved'
+
+    status_changed = (licensed.stt_document != new_status)
+    if status_changed:
+        licensed.stt_document = new_status
+        licensed.save(update_fields=['stt_document'])
+
+    # Notificar operadores quando conjunto completo está aguardando validação
+    if complete_set and new_status == 'pending':
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            operators = User.objects.filter(groups__name='Operador').values_list('email', flat=True)
+            recipients = [e for e in operators if e]
+            if recipients:
+                send_email(
+                    'LicensedDocsSubmitted',
+                    {
+                        'nome': licensed.user.get_full_name() or licensed.user.username,
+                        'username': licensed.user.username,
+                    },
+                    recipients
+                )
+        except Exception:
+            pass
+
+
+@receiver(post_save, sender=LicensedDocument)
+def on_document_saved(sender, instance: LicensedDocument, created, **kwargs):
+    # Sempre que documento é salvo, volta Licensed para pendente se houve edição
+    lic = instance.licensed
+    # Caso operador altere status manualmente, recalcular pelo conjunto
+    _recalculate_licensed_document_status(lic)
+
+
+@receiver(post_delete, sender=LicensedDocument)
+def on_document_deleted(sender, instance: LicensedDocument, **kwargs):
+    _recalculate_licensed_document_status(instance.licensed)

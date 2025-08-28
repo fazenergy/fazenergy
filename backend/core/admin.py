@@ -1,7 +1,7 @@
 # core/admin.py
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from core.models import User, Licensed, Operator, CoreGroup
+from core.models import User, Licensed, Operator, CoreGroup, LicensedDocument
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -223,4 +223,36 @@ class LicensedAdmin(admin.ModelAdmin):
     
     
 
+
+
+# #####################################################################################
+# PAINEL ADMIN - DOCUMENTOS DE LICENCIADOS
+# #####################################################################################
+@admin.register(LicensedDocument)
+class LicensedDocumentAdmin(admin.ModelAdmin):
+    @admin.display(description="Cadastro")
+    def formatted_dtt_record(self, obj):
+        return obj.dtt_record.strftime('%d/%m/%Y %H:%M')
+
+    @admin.display(description="Arquivo")
+    def file_link(self, obj):
+        if obj.file:
+            return format_html('<a href="{}" target="_blank">baixar</a>', obj.file.url)
+        return "-"
+
+    list_display = (
+        'id', 'licensed', 'document_type', 'stt_validate', 'file_link', 'formatted_dtt_record'
+    )
+    list_filter = ('document_type', 'stt_validate', 'dtt_record')
+    search_fields = ('licensed__user__username', 'licensed__cpf_cnpj')
+    readonly_fields = ('dtt_record', 'dtt_update')
+
+    fieldsets = (
+        ('Vínculo', {'fields': ('licensed',)}),
+        ('Documento', {'fields': ('document_type', 'file')}),
+        ('Validação', {'fields': ('stt_validate', 'rejection_reason')}),
+        ('Observação', {'fields': ('observation',)}),
+        ('Timestamps', {'fields': ('dtt_record', 'dtt_update')}),
+    )
+    ordering = ('-dtt_record',)
 

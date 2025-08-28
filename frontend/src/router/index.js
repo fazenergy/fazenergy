@@ -21,6 +21,9 @@ import Profile from '../views/Profile.vue'
 import Settings from '../views/Settings.vue'
 import AccessDenied from '../views/AccessDenied.vue'
 import NotFound from '../views/NotFound.vue'
+import Documents from '../views/Documents.vue'
+import DocumentsReview from '../views/DocumentsReview.vue'
+import LicensedList from '../views/Licensed/List.vue'
 
 const routes = [
   {
@@ -47,6 +50,9 @@ const routes = [
   { path: '/reports/bonus', component: BonusReport, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/payment', component: PaymentIframe, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
+  { path: '/documents', component: Documents, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
+  { path: '/documents/review', component: DocumentsReview, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
+  { path: '/licensed', component: LicensedList, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/settings', component: Settings, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/accessDenied', name: 'accessDenied', component: AccessDenied },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound, meta: { public: true } }

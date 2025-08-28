@@ -2,6 +2,7 @@ from rest_framework import viewsets, generics, permissions
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from .models.User import User
 from .models.Licensed import Licensed
 from .serializers import (
@@ -9,6 +10,7 @@ from .serializers import (
     UserProfileSerializer,
     LicensedListSerializer,
     DownlineListSerializer,
+    LicensedDocumentSerializer,
 )
 from network.models import UnilevelNetwork
 from django.http import JsonResponse
@@ -16,12 +18,23 @@ from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_GET
 from django.views.decorators.csrf import csrf_exempt   
 from django.utils import timezone
+from rest_framework import viewsets, permissions as drf_permissions
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.exceptions import ValidationError
+from core.models.LicensedDocument import LicensedDocument
+from django.db import models
 
 User = get_user_model()
 
 class LicensedViewSet(viewsets.ModelViewSet):
-    queryset = Licensed.objects.all()
+    queryset = Licensed.objects.select_related('user', 'plan', 'city_lookup', 'current_career').all()
     serializer_class = LicensedSerializer
+
+    def get_serializer_class(self):
+        # Usa uma lista mais leve para listagem
+        if getattr(self, 'action', None) == 'list':
+            return LicensedListSerializer
+        return super().get_serializer_class()
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -34,6 +47,84 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class LicensedDocumentViewSet(viewsets.ModelViewSet):
+    queryset = LicensedDocument.objects.select_related('licensed').order_by('-dtt_record')
+    serializer_class = LicensedDocumentSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+        if is_operator:
+            # Operadores enxergam tudo e podem filtrar por licenciado e status
+            licensed_id = self.request.query_params.get('licensed')
+            licensed_username = self.request.query_params.get('licensed_username')
+            status_param = self.request.query_params.get('status')
+            if licensed_id:
+                qs = qs.filter(licensed_id=licensed_id)
+            if licensed_username:
+                qs = qs.filter(licensed__user__username__iexact=licensed_username)
+            if status_param in {'pending', 'approved', 'rejected'}:
+                qs = qs.filter(stt_validate=status_param)
+            return qs
+        # Licenciado só vê os próprios
+        try:
+            lic = Licensed.objects.get(user=user)
+            return qs.filter(licensed=lic)
+        except Licensed.DoesNotExist:
+            return qs.none()
+
+    def perform_create(self, serializer):
+        # Garantir que licenciado só crie para si
+        user = self.request.user
+        is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+        lic = None
+        if not is_operator:
+            lic = Licensed.objects.filter(user=user).first()
+            if not lic:
+                raise ValidationError({'detail': 'Usuário atual não possui perfil de Licenciado.'})
+        else:
+            lic = serializer.validated_data.get('licensed')
+            if not lic:
+                raise ValidationError({'licensed': ['Este campo é obrigatório para operadores.']})
+        serializer.save(licensed=lic)
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+        instance = self.get_object()
+
+        if not is_operator:
+            # Licenciado não pode alterar status; se alterar arquivo/observação, força pendente
+            validated = dict(serializer.validated_data)
+            validated.pop('stt_validate', None)
+            validated.pop('rejection_reason', None)
+            # Se enviou novo arquivo ou mexeu na observação -> volta pendente
+            if 'file' in validated or 'observation' in validated:
+                validated['stt_validate'] = 'pending'
+                validated['rejection_reason'] = None
+            for k, v in validated.items():
+                setattr(instance, k, v)
+            instance.save()
+            return
+
+        # Operador pode atualizar normalmente (inclusive status)
+        serializer.save()
+
+    @action(detail=False, methods=['get'], url_path='pending', permission_classes=[IsAuthenticated])
+    def list_pending(self, request):
+        user = request.user
+        is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+        if not is_operator:
+            return Response([], status=200)
+        # Documentos com status pendente de qualquer licenciado
+        qs = self.get_queryset().filter(stt_validate='pending')[:50]
+        ser = self.get_serializer(qs, many=True)
+        return Response(ser.data)
    
 # recebe a json de dados do frontend para persistencia
 class LicensedPreRegisterView(generics.CreateAPIView):
@@ -192,6 +283,34 @@ class DownlineTreeListView(generics.ListAPIView):
         return Response(serializer.data)
 
 
+class LicensedLookupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        term = (request.query_params.get('q') or '').strip()
+        if not term:
+            return Response([], status=200)
+
+        qs = (
+            Licensed.objects
+            .select_related('user')
+            .filter(
+                models.Q(user__username__icontains=term)
+                | models.Q(user__first_name__icontains=term)
+                | models.Q(user__last_name__icontains=term)
+            )
+            .order_by('user__username')[:20]
+        )
+        data = [
+            {
+                'id': lic.id,
+                'username': getattr(lic.user, 'username', None),
+                'full_name': f"{getattr(lic.user, 'first_name', '')} {getattr(lic.user, 'last_name', '')}".strip(),
+            }
+            for lic in qs
+        ]
+        return Response(data)
+
 @require_GET
 @csrf_exempt
 def validate_referrer(request, username):
@@ -229,17 +348,79 @@ class DashboardView(APIView):
             new_licensed_30d = Licensed.objects.filter(dtt_record__gte=last_30_days).count()
             network_edges = UnilevelNetwork.objects.count()
 
+            # Métricas Operador
+            from plans.models.PlanAdesion import PlanAdesion
+            from finance.models.Transaction import Transaction
+            from network.models.ScoreReference import ScoreReference
+
+            adesoes_pagas = PlanAdesion.objects.filter(ind_payment_status='confirmed')
+            # Valor total pago = soma dos preços dos planos confirmados
+            try:
+                from plans.models.Plan import Plan
+                adesoes_valor_total = (
+                    Plan.objects.filter(adesions__in=adesoes_pagas)
+                    .aggregate(total=models.Sum('price'))['total'] or 0
+                )
+            except Exception:
+                adesoes_valor_total = 0
+            try:
+                # Caso exista Transaction para adesões com amount, somar
+                adesoes_valor_total = (
+                    Transaction.objects
+                    .filter(product__icontains='Adesão', status='released', operation='credit')
+                    .aggregate(total=models.Sum('amount'))['total'] or 0
+                )
+            except Exception:
+                adesoes_valor_total = 0
+
+            # Usinas pagas (quantidade): considerar PlanAdesion com product preenchido e confirmado
+            usinas_pagas_qtd = adesoes_pagas.exclude(product__isnull=True).count()
+
+            # Bônus gerados: somatório liberado (transactions credit released)
+            bonus_total = 0
+            try:
+                bonus_total = (
+                    Transaction.objects
+                    .filter(status='released', operation='credit')
+                    .aggregate(total=models.Sum('amount'))['total'] or 0
+                )
+            except Exception:
+                bonus_total = 0
+
+            # Pontos gerados: ScoreReference válidos
+            pontos_total = (
+                ScoreReference.objects
+                .filter(status='valid')
+                .aggregate(total=models.Sum('points_amount'))['total'] or 0
+            )
+
             data['cards'] = [
-                {'key': 'total_licensed', 'title': 'Total de Licenciados', 'value': total_licensed, 'icon': 'UserPlus', 'delta': f"+{new_licensed_30d} nos últimos 30 dias"},
-                {'key': 'active_affiliates', 'title': 'Afiliados Ativos', 'value': active_licensed, 'icon': 'UserCheck', 'delta': None},
-                {'key': 'roots_count', 'title': 'Redes Raiz', 'value': roots_count, 'icon': 'Users', 'delta': None},
-                {'key': 'network_edges', 'title': 'Relações na Rede', 'value': network_edges, 'icon': 'TrendingUp', 'delta': None},
+                {'key': 'total_licensed', 'title': 'Total de Licenciados', 'value': total_licensed, 'icon': 'Users', 'delta': f"+{new_licensed_30d} nos últimos 30 dias", 'route': '/network/downlines'},
+                {'key': 'operator_paid_adesions', 'title': 'Adesões Pagas', 'value': float(adesoes_valor_total), 'icon': 'DollarSign', 'delta': None, 'route': '/reports/adesions'},
+                {'key': 'operator_paid_plants', 'title': 'Usinas Pagas', 'value': usinas_pagas_qtd, 'icon': 'Factory', 'delta': None, 'route': '/reports/plants'},
+                {'key': 'operator_bonus_total', 'title': 'Bônus Gerados', 'value': float(bonus_total), 'icon': 'Coins', 'delta': None, 'route': '/reports/bonus'},
+                {'key': 'operator_points_total', 'title': 'Pontos Gerados', 'value': pontos_total, 'icon': 'Star', 'delta': None, 'route': '/reports/points'},
             ]
 
             data['quickActions'] = [
                 {'label': 'Árvore da Rede', 'route': '/network/tree'},
                 {'label': 'Rede Completa', 'route': '/network/downlines'},
+                {'label': 'Revisar Documentos', 'route': '/documents/review'},
             ]
+
+            # Relatório sintético
+            pre_cadastros = Licensed.objects.filter(dtt_record__gte=last_30_days).count()
+            ativacoes = Licensed.objects.filter(stt_record=True).count()
+            try:
+                from finance.models.Transaction import Transaction
+                solicitacoes_saque = Transaction.objects.filter(product__icontains='Saque', operation='debit').count()
+            except Exception:
+                solicitacoes_saque = 0
+            data['summary'] = {
+                'pre_registers': pre_cadastros,
+                'activations': ativacoes,
+                'withdraw_requests': solicitacoes_saque,
+            }
             return Response(data)
 
         # Licensed
@@ -277,12 +458,20 @@ class DashboardView(APIView):
             {'key': 'team_size', 'title': 'Minha Rede', 'value': team_size, 'icon': 'Users', 'delta': None},
             {'key': 'active_team', 'title': 'Equipe Ativa', 'value': active_team, 'icon': 'UserCheck', 'delta': None},
             {'key': 'career', 'title': 'Carreira Atual', 'value': (current_licensed.current_career.stage_name if current_licensed.current_career else '-'), 'icon': 'TrendingUp', 'delta': None},
+            {'key': 'docs_status', 'title': 'Documentação do Licenciado', 'value': current_licensed.stt_document.capitalize(), 'icon': 'File', 'delta': None},
         ]
 
         data['quickActions'] = [
             {'label': 'Cadastrar Licenciado', 'route': '/preRegister'},
             {'label': 'Árvore da Rede', 'route': '/network/tree'},
+            {'label': 'Enviar Documentos', 'route': '/documents'},
         ]
+
+        # Banner de documentos pendentes para licenciados
+        data['documents'] = {
+            'status': current_licensed.stt_document,
+            'pending': current_licensed.stt_document == 'pending'
+        }
 
         # Billing banner: se não é raiz, tem adesão pendente e não é cortesia
         try:

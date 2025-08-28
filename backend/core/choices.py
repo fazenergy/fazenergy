@@ -14,3 +14,18 @@ MARITAL_STATUS_CHOICES = [
     ('separated', 'Separated'),
     ('other', 'Other'),
 ]
+
+# Choices para tipos de documentos de Licensed
+DOCUMENT_TYPE_CHOICES = [
+    ('cpf', 'CPF'),
+    ('rg', 'RG'),
+    ('comprovante_endereco', 'Comprovante de Endereço'),
+    ('pis', 'PIS'),
+]
+
+# Choices para status de validação de documentos
+DOCUMENT_STATUS_CHOICES = [
+    ('pending', 'Pendente'),
+    ('rejected', 'Reprovado'),
+    ('approved', 'Aprovado'),
+]
