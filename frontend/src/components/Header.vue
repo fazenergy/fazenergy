@@ -1,14 +1,20 @@
 <!-- src/components/Header.vue -->
 <template>
   <header class="flex justify-between items-center px-4 py-2 border-b border-gray-200 text-[80%]">
-      <!-- Toggle + título -->
-    <div class="flex items-center gap-2">
+      <!-- Toggle + breadcrumb -->
+    <div class="flex items-center gap-3">
       <button @click="$emit('toggle-sidebar')" class="hover:text-blue-600">
         <Menu class="w-5 h-5" />
       </button>
-      <h1 class="font-semibold">
-        Dashboard
-      </h1>
+      <nav class="text-sm text-gray-700">
+        <ol class="flex items-center gap-2">
+          <li v-for="(c, i) in breadcrumbs" :key="i" class="flex items-center gap-2">
+            <router-link v-if="c.to" :to="c.to" class="hover:underline">{{ c.label }}</router-link>
+            <span v-else class="font-semibold text-gray-900">{{ c.label }}</span>
+            <span v-if="i < breadcrumbs.length - 1">/</span>
+          </li>
+        </ol>
+      </nav>
     </div>
 
     <!-- Lado direito: controles -->
@@ -42,6 +48,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { Sun, Moon, Bell, LogOut, Menu } from 'lucide-vue-next'
 import { useAuthStore } from '../store/auth'
 import { useRouter } from 'vue-router'
@@ -61,6 +68,31 @@ const displyProfile = computed(() => {
   } else {
     return 'Visitante' // ou '', ou null, mas NÃO chame logout aqui!
   }
+})
+
+
+// Breadcrumbs simples derivados da rota atual
+const route = useRoute()
+const breadcrumbs = computed(() => {
+  const path = route.path || ''
+  const list = [{ label: 'Dashboard', to: '/dashboard' }]
+  if (path.startsWith('/network')) {
+    list.push({ label: 'Rede', to: '/network' })
+    if (path.startsWith('/network/directs')) list.push({ label: 'Diretos' })
+    else if (path.startsWith('/network/downlines')) list.push({ label: 'Rede Completa' })
+    else if (path.startsWith('/network/adesions')) list.push({ label: 'Adesões' })
+    else if (path.startsWith('/network/tree')) list.push({ label: 'Árvore da Rede' })
+  } else if (path.startsWith('/licensed')) {
+    list.push({ label: 'Licenciados' })
+  } else if (path.startsWith('/documents')) {
+    list.push({ label: 'Documentos', to: '/documents' })
+    if (path.startsWith('/documents/review')) list.push({ label: 'Revisão' })
+  } else if (path.startsWith('/reports')) {
+    list.push({ label: 'Relatórios', to: '/reports/points' })
+    if (path.startsWith('/reports/points')) list.push({ label: 'Pontos' })
+    if (path.startsWith('/reports/bonus')) list.push({ label: 'Bônus' })
+  }
+  return list
 })
 
 

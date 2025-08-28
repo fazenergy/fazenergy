@@ -46,11 +46,43 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
 - `RichTextEditor.vue` e `CodeEditor.vue` adicionados (rich + monoespaçado), com props de tamanho.
 
 #### Padrão de Grid (obrigatório em todas as telas)
-- Toolbar superior com:
-  - Campo de pesquisa (Pesquisar) e botão Pesquisar/Limpar
-  - Botões Exportar XLS e Imprimir/PDF
-- Layout com rodapé fixo via min-height responsivo (como em Rede Completa).
+- Breadcrumb global no cabeçalho principal (Header.vue), derivado da rota atual.
+  - As telas de listagem não devem renderizar breadcrumb local duplicado.
+- Toolbar superior SEM borda de contorno, com layout em linha e espaçamento compacto.
+  - Botões à esquerda (compactos — h-8, text-xs, ícones 16px):
+    - + Adicionar: verde (Plus), abre modal padrão da funcionalidade da tela
+    - Exportar: roxo (FileDown), exporta XLS da visão filtrada
+    - Imprimir: azul (Printer), gera impressão/PDF da visão filtrada
+  - Filtros imediatamente após os botões (ex.: Plano, Cidade), em selects compactos (h-8).
+  - Busca responsiva à direita:
+    - Campo de texto com `flex-1` para ocupar todo o espaço restante, “empurrando” até a borda direita quando houver espaço
+    - Botão Pesquisar com ícone de lupa azul (Search)
+    - Botão Limpar com ícone de borracha cinza (Eraser)
+- Layout do grid com rodapé/paginação fixo no rodapé do container:
+  - Aplicar min-height responsivo (cálculo por viewport) para que o grid preencha a área útil e mantenha o footer visível, como em Rede > Diretos.
 - Colunas: a primeira deve ser Ações; a segunda o ID da linha; a última também apresenta o ID quando aplicável.
+- Páginas alvo para aplicar o padrão: Rede (Diretos, Rede Completa, Árvore da Rede, Adesões) e todas as demais listagens do sistema.
+
+Atualizações aplicadas (2025-08)
+- Header (global)
+  - Breadcrumbs dinâmicos ativados para: Rede (Diretos, Rede Completa, Adesões, Árvore da Rede), Licenciados, Documentos e Relatórios (Pontos, Bônus).
+  - Remover breadcrumbs locais das páginas que ainda tiverem duplicidade.
+- Dashboard
+  - Barra superior com botões: Convidar Licenciado (verde), Exportar (roxo), Imprimir (azul). Para superadmin, manter também Cadastrar Licenciado (verde).
+  - Exportar/Imprimir exportam as métricas atuais (cards) em XLS e impressão simples.
+- Rede
+  - Diretos, Rede Completa, Adesões: toolbar padronizada (botões + filtros + busca expansível) sem borda, com footer do grid colado ao rodapé do container.
+  - Árvore da Rede: endpoint ajustado para retornar URL ABSOLUTA da imagem de perfil (garante render no front).
+- Licenciados
+  - Lista padronizada com toolbar (Adicionar, Exportar, Imprimir) e busca expansível.
+- Relatórios
+  - Pontos e Bônus: toolbar padronizada com Exportar/Imprimir, filtros e busca expansível; breadcrumbs no header.
+- Documentos do Licenciado
+  - Padronizar a tela com a mesma toolbar (Exportar/Imprimir, filtro de status, busca expansível) e grid com footer fixo.
+  - Ações “Anexar/Reenviar” em modal com botões “Fechar/Gravar”.
+- UX/Estilo global
+  - Botões primários de “Gravar/Salvar”: cor verde (bg-emerald-600, hover:bg-emerald-700).
+  - Inputs `readonly` devem exibir fundo cinza claro e sem foco (aplicado no componente `Input.vue`).
 
 ### Documentos do Licenciado (Novo)
 - Rotas:

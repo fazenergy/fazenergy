@@ -80,7 +80,7 @@
         </div>
         <div class="flex justify-end gap-2">
           <button class="px-3 py-1.5 rounded bg-gray-200 text-sm" @click="showUpload=false">Fechar</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white text-sm" @click="submitUpload">Gravar</button>
+          <button class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm" @click="submitUpload">Gravar</button>
         </div>
       </div>
     </Modal>
@@ -174,6 +174,8 @@ function statusPillClass(st) {
   }
   return map[st] || map.missing
 }
+const showPreview = ref(false)
+const previewUrl = ref('')
 function openPreview(url) { previewUrl.value = url; showPreview.value = true }
 function isPdf(url) { return /\.pdf($|\?)/i.test(url || '') }
 function isImage(url) { return /\.(png|jpe?g|gif|webp|bmp|svg)($|\?)/i.test(url || '') }
@@ -184,8 +186,6 @@ const currentDoc = ref(null)
 const form = ref({ observation: '' })
 const formError = ref('')
 const fileInput = ref(null)
-const showPreview = ref(false)
-const previewUrl = ref('')
 
 function openUpload(type, doc) {
   currentType.value = type
@@ -235,6 +235,11 @@ async function confirmReject() {
   } catch (e) {
     alert('Erro ao reprovar')
   }
+}
+
+async function setStatus(doc, st) {
+  await api.patch(`/api/core/licensed-documents/${doc.id}/`, { stt_validate: st, rejection_reason: st==='rejected' ? (doc.rejection_reason || 'Documento inconsistente') : null })
+  await fetchData()
 }
 </script>
 

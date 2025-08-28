@@ -2,15 +2,26 @@
   <main class="p-6 space-y-6">
     <div class="flex items-center justify-between">
       <h1 class="text-xl font-bold">Revisão de Documentos</h1>
-      <div class="flex items-center gap-2">
-        <input v-model.trim="filters.licensed" placeholder="Usuário (username)" class="border rounded px-2 py-1 text-sm" />
-        <select v-model="filters.status" class="border rounded px-2 py-1 text-sm">
-          <option value="">Todos</option>
-          <option value="pending">Aguardando aprovação</option>
-          <option value="approved">Aprovado</option>
-          <option value="rejected">Reprovado</option>
-        </select>
-        <button class="px-3 py-1.5 rounded bg-blue-600 text-white text-sm" @click="fetchData">Filtrar</button>
+    </div>
+
+    <!-- Toolbar padrão -->
+    <div class="mb-3 bg-white rounded">
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-2 flex-1 min-w-[12rem]">
+          <input v-model.trim="filters.licensed" placeholder="Usuário (username)" class="flex-1 border rounded px-2 py-1 h-8 text-xs" />
+          <select v-model="filters.status" class="border rounded px-2 py-1 h-8 text-xs">
+            <option value="">Todos</option>
+            <option value="pending">Aguardando aprovação</option>
+            <option value="approved">Aprovado</option>
+            <option value="rejected">Reprovado</option>
+          </select>
+          <button @click="applySearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-600 hover:bg-blue-700 text-white" title="Pesquisar">
+            <Search class="w-4 h-4" />
+          </button>
+          <button @click="clearSearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Limpar">
+            <Eraser class="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -82,6 +93,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { Search, Eraser } from 'lucide-vue-next'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
 
@@ -113,6 +125,9 @@ async function fetchData() {
   const { data } = await api.get(url)
   docs.value = data || []
 }
+
+function applySearch() { fetchData() }
+function clearSearch() { filters.value = { licensed: '', status: '' }; fetchData() }
 
 async function setStatus(doc, st) {
   await api.patch(`/api/core/licensed-documents/${doc.id}/`, { stt_validate: st, rejection_reason: st==='rejected' ? (doc.rejection_reason || 'Documento inconsistente') : null })

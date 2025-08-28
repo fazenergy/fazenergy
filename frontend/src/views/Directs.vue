@@ -1,27 +1,22 @@
 <template>
-  <!-- Barra superior: botões + breadcrumb -->
-  <div class="mb-3 bg-white border rounded p-3">
-    <div class="flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2 flex-wrap">
-        <button @click="openNewModal" class="px-3 py-2 text-sm rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm inline-flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M11 11V5a1 1 0 1 1 2 0v6h6a1 1 0 1 1 0 2h-6v6a1 1 0 1 1-2 0v-6H5a1 1 0 1 1 0-2h6Z"/></svg>
-          Adicionar Licenciado
-        </button>
-        <button @click="exportExcel" class="px-3 py-2 text-sm rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Exportar XLS</button>
-        <button @click="printGrid" class="px-3 py-2 text-sm rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Imprimir / PDF</button>
-      </div>
-      <nav class="text-sm text-gray-600">
-        <ol class="flex items-center gap-2">
-          <li><router-link to="/dashboard" class="hover:underline">Dashboard</router-link></li>
-          <li>/</li>
-          <li>Rede</li>
-          <li>/</li>
-          <li class="text-gray-900 font-medium">Diretos</li>
-        </ol>
-      </nav>
-    </div>
-    <!-- Barra de filtros -->
-    <div class="mt-3 flex items-center gap-2 flex-wrap">
+  <!-- Barra superior: botões + filtros (breadcrumb local removido) -->
+  <div class="mb-3 bg-white rounded">
+    <div class="flex items-center gap-2 flex-wrap">
+      <!-- Botões (compactos) -->
+      <button @click="openNewModal" class="px-2 py-1 h-8 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm inline-flex items-center gap-1.5">
+        <Plus class="w-4 h-4" />
+        <span>Adicionar</span>
+      </button>
+      <button @click="exportExcel" class="px-2 py-1 h-8 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white shadow-sm inline-flex items-center gap-1.5">
+        <FileDown class="w-4 h-4" />
+        <span>Exportar</span>
+      </button>
+      <button @click="printGrid" class="px-2 py-1 h-8 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm inline-flex items-center gap-1.5">
+        <Printer class="w-4 h-4" />
+        <span>Imprimir</span>
+      </button>
+
+      <!-- Filtros ao lado -->
       <select v-model="planFilter" class="border rounded px-2 py-1 h-8 text-xs min-w-[10rem]">
         <option value="">Plano (todos)</option>
         <option v-for="p in planOptions" :key="p" :value="p">{{ p }}</option>
@@ -30,9 +25,15 @@
         <option value="">Cidade (todas)</option>
         <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
       </select>
-      <div class="w-px h-6 bg-gray-200 mx-2" />
-      <input v-model.trim="search" type="text" placeholder="Pesquisar..." class="w-full md:w-80 border rounded px-2 py-1 h-8 text-xs" />
-      <button @click="clearSearch" class="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-50">Limpar</button>
+      <div class="flex items-center gap-2 flex-1 min-w-[12rem]">
+        <input v-model.trim="search" type="text" placeholder="Pesquisar..." class="flex-1 border rounded px-2 py-1 h-8 text-xs" />
+        <button @click="applySearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-600 hover:bg-blue-700 text-white" title="Pesquisar">
+          <Search class="w-4 h-4" />
+        </button>
+        <button @click="clearSearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Limpar">
+          <Eraser class="w-4 h-4" />
+        </button>
+      </div>
     </div>
   </div>
 
@@ -55,7 +56,7 @@
     <template #footer>
       <div class="flex items-center justify-end gap-2">
         <button @click="showNew=false" class="px-4 py-2 rounded border">Fechar</button>
-        <button form="preRegisterForm" type="submit" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Gravar</button>
+        <button form="preRegisterForm" type="submit" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Gravar</button>
       </div>
     </template>
   </Modal>
@@ -67,6 +68,7 @@ import DataTable from '@/components/ui/DataTable.vue'
 import Modal from '@/components/ui/Modal.vue'
 import FormPreRegister from '@/components/FormPreRegister.vue'
 import api from '@/services/axios'
+import { Plus, FileDown, Printer, Search, Eraser } from 'lucide-vue-next'
 
 const rows = ref([])
 const loading = ref(false)
@@ -127,6 +129,10 @@ const filteredRows = computed(() => {
     return matchSearch && matchPlan && matchCity
   })
 })
+
+function applySearch() {
+  // filtragem já é reativa; manter função para UX consistente
+}
 
 function clearSearch() {
   search.value = ''

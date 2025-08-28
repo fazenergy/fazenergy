@@ -33,7 +33,7 @@
           <div class="text-emerald-700 font-semibold text-lg">Cadastro realizado com sucesso!</div>
           <div class="text-gray-600 mt-1">Enviamos o contrato e o link de pagamento para o e-mail informado. Você pode abrir o pagamento agora para concluir a ativação.</div>
           <div class="mt-4 flex items-center justify-center gap-2">
-            <button @click="openPaymentNow" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white">Pagar Agora</button>
+            <button @click="openPaymentNow" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Pagar Agora</button>
             <button @click="emitClose" class="px-4 py-2 rounded border">Fechar</button>
           </div>
         </div>

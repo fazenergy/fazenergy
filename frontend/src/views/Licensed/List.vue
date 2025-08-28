@@ -1,17 +1,32 @@
 <template>
   <main class="p-6 space-y-6">
-    <!-- Toolbar padrão (Exportar, Imprimir, Pesquisar) -->
-    <div class="mb-3 bg-white border rounded p-3 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+    <!-- Toolbar padrão (padrão global de grids) -->
+    <div class="mb-3 bg-white rounded">
       <div class="flex items-center gap-2 flex-wrap">
-        <!-- Botão de cadastrar visível apenas para SUPERADMIN -->
-        <button v-if="isSuperadmin" @click="showNew = true" class="px-2 py-1 h-8 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">Cadastrar Licenciado</button>
-        <button @click="exportExcel" class="px-2 py-1 h-8 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Exportar XLS</button>
-        <button @click="printGrid" class="px-2 py-1 h-8 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Imprimir / PDF</button>
-      </div>
-      <div class="flex items-center gap-2 flex-1">
-        <input v-model.trim="q" type="text" placeholder="Pesquisar..." class="w-full md:w-80 border rounded px-2 py-1 h-8 text-xs" />
-        <button @click="applySearch" class="px-2 py-1 h-8 text-xs rounded bg-gray-700 hover:bg-gray-800 text-white shadow-sm">Pesquisar</button>
-        <button @click="clearSearch" class="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-50">Limpar</button>
+        <!-- Botões -->
+        <button v-if="isSuperadmin" @click="showNew = true" class="px-2 py-1 h-8 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm inline-flex items-center gap-1.5">
+          <Plus class="w-4 h-4" />
+          <span>Adicionar</span>
+        </button>
+        <button @click="exportExcel" class="px-2 py-1 h-8 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white shadow-sm inline-flex items-center gap-1.5">
+          <FileDown class="w-4 h-4" />
+          <span>Exportar</span>
+        </button>
+        <button @click="printGrid" class="px-2 py-1 h-8 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm inline-flex items-center gap-1.5">
+          <Printer class="w-4 h-4" />
+          <span>Imprimir</span>
+        </button>
+
+        <!-- Busca -->
+        <div class="flex items-center gap-2 flex-1 min-w-[12rem]">
+          <input v-model.trim="q" type="text" placeholder="Pesquisar..." class="flex-1 border rounded px-2 py-1 h-8 text-xs" />
+          <button @click="applySearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-600 hover:bg-blue-700 text-white" title="Pesquisar">
+            <Search class="w-4 h-4" />
+          </button>
+          <button @click="clearSearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Limpar">
+            <Eraser class="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -121,7 +136,7 @@
         </div>
         <div class="flex justify-end gap-2 mt-4">
           <button class="px-3 py-1.5 rounded bg-gray-200 text-sm" @click="showEdit=false">Fechar</button>
-          <button class="px-3 py-1.5 rounded bg-blue-600 text-white text-sm" @click="saveEdit">Gravar</button>
+          <button class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm" @click="saveEdit">Gravar</button>
         </div>
       </div>
     </Modal>
@@ -132,7 +147,7 @@
       <template #footer>
         <div class="flex justify-end gap-2">
           <button class="px-4 py-2 rounded border" @click="showNew=false">Fechar</button>
-          <button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white" @click="submitPreForm">Gravar</button>
+          <button class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white" @click="submitPreForm">Gravar</button>
         </div>
       </template>
     </Modal>
@@ -143,7 +158,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
-import { FileText, Pencil, KeyRound } from 'lucide-vue-next'
+import { FileText, Pencil, KeyRound, Plus, FileDown, Printer, Search, Eraser } from 'lucide-vue-next'
 import FormPreRegister from '@/components/FormPreRegister.vue'
 import { useAuthStore } from '@/store/auth'
 
@@ -207,6 +222,8 @@ function openEdit(lic) {
   }
   showEdit.value = true
 }
+
+function applySearch() {}
 
 async function saveEdit() {
   const fd = new FormData()

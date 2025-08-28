@@ -1,10 +1,11 @@
 <!-- src/views/Dashboard.vue -->
 <!-- src/views/Dashboard.vue -->
 <template>
-<div class="flex items-center gap-2">
+<div class="flex items-center justify-between gap-2">
+  <div class="flex items-center gap-2 flex-wrap">
    <!-- ✅ Botão visível para SUPERADMIN -->
     <button
-      v-if="isSuperadmin"
+      v-if="isSuperadmin || isLicensed"
       @click="showNew = true"
       class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-2"
     >
@@ -12,13 +13,38 @@
       Cadastrar Licenciado
     </button>
     <button
-      v-if="isLicensed"
+      v-if="isLicensed || isSuperadmin"
       @click="openInvite"
       class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 inline-flex items-center gap-2"
     >
       <Share2 class="w-4 h-4" />
       Convidar Licenciado
     </button>
+
+    <!-- Exportar / Imprimir -->
+    <button
+      @click="exportDashboard"
+      class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 inline-flex items-center gap-2"
+    >
+      <FileDown class="w-4 h-4" />
+      Exportar
+    </button>
+    <button
+      @click="printDashboard"
+      class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-2"
+    >
+      <Printer class="w-4 h-4" />
+      Imprimir
+    </button>
+  </div>
+
+  <!-- Indicador de status do cadastro (lado direito) -->
+  <div v-if="isLicensed && licensedStatus" class="ml-auto">
+    <div :class="'px-3 py-1.5 rounded border shadow-sm inline-flex items-center gap-2 '+ licensedStatus.class">
+      <component :is="licensedStatus.icon" class="w-4 h-4" />
+      <span class="text-sm font-medium">Cadastro: {{ licensedStatus.label }}</span>
+    </div>
+  </div>
 
     <!-- Modal de Convite -->
     <Modal v-model="showInvite" :header-blue="true" :no-header-border="true">
@@ -57,14 +83,14 @@
       <template #footer>
         <div class="flex justify-end gap-2">
           <button class="px-4 py-2 rounded border" @click="showNew=false">Fechar</button>
-          <button class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white" @click="submitPreForm">Gravar</button>
+          <button class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white" @click="submitPreForm">Gravar</button>
         </div>
       </template>
     </Modal>
 </div>
 <div class="flex">
     <div class="flex-1">
-    <main class="p-6 space-y-6">
+    <main ref="dashboardRef" class="pt-6 pr-6 pb-6 pl-0 space-y-6">
     
     <!-- Alert/Banner de documentos pendentes -->
     <div v-if="isLicensed && documents?.pending" class="p-4 bg-amber-50 border border-amber-200 rounded flex items-center justify-between">
@@ -100,7 +126,7 @@
          <template #title><div>{{ c.title }}</div></template>
          <template #content><div><p class="text-2xl font-bold">{{ c.value }}</p></div></template>
          <template #description><div v-if="c.delta">{{ c.delta }}</div></template>
-         <template #icon><UserPlus class="w-5 h-5" /></template>
+         <template #icon><component :is="iconFor(c)" class="w-7 h-7" /></template>
       </Card>
     </div>
 
@@ -150,7 +176,9 @@ import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
 import { computed, ref, onMounted } from 'vue'
 import Card from '@/components/ui/Card.vue'
-import { UserPlus, DollarSign, TrendingUp, UserCheck, Plus, Share2 } from 'lucide-vue-next'
+import { UserPlus, DollarSign, TrendingUp, Users, FileText, Plus, Share2, FileDown, Printer, CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-vue-next'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
 import FormPreRegister from '@/components/FormPreRegister.vue'
@@ -159,6 +187,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const showNew = ref(false)
 const preForm = ref(null)
+const dashboardRef = ref(null)
 
 // Exemplo: se você salva grupos no `auth.user`
 const isLicensed = computed(() => auth.user?.groups?.includes('Licenciado'))
@@ -171,6 +200,26 @@ const quickActions = ref([])
 const billing = ref({ pending_annual_payment: false, payment_link_url: null, adesion_id: null })
 const documents = ref({ pending: false, status: 'pending' })
 const summary = ref({ pre_registers: 0, activations: 0, withdraw_requests: 0 })
+
+// Mapeia status do cadastro/licença do usuário
+const licensedStatus = computed(() => {
+  // Preferência: status vindo do dashboard -> documents.status
+  const st = (documents.value?.status || '').toLowerCase()
+  // Fallback simples por enquanto: se não houver status, mostra pendente quando houver documentos pendentes ou pagamento pendente
+  if (st === 'approved' || st === 'ativo' || st === 'active') {
+    return { label: 'Ativo', class: 'bg-emerald-50 border-emerald-200 text-emerald-700', icon: CheckCircle2 }
+  }
+  if (st === 'pending' || st === 'aguardando' || documents.value?.pending) {
+    return { label: 'Em validação', class: 'bg-blue-50 border-blue-200 text-blue-700', icon: Clock }
+  }
+  if (st === 'rejected' || st === 'reprovado') {
+    return { label: 'Reprovado', class: 'bg-red-50 border-red-200 text-red-700', icon: XCircle }
+  }
+  if (billing.value?.pending_annual_payment) {
+    return { label: 'Pagamento pendente', class: 'bg-amber-50 border-amber-200 text-amber-700', icon: AlertTriangle }
+  }
+  return { label: 'Em validação', class: 'bg-blue-50 border-blue-200 text-blue-700', icon: Clock }
+})
 
 async function fetchDashboard() {
   const { data } = await api.get('/api/core/dashboard/')
@@ -210,6 +259,27 @@ function cardClass(card, index) {
   return `${base} ${grad}`
 }
 
+function iconFor(card) {
+  const key = card?.key
+  switch (key) {
+    case 'directs':
+      return UserPlus
+    case 'team_size':
+      return Users
+    case 'career':
+      return TrendingUp
+    case 'docs_status':
+      return FileText
+    case 'operator_paid_adesions':
+      return DollarSign
+    case 'operator_paid_plants':
+      return Users
+    case 'operator_bonus_total':
+      return DollarSign
+    default:
+      return Users
+  }
+}
 function openPayment() {
   const adesionId = billing.value?.adesion_id
   if (!adesionId) return router.push('/network/adesions')
@@ -257,6 +327,47 @@ function submitPreForm() {
     } else if (formEl) {
       formEl.submit()
     }
+  } catch {}
+}
+
+// Export/Print Dashboard
+async function exportDashboard() {
+  try {
+    const el = dashboardRef.value
+    if (!el) return
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true })
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const imgWidth = pageWidth
+    const imgHeight = canvas.height * imgWidth / canvas.width
+    let y = 0
+    // Suporte a múltiplas páginas
+    while (y < imgHeight) {
+      pdf.addImage(imgData, 'PNG', 0, -y, imgWidth, imgHeight)
+      y += pageHeight
+      if (y < imgHeight) pdf.addPage()
+    }
+    pdf.save(`dashboard_${new Date().toISOString().slice(0,10)}.pdf`)
+  } catch {}
+}
+
+async function printDashboard() {
+  try {
+    const el = dashboardRef.value
+    if (!el) return
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true })
+    const dataUrl = canvas.toDataURL('image/png')
+    const win = window.open('', '_blank')
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8" />
+      <title>Imprimir Dashboard</title>
+      <style>body{margin:0} img{display:block; width:100%; height:auto}</style>
+    </head><body onload="window.print(); setTimeout(()=>window.close(), 50)">
+      <img src="${dataUrl}" />
+    </body></html>`
+    win.document.write(html)
+    win.document.close()
   } catch {}
 }
 </script>

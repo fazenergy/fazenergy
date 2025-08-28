@@ -21,12 +21,21 @@ class DirectsTreeView(APIView):
 
         # Serializador de nó
         def serialize_node(lic: Licensed, level: int):
+            # Garante URL ABSOLUTA para a imagem de perfil (necessário para o frontend em outra origem)
+            img_url = None
+            try:
+                if getattr(lic.user, 'image_profile', None):
+                    # lic.user.image_profile.url retorna caminho relativo; converte para absoluto
+                    img_url = request.build_absolute_uri(lic.user.image_profile.url)
+            except Exception:
+                img_url = None
+
             return {
                 'id': lic.id,
                 'level': level,
                 'user': {
                     'username': lic.user.username,
-                    'image_profile': getattr(lic.user, 'image_profile', None) and lic.user.image_profile.url if getattr(lic.user, 'image_profile', None) else None,
+                    'image_profile': img_url,
                 },
                 'children': []
             }

@@ -456,9 +456,8 @@ class DashboardView(APIView):
         data['cards'] = [
             {'key': 'directs', 'title': 'Diretos', 'value': directs_count, 'icon': 'UserPlus', 'delta': None},
             {'key': 'team_size', 'title': 'Minha Rede', 'value': team_size, 'icon': 'Users', 'delta': None},
-            {'key': 'active_team', 'title': 'Equipe Ativa', 'value': active_team, 'icon': 'UserCheck', 'delta': None},
             {'key': 'career', 'title': 'Carreira Atual', 'value': (current_licensed.current_career.stage_name if current_licensed.current_career else '-'), 'icon': 'TrendingUp', 'delta': None},
-            {'key': 'docs_status', 'title': 'Documentação do Licenciado', 'value': current_licensed.stt_document.capitalize(), 'icon': 'File', 'delta': None},
+            {'key': 'docs_status', 'title': 'Documentação', 'value': current_licensed.stt_document.capitalize(), 'icon': 'File', 'delta': None},
         ]
 
         data['quickActions'] = [

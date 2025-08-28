@@ -1,11 +1,15 @@
 <template>
-  <!-- Toolbar: ações e filtros -->
-  <div class="mb-3 bg-white border rounded p-3 flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+  <!-- Toolbar: ações e filtros (padrão) -->
+  <div class="mb-3 bg-white rounded">
     <div class="flex items-center gap-2 flex-wrap">
-      <button @click="exportExcel" class="px-2 py-1 h-8 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">Exportar XLS</button>
-      <button @click="printGrid" class="px-2 py-1 h-8 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm">Imprimir / PDF</button>
-
-      <div class="w-px h-6 bg-gray-200 mx-2" />
+      <button @click="exportExcel" class="px-2 py-1 h-8 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white shadow-sm inline-flex items-center gap-1.5">
+        <FileDown class="w-4 h-4" />
+        <span>Exportar</span>
+      </button>
+      <button @click="printGrid" class="px-2 py-1 h-8 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white shadow-sm inline-flex items-center gap-1.5">
+        <Printer class="w-4 h-4" />
+        <span>Imprimir</span>
+      </button>
 
       <select v-model="statusFilter" class="border rounded px-2 py-1 h-8 text-xs min-w-[10rem]">
         <option value="">Status (todos)</option>
@@ -18,12 +22,17 @@
         <option value="credit">Crédito</option>
         <option value="debit">Débito</option>
       </select>
-    </div>
 
-    <div class="flex items-center gap-2 flex-1">
-      <input v-model.trim="search" type="text" placeholder="Pesquisar..."
-             class="w-full md:w-80 border rounded px-2 py-1 h-8 text-xs" />
-      <button @click="clearSearch" class="px-2 py-1 h-8 text-xs border rounded hover:bg-gray-50">Limpar</button>
+      <div class="flex items-center gap-2 flex-1 min-w-[12rem]">
+        <input v-model.trim="search" type="text" placeholder="Pesquisar..."
+               class="flex-1 border rounded px-2 py-1 h-8 text-xs" />
+        <button @click="applySearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-600 hover:bg-blue-700 text-white" title="Pesquisar">
+          <Search class="w-4 h-4" />
+        </button>
+        <button @click="clearSearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-200 hover:bg-gray-300 text-gray-700" title="Limpar">
+          <Eraser class="w-4 h-4" />
+        </button>
+      </div>
     </div>
   </div>
 
@@ -38,6 +47,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import DataTable from '@/components/ui/DataTable.vue'
 import api from '@/services/axios'
+import { FileDown, Printer, Search, Eraser } from 'lucide-vue-next'
 
 const rows = ref([])
 const loading = ref(false)
@@ -112,6 +122,7 @@ const filteredRows = computed(() => {
 })
 
 function clearSearch() { search.value = '' }
+function applySearch() {}
 
 // Exportações
 function exportExcel() {

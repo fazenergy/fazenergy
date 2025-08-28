@@ -1,5 +1,28 @@
 from django.db import models
 from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES
+import os
+import re
+import uuid
+
+
+def licensed_document_upload_to(instance, filename):
+    # Extensão preservada
+    _, ext = os.path.splitext(filename)
+    ext = ext or '.bin'
+
+    # Pasta por CPF/CNPJ (apenas dígitos)
+    cpf_cnpj = getattr(getattr(instance, 'licensed', None), 'cpf_cnpj', '') or ''
+    cpf_digits = re.sub(r'\D', '', str(cpf_cnpj)) or 'unknown'
+
+    # Prefixo pelo tipo do documento
+    doc_type = (getattr(instance, 'document_type', 'document') or 'document').lower()
+    doc_type = re.sub(r'[^a-z0-9_-]', '', doc_type)
+
+    # Chave curta para evitar colisões
+    key = uuid.uuid4().hex[:12]
+
+    filename_sanitized = f"{doc_type}_{key}{ext}"
+    return os.path.join('licensed', cpf_digits, filename_sanitized)
 
 
 class LicensedDocument(models.Model):
@@ -17,7 +40,7 @@ class LicensedDocument(models.Model):
     )
 
     file = models.FileField(
-        upload_to='licensed_documents/',
+        upload_to=licensed_document_upload_to,
         verbose_name='Arquivo do Documento'
     )
 

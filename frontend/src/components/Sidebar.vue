@@ -15,8 +15,14 @@
       <nav class="px-2 space-y-5">
         <!-- Menu Principal -->
         <div class="mt-3">
-          <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Menu Principal</h3>
-          <ul class="space-y-1">
+          <button v-if="!mini" type="button" @click="principalOpen = !principalOpen" class="w-full uppercase text-[10px] text-blue-200 mb-2 tracking-wider flex items-center justify-between">
+            <span>Menu Principal</span>
+            <span class="inline-flex items-center">
+              <ChevronRight v-if="!principalOpen" class="w-3.5 h-3.5 opacity-80" />
+              <ChevronDown v-else class="w-3.5 h-3.5 opacity-80" />
+            </span>
+          </button>
+          <ul class="space-y-1" v-show="mini || principalOpen">
             <li v-if="isSuperUser || isLicensed || isOperador">
               <router-link to="/dashboard" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Dashboard">
                 <LayoutDashboard class="w-4 h-4" />
@@ -64,8 +70,14 @@
 
         <!-- Gerenciar Usuários (superadmin apenas) -->
         <div v-if="isSuperUser">
-          <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Gerenciar Usuários</h3>
-          <ul class="space-y-1">
+          <button v-if="!mini" type="button" @click="usersOpen = !usersOpen" class="w-full uppercase text-[10px] text-blue-200 mb-2 tracking-wider flex items-center justify-between">
+            <span>Gerenciar Usuários</span>
+            <span class="inline-flex items-center">
+              <ChevronRight v-if="!usersOpen" class="w-3.5 h-3.5 opacity-80" />
+              <ChevronDown v-else class="w-3.5 h-3.5 opacity-80" />
+            </span>
+          </button>
+          <ul class="space-y-1" v-show="mini || usersOpen">
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Usuários"><Users class="w-4 h-4" /><span v-if="!mini">Usuários</span></a></li>
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Perfis"><User class="w-4 h-4" /><span v-if="!mini">Perfis</span></a></li>
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Grupos"><Link class="w-4 h-4" /><span v-if="!mini">Grupos</span></a></li>
@@ -76,8 +88,14 @@
 
           <!-- Rede (Licenciado, Operador ou Superadmin) -->
           <div v-if="isLicensed || isOperador || isSuperUser">
-          <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Rede</h3>
-          <ul class="space-y-1">
+          <button v-if="!mini" type="button" @click="redeOpen = !redeOpen" class="w-full uppercase text-[10px] text-blue-200 mb-2 tracking-wider flex items-center justify-between">
+            <span>Rede</span>
+            <span class="inline-flex items-center">
+              <ChevronRight v-if="!redeOpen" class="w-3.5 h-3.5 opacity-80" />
+              <ChevronDown v-else class="w-3.5 h-3.5 opacity-80" />
+            </span>
+          </button>
+          <ul class="space-y-1" v-show="mini || redeOpen">
             <li>
               <router-link to="/network/directs" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Diretos">
                 <ArrowRight class="w-4 h-4" />
@@ -108,8 +126,14 @@
 
         <!-- Licenciados (Operador/Superadmin) -->
         <div v-if="isOperador || isSuperUser">
-          <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Licenciados</h3>
-          <ul class="space-y-1">
+          <button v-if="!mini" type="button" @click="licOpen = !licOpen" class="w-full uppercase text-[10px] text-blue-200 mb-2 tracking-wider flex items-center justify-between">
+            <span>Licenciados</span>
+            <span class="inline-flex items-center">
+              <ChevronRight v-if="!licOpen" class="w-3.5 h-3.5 opacity-80" />
+              <ChevronDown v-else class="w-3.5 h-3.5 opacity-80" />
+            </span>
+          </button>
+          <ul class="space-y-1" v-show="mini || licOpen">
             <li>
               <router-link to="/licensed" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Cadastro de Licenciados">
                 <Users class="w-4 h-4" />
@@ -127,8 +151,14 @@
 
         <!-- Geral (Licenciado, Operador ou Superadmin) -->
       <div v-if="isLicensed || isOperador || isSuperUser">
-          <h3 v-if="!mini" class="uppercase text-[10px] text-blue-200 mb-2 tracking-wider">Geral</h3>
-          <ul class="space-y-1">
+          <button v-if="!mini" type="button" @click="geralOpen = !geralOpen" class="w-full uppercase text-[10px] text-blue-200 mb-2 tracking-wider flex items-center justify-between">
+            <span>Geral</span>
+            <span class="inline-flex items-center">
+              <ChevronRight v-if="!geralOpen" class="w-3.5 h-3.5 opacity-80" />
+              <ChevronDown v-else class="w-3.5 h-3.5 opacity-80" />
+            </span>
+          </button>
+          <ul class="space-y-1" v-show="mini || geralOpen">
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Materiais"><Book class="w-4 h-4" /><span v-if="!mini">Materiais</span></a></li>
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Suporte"><LifeBuoy class="w-4 h-4" /><span v-if="!mini">Suporte</span></a></li>
             <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Plano de Carreira"><BarChart class="w-4 h-4" /><span v-if="!mini">Plano de Carreira</span></a></li>
@@ -178,6 +208,11 @@ const groups = computed(() => auth.user?.groups || [])
 const isLicensed = computed(() => groups.value.includes('Licenciado'))
 const isOperador = computed(() => groups.value.includes('Operador'))
 
-// Estado de expansão dos relatórios
+// Estados de expansão das seções
 const reportsOpen = ref(false)
+const principalOpen = ref(true)
+const usersOpen = ref(true)
+const redeOpen = ref(true)
+const licOpen = ref(true)
+const geralOpen = ref(true)
 </script>
