@@ -13,7 +13,7 @@
 ## Backend (`@backend/`)
 - Stack: Django 5, DRF, SimpleJWT, Celery, Redis (para filas), PostgreSQL.
 - Admin: Jazzmin.
-- Apps modulares (exemplos): `core`, `proposal`, `plans`, `contracts`, `finance`, `network`, `location`, `notifications`, `webhooks`.
+- Apps modulares (atuais): `core`, `contractor` (substitui `prospect`), `plans`, `contracts`, `finance`, `network`, `location`, `notifications`, `webhooks`.
 - Arquivos relevantes:
   - `config/settings.py`, `config/urls.py`, `config/celery.py`.
 - Uploads/estática: `MEDIA_URL`/`MEDIA_ROOT` e `static/`.
@@ -29,7 +29,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/users/', include('core.urls')),  # ou o nome do seu app
     path('api/location/', include('location.urls')),
-    path('api/proposal/', include('proposal.urls')),    
+    path('api/contractor/', include('contractor.urls')),
 
     # Webhooks
     path('api/webhook/pagarme/', pagarme_webhook, name='webhook-pagarme'),
@@ -45,6 +45,22 @@ urlpatterns = [
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 ```
+
+### App contractor (integração REVO)
+- Entidades: `Contractor`, `ContractorProposal`, `ContractorProposalResult`, `ContractorProposalLeadActor`.
+- Endpoints principais:
+  - `POST /api/contractor/revo/simulation/` → chama REVO e salva Proposal/Result/LeadActors
+  - `GET /api/contractor/contractors/`, `GET /api/contractor/proposals/`, `GET /api/contractor/proposal-results/`
+- Regras:
+  - Prioridade por CPF+CEP até expiração (`proposal_expiration_date`); bloqueio 409 (override via `?override=1`).
+  - Lead Actors: enviar `contractor` (derivado), persistir `owner`/`legal_responsible`.
+  - Payloads: `ContractorProposal.request_payload` e `ContractorProposalResult.response_payload` (JSONB).
+  
+  - Retorno do nosso endpoint (`POST /api/contractor/revo/simulation/`):
+    - Estrutura: `{"revo": {…}, "proposal_id": <int>, "result_id": <int>, "proposal": {…}, "result": {…}}`.
+    - Persiste campos do body em `ContractorProposal` (instalação, consumo, distribuidora, etc.) e do retorno da REVO em `ContractorProposalResult` (tipo/duração, custos, kWp, kWh, expiração, etc.).
+    - `response_payload` é salvo no `ContractorProposalResult` e `request_payload` no `ContractorProposal`.
+    - Tratamento de HTTP 200/201 da REVO (ambos considerados sucesso) e cache de token.
 
 ## Frontend (`@frontend/`)
 - Stack: Vue 3, Vite, Tailwind CSS, Pinia, Vue Router, Axios.

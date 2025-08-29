@@ -367,3 +367,17 @@ PUT https://sandbox.revoenergia.com.br/api/partners/v3/simulation
 ### Body e resposta disponÃ­veis na mesma estrutura da criaÃ§Ã£o, com obrigatoriedade do campo `reference`.
 
 > DocumentaÃ§Ã£o finalizada com todos os endpoints conhecidos da API Revo Energia.
+
+---
+
+## Integração no Backend (FazEnergy)
+
+- Endpoint interno: `POST /api/contractor/revo/simulation/`
+- Comportamento:
+  - Encaminha a simulação para a REVO (aceita HTTP 200/201)
+  - Persiste o payload enviado em `ContractorProposal.request_payload`
+  - Persiste o retorno da REVO em `ContractorProposalResult` e `response_payload`
+  - Preenche endereço de instalação com dados da REVO, com fallback do body (`lead_actors.contractor`)
+  - Bloqueio por CPF+CEP até expiração (override com `?override=1`)
+- Retorno:
+  - `{ "revo": {…}, "proposal_id": <int>, "result_id": <int>, "proposal": {…}, "result": {…} }`

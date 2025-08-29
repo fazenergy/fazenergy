@@ -7,6 +7,7 @@ import requests
 
 from django.conf import settings
 from django.utils.timezone import make_aware
+from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -157,6 +158,10 @@ class RevoSimulationView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        try:
+            print("[REVO_SIM] ENTER POST contractor_id=", request.data.get('contractor_id'))
+        except Exception:
+            pass
         force = request.query_params.get('force') == '1'
         token = request.headers.get('X-Revo-Token')
         if not token:
@@ -164,12 +169,12 @@ class RevoSimulationView(APIView):
             if err:
                 return Response({'detail': err}, status=status.HTTP_400_BAD_REQUEST)
 
-        prospect_id = request.data.get('prospect_id')
-        if not prospect_id:
-            return Response({'detail': 'prospect_id é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        contractor_id = request.data.get('contractor_id') or request.data.get('prospect_id')
+        if not contractor_id:
+            return Response({'detail': 'contractor_id é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            prospect = Contractor.objects.get(pk=prospect_id)
+            prospect = Contractor.objects.get(pk=contractor_id)
         except Contractor.DoesNotExist:
             return Response({'detail': 'Contractor não encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -177,26 +182,39 @@ class RevoSimulationView(APIView):
         energy_provider_id = request.data.get('energy_provider_id') or None
         energy_provider_name = request.data.get('energy_provider_name') or None
         property_type = request.data.get('property_type') or None
+        req_zip_code = request.data.get('zip_code')
+        if not req_zip_code:
+            return Response({'detail': 'zip_code é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        zip_code_norm = _sanitize_digits(req_zip_code)
         monthly_consumption = request.data.get('monthly_consumption')
         incoming_lead_actors = request.data.get('lead_actors') or []
+        consumer_unit = request.data.get('consumer_unit')
+        consumer_group = request.data.get('consumer_group')
+
+        # REVO exige fiscal_number no payload raiz
+        req_fiscal_number = request.data.get('fiscal_number') or prospect.fiscal_number
+        fiscal_number_norm = _sanitize_digits(req_fiscal_number or '')
+        if not fiscal_number_norm:
+            return Response({'detail': 'fiscal_number é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
 
         fallback = {
             'legal_name': prospect.legal_name,
             'name': prospect.lead_name,
             'cellphone': _sanitize_digits(prospect.cellphone),
             'email': prospect.email,
-            'zip_code': _sanitize_digits(prospect.contractor_zip_code or prospect.zip_code),
-            'address': prospect.contractor_address or '',
-            'number': prospect.contractor_number or '',
-            'complement': prospect.contractor_complement or '',
-            'neighborhood': prospect.contractor_neighborhood or '',
-            'city': prospect.contractor_city or '',
-            'st': (prospect.contractor_st or '')[:2],
+            # A REVO não separa endereço do contratante; endereço de instalação fica na Proposal
+            'zip_code': None,
+            'address': None,
+            'number': None,
+            'complement': None,
+            'neighborhood': None,
+            'city': None,
+            'st': None,
         }
 
         body = {
             'property_type': property_type or prospect.preferred_property_type,
-            'zip_code': _sanitize_digits(prospect.zip_code),
+            'zip_code': zip_code_norm,
             'electric_bill': float((prospect.last_electric_bill) or 0),
             'cellphone': _sanitize_digits(prospect.cellphone),
             'contract_person': prospect.person_type or 'PF',
@@ -204,6 +222,11 @@ class RevoSimulationView(APIView):
             'seller_email': seller_email,
             'energy_provider_id': energy_provider_id,
         }
+        body['fiscal_number'] = fiscal_number_norm
+        if consumer_unit:
+            body['consumer_unit'] = consumer_unit
+        if consumer_group:
+            body['consumer_group'] = consumer_group
         la_payload, la_err = _build_lead_actors_payload(
             contract_person=body['contract_person'],
             owner_text=body['owner'],
@@ -217,6 +240,19 @@ class RevoSimulationView(APIView):
         if monthly_consumption:
             body['monthly_consumption'] = monthly_consumption
 
+        # Validação de aliciamento: CPF + CEP com proposta ativa
+        cpf_norm = _sanitize_digits(prospect.fiscal_number or '')
+        override = request.query_params.get('override') == '1'
+        if cpf_norm and zip_code_norm and not override:
+            conflict = Proposal.objects.filter(
+                cpf_cnpj=cpf_norm,
+                zip_code=zip_code_norm,
+                status__in=['Aguardando', 'Simulated', 'Ativo'],
+                dtt_expired__gt=timezone.now(),
+            ).exclude(contractor=prospect).exists()
+            if conflict:
+                return Response({'detail': 'CPF já possui proposta ativa para este CEP até expirar.'}, status=409)
+
         url = f'{REVO_BASE_URL}/v3/simulation'
         try:
             resp = requests.post(url, json=body, headers=_bearer_headers(token), timeout=40)
@@ -225,45 +261,71 @@ class RevoSimulationView(APIView):
                 if err:
                     return Response({'detail': err}, status=status.HTTP_400_BAD_REQUEST)
                 resp = requests.post(url, json=body, headers=_bearer_headers(token), timeout=40)
-            if resp.status_code != 200:
+            if resp.status_code not in (200, 201):
                 return Response(resp.json(), status=resp.status_code)
 
             payload = resp.json()
-            data = (payload.get('data') or [{}])[0]
+            raw_data = payload.get('data')
+            if isinstance(raw_data, list):
+                data = (raw_data or [{}])[0]
+            elif isinstance(raw_data, dict):
+                data = raw_data
+            else:
+                data = {}
 
             installation = data.get('installation_address') or {}
             electric_bill_info = data.get('electric_bill') or {}
 
             is_owner_self = _normalize_bool_owner(body.get('owner'))
 
+            # Fallback do endereço de instalação a partir do body (lead_actors.actor == 'contractor')
+            contractor_actor = next((a for a in (la_payload or []) if a.get('actor') == 'contractor'), {})
+            install_zip = _sanitize_digits(
+                (installation.get('zip_code') if installation else None)
+                or contractor_actor.get('zip_code')
+                or zip_code_norm
+            )
+            install_addr = (installation.get('address') if installation else None) or contractor_actor.get('address') or ''
+            install_number = (installation.get('number') if installation else None) or contractor_actor.get('number')
+            install_complement = (installation.get('complement') if installation else None) or contractor_actor.get('complement')
+            install_neighborhood = (installation.get('neighborhood') if installation else None) or contractor_actor.get('neighborhood')
+            install_city = (installation.get('city') if installation else None) or contractor_actor.get('city') or ''
+            install_state = ((installation.get('st') if installation else None) or contractor_actor.get('st') or '')[:2]
+
+            ep_name = energy_provider_name or data.get('energy_provider_name')
+
             proposal = Proposal.objects.create(
                 contractor=prospect,
                 product=None,
                 reference_code=str(data.get('reference') or ''),
-                zip_code=_sanitize_digits(installation.get('zip_code') or prospect.zip_code),
-                address=installation.get('address') or '',
-                number=installation.get('number'),
-                complement=installation.get('complement'),
-                neighborhood=installation.get('neighborhood'),
-                city=installation.get('city') or '',
-                state=(installation.get('st') or '')[:2],
+                zip_code=install_zip,
+                address=install_addr,
+                number=install_number,
+                complement=install_complement,
+                neighborhood=install_neighborhood,
+                city=install_city,
+                state=install_state,
                 contract_person=body.get('contract_person', 'PF'),
                 property_type=property_type,
                 owner=body.get('owner', 'Outro'),
                 is_owner_self=is_owner_self,
                 seller_email=seller_email,
-                nsu=None,
-                cpf_cnpj=_sanitize_digits(prospect.fiscal_number) if prospect.fiscal_number else None,
+                cpf_cnpj=fiscal_number_norm or (_sanitize_digits(prospect.fiscal_number) if prospect.fiscal_number else None),
                 legal_name=prospect.legal_name,
                 email=prospect.email,
                 electric_bill_amount=Decimal(str(electric_bill_info.get('value') or prospect.last_electric_bill or 0)),
-                consumer_unit=electric_bill_info.get('consumer_unit'),
-                consumer_group=electric_bill_info.get('consumer_group'),
+                consumer_unit=consumer_unit or electric_bill_info.get('consumer_unit'),
+                consumer_group=consumer_group or electric_bill_info.get('consumer_group'),
                 monthly_consumption=monthly_consumption,
                 energy_provider_id=energy_provider_id,
-                energy_provider_name=energy_provider_name,
+                energy_provider_name=ep_name,
                 usr_record=str(request.user),
+                request_payload=body,
             )
+            try:
+                print(f"[REVO_SIM] Proposal created id={proposal.id} ref={proposal.reference_code} zip={proposal.zip_code}")
+            except Exception:
+                pass
 
             for item in la_payload:
                 if item.get('actor') == 'contractor':
@@ -291,7 +353,8 @@ class RevoSimulationView(APIView):
             dtt_exp = None
             if exp_raw:
                 try:
-                    dtt_exp = make_aware(datetime.fromisoformat(exp_raw.replace('Z', '+00:00')))
+                    parsed = datetime.fromisoformat(exp_raw.replace('Z', '+00:00'))
+                    dtt_exp = parsed if parsed.tzinfo is not None else make_aware(parsed)
                 except Exception:
                     dtt_exp = None
 
@@ -301,7 +364,7 @@ class RevoSimulationView(APIView):
                 contract_duration_months=int(data.get('contract_duration') or 0),
                 discount_percentage=Decimal(str(data.get('discount_percentage') or 0)),
                 discount_amount=Decimal(str(data.get('discount_amount') or 0)),
-                annual_economy=Decimal(str(data.get('economy_thirty_years') or 0)),
+                economy_thirty_years=Decimal(str(data.get('economy_thirty_years') or 0)),
                 economy_in_three_years=None,
                 installment_amount=Decimal('0'),
                 total_installments=0,
@@ -315,15 +378,32 @@ class RevoSimulationView(APIView):
                 provider_costs=Decimal(str(data.get('energy_provider_costs') or 0)),
                 revo_costs=Decimal(str(data.get('energy_revo_costs') or 0)),
                 electric_bill_value=Decimal(str(data.get('energy_provider_electric_bill') or 0)),
-                consumer_unit=electric_bill_info.get('consumer_unit'),
-                consumer_group=electric_bill_info.get('consumer_group'),
+                consumer_unit=(electric_bill_info.get('consumer_unit') or consumer_unit),
+                consumer_group=(electric_bill_info.get('consumer_group') or consumer_group),
                 proposal_expiration_at=dtt_exp or make_aware(datetime.utcnow()),
                 status='Ativo',
                 usr_record=str(request.user),
             )
+            try:
+                print(f"[REVO_SIM] Result created id={result.id} proposal_id={proposal.id} contract_type={result.contract_type}")
+            except Exception:
+                pass
+            # guarda payload de resposta bruto no objeto (para refletir no serializer)
+            try:
+                result.response_payload = payload
+                result.save(update_fields=['response_payload'])
+            except Exception:
+                pass
+
+            # Reflete expiração também na Proposal para filtros rápidos
+            if dtt_exp:
+                proposal.dtt_expired = dtt_exp
+                proposal.save(update_fields=['dtt_expired'])
 
             return Response({
                 'revo': payload,
+                'proposal_id': proposal.id,
+                'result_id': result.id,
                 'proposal': ProposalSerializer(proposal).data,
                 'result': ProposalResultSerializer(result).data,
             }, status=status.HTTP_201_CREATED)
@@ -367,7 +447,8 @@ class RevoSimulationView(APIView):
             dtt_exp = None
             if exp_raw:
                 try:
-                    dtt_exp = make_aware(datetime.fromisoformat(exp_raw.replace('Z', '+00:00')))
+                    parsed = datetime.fromisoformat(exp_raw.replace('Z', '+00:00'))
+                    dtt_exp = parsed if parsed.tzinfo is not None else make_aware(parsed)
                 except Exception:
                     dtt_exp = None
 
@@ -391,8 +472,8 @@ class RevoSimulationView(APIView):
                 provider_costs=Decimal(str(data.get('energy_provider_costs') or 0)),
                 revo_costs=Decimal(str(data.get('energy_revo_costs') or 0)),
                 electric_bill_value=Decimal(str(data.get('energy_provider_electric_bill') or 0)),
-                consumer_unit=None,
-                consumer_group=None,
+                consumer_unit=( (data.get('electric_bill') or {}).get('consumer_unit') or body.get('consumer_unit') ),
+                consumer_group=( (data.get('electric_bill') or {}).get('consumer_group') or body.get('consumer_group') ),
                 proposal_expiration_at=dtt_exp or make_aware(datetime.utcnow()),
                 status='Ativo',
                 usr_record=str(request.user),

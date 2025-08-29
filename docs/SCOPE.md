@@ -31,22 +31,23 @@
 ## Entidades/Tabelas citadas (alto nível)
 - `Plan` — cadastro de planos MMN (pontos, bônus por nível, template de contrato)
 - `PlanAdesion` — transação de adesão (agora com FK `network.Product`)
-- `Prospect` — lead/prospect (FK `core.Licensed`)
-- `ProspectProposal` — proposta (FK `Prospect` e FK `network.Product`)
-- `ProspectProposalResult` — resultado da proposta (FK `ProspectProposal`)
-- `Product` — catálogo de produtos (ex.: “Usina”, “Licença/Adesão”)
-- `ScoreReference` — referência de pontuação (origem genérica: `ProspectProposal` ou `PlanAdesion`)
+- `Contractor` — contratante/lead (FK `core.Licensed`)
+- `ContractorProposal` — proposta (FK `Contractor` e FK `network.Product`), armazena endereço de instalação e payload da requisição (JSONB)
+- `ContractorProposalResult` — resultado da proposta (FK `ContractorProposal`), armazena payload da resposta (JSONB)
+- `ContractorProposalLeadActor` — atores adicionais da proposta (`owner`, `legal_responsible`)
+- `Product` — catálogo de produtos
+- `ScoreReference` — referência de pontuação (origem `ContractorProposal` ou `PlanAdesion`)
 
 ## Rotas Ativas
-- Backend: `api/core/`, `api/plans/`, `api/location/`, `api/network/`, `api/prospect/`
+- Backend: `api/core/`, `api/plans/`, `api/location/`, `api/network/`, `api/contractor/`
 
 ## Mudanças recentes (técnico)
-- `prospect.Prospect`: removido relacionamento com `Product`.
-- `prospect.Proposal`: adicionada FK `network.Product` (temporariamente nullable para migração rápida; objetivo: obrigatória).
-- `plans.PlanAdesion`: adicionada FK `network.Product` (temporariamente nullable para migração rápida; objetivo: obrigatória).
-- `network.ScoreReference`: criado com GenericForeignKey para origem (`ProspectProposal` ou `PlanAdesion`) e FKs para `core.Licensed`.
-- App `proposal` (legado) removido do projeto.
-- Observação: tabelas do app `prospect` usam nomes com maiúsculas e exigem aspas em SQL/IDE ("Prospect", "ProspectProposal", "ProspectProposalResult").
+- App `contractor` criado e substitui `prospect`.
+- Persistência REVO:
+  - `ContractorProposal.request_payload` (JSONB) — corpo enviado
+  - `ContractorProposalResult.response_payload` (JSONB) — resposta da REVO
+  - `economy_thirty_years` adicionado em Result
+- Regra de prioridade/aliciamento: CPF + CEP válidos até `proposal_expiration_date` (override via `?override=1`).
 
 ## Pendências técnicas alinhadas ao DER
 - `plans.PlanAdesion.licensed` deve referenciar `core.Licensed` (hoje aponta para `User`).
