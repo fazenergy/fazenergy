@@ -1,8 +1,5 @@
 <template>
-  <main class="p-6 space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-xl font-bold">Revisão de Documentos</h1>
-    </div>
+  <div class="space-y-3">
 
     <!-- Toolbar padrão -->
     <div class="mb-3 bg-white rounded">
@@ -25,38 +22,27 @@
       </div>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="min-w-full border">
-        <thead class="bg-blue-600 text-white">
-          <tr>
-            <th class="px-3 py-2 text-left text-sm font-semibold">ID</th>
-            <th class="px-3 py-2 text-left text-sm font-semibold">Licenciado</th>
-            <th class="px-3 py-2 text-left text-sm font-semibold">Tipo</th>
-            <th class="px-3 py-2 text-left text-sm font-semibold">Observação</th>
-            <th class="px-3 py-2 text-left text-sm font-semibold">Arquivo</th>
-            <th class="px-3 py-2 text-right text-sm font-semibold">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="doc in docs" :key="doc.id" class="border-b last:border-b-0">
-            <td class="px-3 py-2 text-sm">{{ doc.id }}</td>
-            <td class="px-3 py-2 text-sm">{{ doc.licensed_username }}</td>
-            <td class="px-3 py-2 text-sm">{{ labelType(doc.document_type) }}</td>
-            <td class="px-3 py-2 text-sm">{{ doc.observation || '-' }}</td>
-            <td class="px-3 py-2 text-sm">
-              <div v-if="doc.file" class="flex items-center gap-2">
-                <button @click="openPreview(doc.file)" class="text-blue-600 hover:underline">Ver anexo</button>
-                <a :href="doc.file" download class="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs hover:bg-gray-300">Download</a>
-              </div>
-              <span v-else class="text-gray-400">-</span>
-            </td>
-            <td class="px-3 py-2 text-sm text-right space-x-2">
-              <button class="px-3 py-1.5 rounded bg-emerald-600 text-white text-sm" @click="setStatus(doc, 'approved')">Aprovar</button>
-              <button class="px-3 py-1.5 rounded bg-red-600 text-white text-sm" @click="openReject(doc)">Reprovar</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div ref="gridWrapper">
+      <DataTable :columns="columns" :rows="docs" :loading="loading" :min-height="gridMinHeight">
+        <template #title>Revisão de Documentos</template>
+        <template #col:id="{ row }">#{{ row.id }}</template>
+        <template #col:licensed="{ row }">{{ row.licensed_username }}</template>
+        <template #col:type="{ row }">{{ labelType(row.document_type) }}</template>
+        <template #col:observation="{ row }">{{ row.observation || '-' }}</template>
+        <template #col:file="{ row }">
+          <div v-if="row.file" class="flex items-center gap-2">
+            <button @click="openPreview(row.file)" class="text-blue-600 hover:underline">Ver anexo</button>
+            <a :href="row.file" download class="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs hover:bg-gray-300">Download</a>
+          </div>
+          <span v-else class="text-gray-400">-</span>
+        </template>
+        <template #col:actions="{ row }">
+          <div class="text-right space-x-2">
+            <button class="px-3 py-1.5 rounded bg-emerald-600 text-white text-sm" @click="setStatus(row, 'approved')">Aprovar</button>
+            <button class="px-3 py-1.5 rounded bg-red-600 text-white text-sm" @click="openReject(row)">Reprovar</button>
+          </div>
+        </template>
+      </DataTable>
     </div>
 
     <Modal v-model="showReject" :header-blue="true" :no-header-border="true">
@@ -88,14 +74,15 @@
         </div>
       </div>
     </Modal>
-  </main>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Search, Eraser } from 'lucide-vue-next'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
+import DataTable from '@/components/ui/DataTable.vue'
 
 const DOC_TYPES = {
   cpf: 'CPF',
@@ -105,6 +92,7 @@ const DOC_TYPES = {
 }
 
 const docs = ref([])
+const loading = ref(false)
 const showPreview = ref(false)
 const previewUrl = ref('')
 const filters = ref({ licensed: '', status: '' })
@@ -118,12 +106,14 @@ function isPdf(url) { return /\.pdf($|\?)/i.test(url || '') }
 function isImage(url) { return /\.(png|jpe?g|gif|webp|bmp|svg)($|\?)/i.test(url || '') }
 
 async function fetchData() {
+  loading.value = true
   const params = new URLSearchParams()
   if (filters.value.licensed) params.append('licensed_username', filters.value.licensed)
   if (filters.value.status) params.append('status', filters.value.status)
   const url = '/api/core/licensed-documents/pending/' + (params.toString() ? `?${params.toString()}` : '')
   const { data } = await api.get(url)
   docs.value = data || []
+  loading.value = false
 }
 
 function applySearch() { fetchData() }
@@ -138,6 +128,29 @@ function openReject(doc) { rejectDoc.value = doc; rejectReason.value = ''; showR
 async function confirmReject() { if (!rejectDoc.value) return; await api.patch(`/api/core/licensed-documents/${rejectDoc.value.id}/`, { stt_validate: 'rejected', rejection_reason: rejectReason.value || 'Documento inconsistente' }); showReject.value = false; await fetchData() }
 
 onMounted(fetchData)
+
+// DataTable columns + altura dinâmica
+const columns = [
+  { key: 'id', label: 'ID' },
+  { key: 'licensed', label: 'Licenciado' },
+  { key: 'type', label: 'Tipo' },
+  { key: 'observation', label: 'Observação' },
+  { key: 'file', label: 'Arquivo' },
+  { key: 'actions', label: 'Ações', align: 'right' },
+]
+const gridWrapper = ref(null)
+const gridMinHeight = ref('300px')
+function updateGridHeight() {
+  if (!gridWrapper.value) return
+  const rect = gridWrapper.value.getBoundingClientRect()
+  const available = window.innerHeight - rect.top - 16
+  gridMinHeight.value = `${Math.max(available, 300)}px`
+}
+onMounted(() => {
+  updateGridHeight()
+  window.addEventListener('resize', updateGridHeight)
+})
+onUnmounted(() => window.removeEventListener('resize', updateGridHeight))
 </script>
 
 

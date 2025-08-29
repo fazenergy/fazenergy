@@ -79,11 +79,11 @@
     <!-- Modal de Cadastro -->
     <Modal v-model="showNew" :header-blue="true" :no-header-border="true">
       <template #title>Novo Licenciado</template>
-      <FormPreRegister ref="preForm" :in-modal="true" @close="showNew=false" />
+      <FormPreRegister :key="preFormKey" ref="preForm" :in-modal="true" @close="showNew=false" @completed="preFormCompleted=true" />
       <template #footer>
-        <div class="flex justify-end gap-2">
-          <button class="px-4 py-2 rounded border" @click="showNew=false">Fechar</button>
-          <button class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white" @click="submitPreForm">Gravar</button>
+        <div class="flex justify-end gap-3 py-2 mt-0">
+          <button class="px-3 h-9 rounded border bg-gradient-to-b from-gray-50 to-gray-100 text-gray-700 hover:from-gray-200 hover:to-gray-300 mt-2" @click="showNew=false">Fechar</button>
+          <Button v-if="!hideGravar" :variant="'success'" class="px-4 h-9 rounded mt-2" :disabled="!isPreFormValid" @click="submitPreForm">Gravar</Button>
         </div>
       </template>
     </Modal>
@@ -181,13 +181,17 @@ import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
+import Button from '@/components/ui/Button.vue'
 import FormPreRegister from '@/components/FormPreRegister.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
 const showNew = ref(false)
 const preForm = ref(null)
+const preFormKey = ref(0)
 const dashboardRef = ref(null)
+const preFormCompleted = ref(false)
+const hideGravar = computed(() => preFormCompleted.value === true)
 
 // Exemplo: se você salva grupos no `auth.user`
 const isLicensed = computed(() => auth.user?.groups?.includes('Licenciado'))
@@ -327,8 +331,45 @@ function submitPreForm() {
     } else if (formEl) {
       formEl.submit()
     }
+    // Oculta imediatamente o botão até receber o evento completed
+    preFormCompleted.value = true
   } catch {}
 }
+
+// controle de habilitação do botão do modal com base na validação interna do formulário
+const isPreFormValid = computed(() => {
+  const vm = preForm.value
+  const done = !!(vm && vm.completed && (vm.completed.value === true || vm.completed === true))
+  if (done) return false
+  return !!(vm && vm.isFormValid && vm.isFormValid.value !== undefined ? vm.isFormValid.value : vm.isFormValid)
+})
+
+// Sempre resetar o formulário ao abrir o modal
+watch(showNew, (val) => {
+  if (val && preForm.value && preForm.value.resetForm) {
+    preForm.value.resetForm()
+  }
+  if (val) {
+    // força recriar o componente evitando preenchimento automático do navegador
+    preFormKey.value++
+    // tentativa adicional: limpa inputs email/senha após montar
+    const clear = () => {
+      const formEl = document.getElementById('preRegisterForm')
+      if (!formEl) return
+      formEl.querySelectorAll('#pre_email, #pre_password, #pre_confirm_password').forEach((el) => {
+        try {
+          // @ts-ignore
+          el.value = ''
+          el.dispatchEvent(new Event('input', { bubbles: true }))
+        } catch {}
+      })
+    }
+    setTimeout(clear, 0)
+    setTimeout(clear, 100)
+    setTimeout(clear, 300)
+    preFormCompleted.value = false
+  }
+})
 
 // Export/Print Dashboard
 async function exportDashboard() {

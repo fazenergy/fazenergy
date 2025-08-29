@@ -3,7 +3,7 @@
     <input
       v-bind="$attrs"
       :type="show ? 'text' : 'password'"
-      :value="modelValue"
+      :value="modelValue ?? ''"
       @input="$emit('update:modelValue', $event.target.value)"
       class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
       autocomplete="off"

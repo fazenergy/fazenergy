@@ -11,7 +11,7 @@
     v-else
     v-bind="$attrs"
     :class="classes"
-    :value="modelValue"
+    :value="modelValue ?? ''"
     @input="$emit('update:modelValue', $event.target.value)"
   />
 </template>

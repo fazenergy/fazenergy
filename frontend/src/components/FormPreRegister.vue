@@ -34,21 +34,24 @@
           <div class="text-gray-600 mt-1">Enviamos o contrato e o link de pagamento para o e-mail informado. Você pode abrir o pagamento agora para concluir a ativação.</div>
           <div class="mt-4 flex items-center justify-center gap-2">
             <button @click="openPaymentNow" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Pagar Agora</button>
-            <button @click="emitClose" class="px-4 py-2 rounded border">Fechar</button>
           </div>
         </div>
       </div>
-    <form v-else id="preRegisterForm" @submit.prevent="handleSubmit" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+    <form v-else id="preRegisterForm" @submit.prevent="handleSubmit" autocomplete="off" class="grid grid-cols-1 md:grid-cols-6 gap-4">
+
+      <!-- Campos-fantasma para inibir gerenciadores de senha do navegador -->
+      <div style="position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+        <input type="text" name="username" autocomplete="username" tabindex="-1" />
+        <input type="password" name="password" autocomplete="current-password" tabindex="-1" />
+      </div>
 
       <!-- Linha 1 -->
-      <FormField label="Indicado por" class="md:col-span-2" :error="errors.referrer">
+      <FormField label="Indicado por" class="md:col-span-2" :error="errors.referrer" :required="true" :valid="valid.referrer">
         <div class="relative">
-          <div class="flex items-center">
-            <Input v-model="form.referrer" :readonly="lockReferrer" class="bg-gray-100 text-sm" @input="onReferrerInput" @focus="onReferrerFocus" @blur="onReferrerBlur" />
-            <button v-if="!lockReferrer" type="button" class="ml-2 px-2 py-1 text-xs rounded border hover:bg-gray-50" @click="manualLookup">
-              🔍
-            </button>
-          </div>
+          <Input v-model="form.referrer" :readonly="lockReferrer" class="text-sm pr-9" @input="onReferrerInput" @focus="onReferrerFocus" @blur="onReferrerBlur" />
+          <button v-if="!lockReferrer" type="button" class="absolute right-1 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded px-1 py-0.5 flex items-center justify-center shadow-sm hover:bg-gray-100 focus:outline-none" style="height: 28px; width: 28px;" @click="manualLookup" tabindex="-1" aria-label="Buscar indicador">
+            <Search class="h-4 w-4 text-gray-500" />
+          </button>
           <div v-if="showReferrerDropdown && suggestions.length" class="absolute z-10 mt-1 w-full bg-white border rounded shadow-sm max-h-56 overflow-auto">
             <div v-for="s in suggestions" :key="s.username" class="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" @mousedown.prevent="pickReferrer(s.username)">
               <span class="font-medium">{{ s.username }}</span>
@@ -57,7 +60,7 @@
           </div>
         </div>
       </FormField>
-      <FormField label="Nome Completo" class="md:col-span-3" :error="errors.full_name">
+      <FormField label="Nome Completo" class="md:col-span-3" :error="errors.full_name" :required="true" :valid="valid.full_name">
         <Input v-model="form.full_name" placeholder="Seu nome completo" required class="text-sm" />
       </FormField>
       <div class="md:col-span-1 flex items-center pt-6">
@@ -66,36 +69,36 @@
       </div>
 
       <!-- Linha 2 -->
-      <FormField label="Email" class="md:col-span-2" :error="errors.email">
-        <Input v-model="form.email" type="email" required class="text-sm" />
+      <FormField label="Email" class="md:col-span-2" :error="errors.email" :required="true" :valid="valid.email">
+        <Input id="pre_email" v-model="form.email" type="email" required autocomplete="off" autocapitalize="off" spellcheck="false" class="text-sm" />
       </FormField>
-      <FormField label="Usuário" class="md:col-span-2" :error="errors.username">
-        <Input v-model="form.username" required class="text-sm" />
+      <FormField label="Usuário" class="md:col-span-2" :error="errors.username" :required="true" :valid="valid.username">
+        <Input v-model="form.username" required autocomplete="off" autocapitalize="off" spellcheck="false" class="text-sm" />
       </FormField>
-      <FormField label="Senha" class="md:col-span-1" :error="errors.password">
-        <InputPass v-model="form.password" required @focus="showPasswordAlert = true" @blur="showPasswordAlert = false" />
+      <FormField label="Senha" class="md:col-span-1" :error="errors.password" :required="true" :valid="valid.password">
+        <InputPass id="pre_password" name="new_password" v-model="form.password" required :value="''" autocomplete="new-password" @focus="showPasswordAlert = true" @blur="showPasswordAlert = false" />
       </FormField>
-      <FormField label="Confirmar" class="md:col-span-1" :error="errors.confirm_password">
-        <InputPass v-model="form.confirm_password" required />
+      <FormField label="Confirmar" class="md:col-span-1" :error="errors.confirm_password" :required="true" :valid="valid.confirm_password">
+        <InputPass id="pre_confirm_password" name="confirm_password" v-model="form.confirm_password" required :value="''" autocomplete="new-password" />
       </FormField>
 
       <!-- Linha 3 -->
-      <FormField label="Telefone" class="md:col-span-2" :error="errors.phone">
+      <FormField label="Telefone" class="md:col-span-2" :error="errors.phone" :required="true" :valid="valid.phone">
         <Input v-model="form.phone" mask="(##) #####-####" placeholder="(00) 00000-0000" class="text-sm" />
       </FormField>
-      <FormField label="Tipo de Pessoa" class="md:col-span-2" :error="errors.person_type">
+      <FormField label="Tipo de Pessoa" class="md:col-span-2" :error="errors.person_type" :required="true" :valid="valid.person_type">
         <Select v-model="form.person_type" required class="text-sm">
           <option disabled value="">Selecione</option>
           <option value="pf">Pessoa Física</option>
           <option value="pj">Pessoa Jurídica</option>
         </Select>
       </FormField>
-      <FormField label="CPF / CNPJ" class="md:col-span-2" :error="errors.cpf_cnpj">
+      <FormField label="CPF / CNPJ" class="md:col-span-2" :error="errors.cpf_cnpj" :required="true" :valid="valid.cpfCnpj">
         <Input v-model="form.cpfCnpj" v-mask="['###.###.###-##', '##.###.###/####-##']" placeholder="000.000.000-00" class="text-sm" />
       </FormField>
 
       <!-- Linha 4 -->
-      <FormField label="CEP" class="md:col-span-1" :error="errors.cep">
+      <FormField label="CEP" class="md:col-span-1" :error="errors.cep" :required="true" :valid="valid.cep">
         <Input
           v-model="form.cep"
           mask="#####-###"
@@ -104,7 +107,7 @@
           @input="fetchAddress"
         />
       </FormField>
-      <FormField label="Estado" class="md:col-span-1" :error="errors.state">
+      <FormField label="Estado" class="md:col-span-1" :error="errors.state" :required="true" :valid="valid.state">
       <Select v-model="form.state" required class="text-sm">
         <option disabled value="">Selecione</option>
         <option v-for="estado in estados" :key="estado.id" :value="String(estado.id)">
@@ -112,7 +115,7 @@
         </option>
       </Select>
     </FormField>
-    <FormField label="Cidade" class="md:col-span-2" :error="errors.city">
+    <FormField label="Cidade" class="md:col-span-2" :error="errors.city" :required="true" :valid="valid.city">
      <Select v-model="form.city" required class="text-sm">
       <option disabled value="">Selecione a Cidade</option>
       <option v-for="cidade in cidades" :key="cidade.id" :value="String(cidade.id)">
@@ -120,15 +123,15 @@
       </option>
     </Select>
     </FormField>
-      <FormField label="Bairro" class="md:col-span-2" :error="errors.district">
+      <FormField label="Bairro" class="md:col-span-2" :error="errors.district" :required="true" :valid="valid.district">
         <Input v-model="form.district" class="text-sm" />
       </FormField>
 
       <!-- Linha 5 -->
-      <FormField label="Endereço" class="md:col-span-3" :error="errors.address">
+      <FormField label="Endereço" class="md:col-span-3" :error="errors.address" :required="true" :valid="valid.address">
         <Input v-model="form.address" class="text-sm" />
       </FormField>
-      <FormField label="Número" class="md:col-span-1" :error="errors.number">
+      <FormField label="Número" class="md:col-span-1" :error="errors.number" :required="true" :valid="valid.number">
         <Input v-model="form.number" class="text-sm" />
       </FormField>
       <FormField label="Complemento" class="md:col-span-2" :error="errors.complement">
@@ -136,16 +139,18 @@
       </FormField>
 
       <!-- Linha 6 -->
-      <FormField label="Plano" class="md:col-span-4" :error="errors.plan">
+      <FormField label="Plano" class="md:col-span-4" :error="errors.plan" :required="true" :valid="valid.plan">
         <Select v-model="form.plan" class="text-sm" required>
           <option disabled value="">Selecione o Plano</option>
           <option v-for="plan in plans" :key="plan.id" :value="plan.id">{{ plan.name }}</option>
         </Select>
       </FormField>
-      <div class="flex items-center md:col-span-2">
-        <Checkbox v-model="form.accept_lgpd" />
-        <span class="ml-2 text-sm">Li e aceito a <a href="#"> política de privacidade </a> </span>
-      </div>
+      <FormField label="Política de Privacidade" class="md:col-span-2" :required="true" :valid="valid.accept_lgpd" :error="errors.accept_lgpd">
+        <div class="h-10 flex items-center">
+          <Checkbox v-model="form.accept_lgpd" />
+          <span class="ml-2 text-sm">Li e aceito a <a href="#"> política de privacidade </a></span>
+        </div>
+      </FormField>
 
       <!-- Separador -->
       <div v-if="!inModal" class="md:col-span-6">
@@ -154,7 +159,7 @@
 
       <!--  Botão (oculto quando usado no modal) -->
       <div v-if="!inModal" class="md:col-span-6 flex justify-end">
-        <Button type="submit" class="px-6" :disabled="loading || completed">Gravar</Button>
+        <Button type="submit" class="px-6" :disabled="loading || completed || !isFormValid">Gravar</Button>
       </div>
     </form>
     </div>
@@ -162,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/store/auth'
 import api from '@/services/axios'
 
@@ -175,6 +180,7 @@ import Switch from '@/components/ui/Switch.vue'
 import Checkbox from '@/components/ui/Checkbox.vue'
 import FormField from '@/components/ui/FormField.vue'
 import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
+import { Search } from 'lucide-vue-next'
 
 // PROP
 const props = defineProps({
@@ -257,11 +263,35 @@ const errors = ref({
   address: '',
   number: '',
   plan: '',
+  accept_lgpd: '',
 })
 
 const passwordAlerts = ref<string[]>([])
 const showPasswordAlert = ref(false)
 const completed = ref(false)
+
+// Validação reativa por campo (para mostrar check verde)
+const valid = ref({
+  referrer: false,
+  full_name: false,
+  email: false,
+  username: false,
+  password: false,
+  confirm_password: false,
+  phone: false,
+  person_type: false,
+  cpfCnpj: false,
+  cep: false,
+  state: false,
+  city: false,
+  district: false,
+  address: false,
+  number: false,
+  plan: false,
+  accept_lgpd: false,
+})
+
+const isFormValid = computed(() => Object.values(valid.value).every(Boolean) && referrerValid.value && !passwordError.value && !confirmPasswordError.value)
 
 onMounted(async () => {
   resetForm()
@@ -307,6 +337,8 @@ onMounted(async () => {
   // if (form.value.state) {
   //   await onEstadoChange();
   // }
+  // Força limpar campos que o navegador pode preencher automaticamente
+  await hardClearAutofill()
 });
 
 function resetForm() {
@@ -447,12 +479,15 @@ watch(() => form.value.state, async () => {
 
 // PERSIST: Função de envio do formulário
 async function handleSubmit() {
-  loading.value = true
-  if (!referrerValid.value) return;
-  if (passwordError.value || confirmPasswordError.value) return;
-
   // Limpa mensagens anteriores
   Object.keys(errors.value).forEach(k => errors.value[k] = '')
+
+  if (!referrerValid.value) {
+    return
+  }
+  if (passwordError.value || confirmPasswordError.value) {
+    return
+  }
 
   // Validação simples dos obrigatórios
   const required = [
@@ -472,6 +507,7 @@ async function handleSubmit() {
     ['address', 'obrigatório'],
     ['number', 'obrigatório'],
     ['plan', 'obrigatório'],
+    ['accept_lgpd', 'obrigatório'],
   ]
   let hasError = false
   for (const [field, msg] of required) {
@@ -485,7 +521,11 @@ async function handleSubmit() {
       errors.value[key] = msg
     }
   }
-  if (hasError) return
+  if (hasError) {
+    return
+  }
+
+  loading.value = true
 
   // Crie uma cópia do form para não alterar o original
   const payload = { ...form.value };
@@ -530,8 +570,9 @@ if (!payload.plan) {
     emit('completed')
   } catch (error) {
     alert('Erro ao cadastrar. Verifique os dados e tente novamente.');
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 
@@ -580,6 +621,75 @@ watch(() => form.value.confirm_password, (conf) => {
     }
   }
 })
+
+// Watches para atualizar o objeto "valid"
+watch(form, (f) => {
+  valid.value.referrer = !!(f.referrer && referrerValid.value)
+  valid.value.full_name = !!f.full_name
+  valid.value.email = !!f.email && /.+@.+\..+/.test(f.email)
+  valid.value.username = !!f.username
+  valid.value.password = !!f.password && !passwordError.value
+  valid.value.confirm_password = !!f.confirm_password && f.confirm_password === f.password
+  valid.value.phone = !!f.phone
+  valid.value.person_type = !!f.person_type
+  valid.value.cpfCnpj = !!f.cpfCnpj
+  valid.value.cep = !!f.cep
+  valid.value.state = !!f.state
+  valid.value.city = !!f.city
+  valid.value.district = !!f.district
+  valid.value.address = !!f.address
+  valid.value.number = !!f.number
+  valid.value.plan = !!f.plan
+  valid.value.accept_lgpd = !!f.accept_lgpd
+
+  // limpa mensagens "obrigatório" assim que o usuário preenche
+  const map: Record<string, string> = {
+    referrer: 'referrer',
+    full_name: 'full_name',
+    email: 'email',
+    username: 'username',
+    password: 'password',
+    confirm_password: 'confirm_password',
+    phone: 'phone',
+    person_type: 'person_type',
+    cpfCnpj: 'cpf_cnpj',
+    cep: 'cep',
+    state: 'state',
+    city: 'city',
+    district: 'district',
+    address: 'address',
+    number: 'number',
+    plan: 'plan',
+    accept_lgpd: 'accept_lgpd',
+  }
+  Object.entries(map).forEach(([formKey, errKey]) => {
+    // @ts-ignore
+    if (f[formKey] && errors.value[errKey] === 'obrigatório') {
+      // @ts-ignore
+      errors.value[errKey] = ''
+    }
+  })
+}, { deep: true })
+
+// Expor utilitários para o pai controlar o formulário quando abrir o modal
+defineExpose({ isFormValid, resetForm, completed })
+
+// Limpeza dura contra autofill do navegador
+async function hardClearAutofill() {
+  await nextTick()
+  const clear = () => {
+    const formEl = document.getElementById('preRegisterForm') as HTMLElement | null
+    if (!formEl) return
+    const inputs = formEl.querySelectorAll('#pre_email, #pre_password, #pre_confirm_password')
+    inputs.forEach((el: any) => {
+      el.value = ''
+      try { el.dispatchEvent(new Event('input', { bubbles: true })) } catch {}
+    })
+  }
+  setTimeout(clear, 0)
+  setTimeout(clear, 100)
+  setTimeout(clear, 300)
+}
 
 
 </script>

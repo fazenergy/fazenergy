@@ -4,7 +4,7 @@
       <table class="w-full text-sm">
         <thead class="bg-blue-800 text-white select-none">
           <tr>
-            <th v-if="hasActions" class="w-14 px-2 py-2"></th>
+            <th v-if="hasActions" class="px-2 py-2"></th>
             <th v-for="col in columns" :key="col.key"
                 class="px-3 py-2 text-left border-b border-blue-700"
                 :class="headerAlign(col)">

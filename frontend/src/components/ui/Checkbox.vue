@@ -5,6 +5,8 @@
     :class="[
       'h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500'
     ]"
+    :checked="model"
+    @change="onChange"
   />
 </template>
 
@@ -21,4 +23,9 @@ const model = computed({
   get: () => props.modelValue,
   set: val => emit('update:modelValue', val)
 })
+
+function onChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  model.value = !!target.checked
+}
 </script>
