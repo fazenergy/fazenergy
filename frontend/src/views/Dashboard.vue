@@ -177,8 +177,6 @@ import { useRouter } from 'vue-router'
 import { computed, ref, onMounted } from 'vue'
 import Card from '@/components/ui/Card.vue'
 import { UserPlus, DollarSign, TrendingUp, Users, FileText, Plus, Share2, FileDown, Printer, CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-vue-next'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
 import FormPreRegister from '@/components/FormPreRegister.vue'
@@ -335,6 +333,8 @@ async function exportDashboard() {
   try {
     const el = dashboardRef.value
     if (!el) return
+    const { default: html2canvas } = await import('html2canvas')
+    const { jsPDF } = await import('jspdf')
     const canvas = await html2canvas(el, { scale: 2, useCORS: true })
     const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF('p', 'mm', 'a4')
@@ -357,6 +357,7 @@ async function printDashboard() {
   try {
     const el = dashboardRef.value
     if (!el) return
+    const { default: html2canvas } = await import('html2canvas')
     const canvas = await html2canvas(el, { scale: 2, useCORS: true })
     const dataUrl = canvas.toDataURL('image/png')
     const win = window.open('', '_blank')

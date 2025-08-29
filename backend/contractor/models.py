@@ -6,18 +6,10 @@ class Contractor(models.Model):
     lead_name = models.CharField(max_length=255, verbose_name='Nome do Lead')
     email = models.EmailField(verbose_name='E-mail')
     cellphone = models.CharField(max_length=20, verbose_name='Celular')
-    zip_code = models.CharField(max_length=10, verbose_name='CEP')
-    # Dados do contratante
+    # Dados do contratante (sem endereço de instalação; endereço fica na Proposal)
     person_type = models.CharField(max_length=2, choices=[('PF', 'Pessoa Física'), ('PJ', 'Pessoa Jurídica')], default='PF', verbose_name='Tipo de Pessoa')
     fiscal_number = models.CharField(max_length=20, null=True, blank=True, verbose_name='CPF/CNPJ (sem máscara)')
     legal_name = models.CharField(max_length=255, null=True, blank=True, verbose_name='Razão Social (se PJ)')
-    contractor_zip_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='CEP (Contratante)')
-    contractor_address = models.CharField(max_length=255, null=True, blank=True, verbose_name='Endereço (Contratante)')
-    contractor_number = models.CharField(max_length=20, null=True, blank=True, verbose_name='Número (Contratante)')
-    contractor_complement = models.CharField(max_length=255, null=True, blank=True, verbose_name='Complemento (Contratante)')
-    contractor_neighborhood = models.CharField(max_length=255, null=True, blank=True, verbose_name='Bairro (Contratante)')
-    contractor_city = models.CharField(max_length=255, null=True, blank=True, verbose_name='Cidade (Contratante)')
-    contractor_st = models.CharField(max_length=2, null=True, blank=True, verbose_name='UF (Contratante)')
     # Preferências/últimos
     preferred_property_type = models.CharField(max_length=50, null=True, blank=True, verbose_name='Tipo de Imóvel Preferido')
     last_electric_bill = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Última Conta de Luz (R$)')
@@ -54,7 +46,6 @@ class Proposal(models.Model):
     owner = models.CharField(max_length=100, verbose_name='Proprietário')
     is_owner_self = models.BooleanField(default=True, verbose_name='Imóvel Próprio?')
     seller_email = models.EmailField(null=True, blank=True, verbose_name='E-mail do Vendedor')
-    nsu = models.CharField(max_length=100, null=True, blank=True, verbose_name='NSU')
     cpf_cnpj = models.CharField(max_length=20, null=True, blank=True, verbose_name='CPF/CNPJ')
     legal_name = models.CharField(max_length=255, null=True, blank=True, verbose_name='Razão Social')
     email = models.EmailField(null=True, blank=True, verbose_name='E-mail do Cliente')
@@ -64,6 +55,7 @@ class Proposal(models.Model):
     monthly_consumption = models.JSONField(null=True, blank=True, verbose_name='Consumo Mensal (kWh)')
     energy_provider_id = models.IntegerField(null=True, blank=True, verbose_name='Distribuidora (ID)')
     energy_provider_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='Distribuidora (Nome)')
+    request_payload = models.JSONField(null=True, blank=True, verbose_name='Payload de Requisição (REVO)')
     status = models.CharField(max_length=100, default='Aguardando', verbose_name='Status')
     usr_record = models.CharField(max_length=50, verbose_name='Usuário Registro')
     dtt_record = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
@@ -108,6 +100,7 @@ class ProposalResult(models.Model):
     discount_percentage = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Desconto (%)')
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Desconto (R$)')
     annual_economy = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, verbose_name='Economia Anual (R$)')
+    economy_thirty_years = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, verbose_name='Economia em 30 Anos (R$)')
     economy_in_three_years = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, verbose_name='Economia em 3 Anos (R$)')
     installment_amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Parcela (R$)')
     total_installments = models.IntegerField(verbose_name='Total de Parcelas')
@@ -127,6 +120,7 @@ class ProposalResult(models.Model):
     status = models.CharField(max_length=50, default='Ativo', verbose_name='Status')
     usr_record = models.CharField(max_length=50, verbose_name='Usuário Registro')
     dtt_record = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
+    response_payload = models.JSONField(null=True, blank=True, verbose_name='Payload de Resposta (REVO)')
 
     class Meta:
         db_table = 'ContractorProposalResult'
