@@ -64,6 +64,49 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
+### Teste rápido – Integração REVO (contractor)
+
+```bash
+curl --location 'http://127.0.0.1:8000/api/contractor/revo/simulation/' \
+  --header 'Content-Type: application/json' \
+  --data-raw '{
+  "contractor_id": 1,
+  "zip_code": "38400668",
+  "property_type": "Casa",
+  "owner": "Próprio",
+  "energy_provider_id": 8,
+  "consumer_unit": "B200000",
+  "consumer_group": "A4",
+  "fiscal_number": "01539603610",
+  "seller_email": "raphael@fazendadosol.com.br",
+  "monthly_consumption": {"january":500,"february":480,"march":510,"april":490,"may":530,"june":540,"july":560,"august":550,"september":500,"october":510,"november":495,"december":525},
+  "lead_actors": [{
+    "actor": "contractor",
+    "name": "Nome do cliente",
+    "cellphone": "11999998888",
+    "email": "cliente@exemplo.com",
+    "cpf": "01539603610",
+    "zip_code": "38400668",
+    "address": "Rua/Avenida",
+    "number": "100",
+    "neighborhood": "Bairro",
+    "city": "Uberlândia",
+    "st": "MG"
+  }]}'
+```
+
+Resposta esperada (resumo):
+
+```json
+{
+  "revo": { /* ecoa a resposta da REVO */ },
+  "proposal_id": 2,
+  "result_id": 1,
+  "proposal": { /* dados persistidos em ContractorProposal */ },
+  "result": { /* dados persistidos em ContractorProposalResult */ }
+}
+```
+
 ---
 
 ## Serviços

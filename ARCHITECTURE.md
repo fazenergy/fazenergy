@@ -55,6 +55,12 @@ urlpatterns = [
   - Prioridade por CPF+CEP até expiração (`proposal_expiration_date`); bloqueio 409 (override via `?override=1`).
   - Lead Actors: enviar `contractor` (derivado), persistir `owner`/`legal_responsible`.
   - Payloads: `ContractorProposal.request_payload` e `ContractorProposalResult.response_payload` (JSONB).
+  
+  - Retorno do nosso endpoint (`POST /api/contractor/revo/simulation/`):
+    - Estrutura: `{"revo": {…}, "proposal_id": <int>, "result_id": <int>, "proposal": {…}, "result": {…}}`.
+    - Persiste campos do body em `ContractorProposal` (instalação, consumo, distribuidora, etc.) e do retorno da REVO em `ContractorProposalResult` (tipo/duração, custos, kWp, kWh, expiração, etc.).
+    - `response_payload` é salvo no `ContractorProposalResult` e `request_payload` no `ContractorProposal`.
+    - Tratamento de HTTP 200/201 da REVO (ambos considerados sucesso) e cache de token.
 
 ## Frontend (`@frontend/`)
 - Stack: Vue 3, Vite, Tailwind CSS, Pinia, Vue Router, Axios.
