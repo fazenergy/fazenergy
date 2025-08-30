@@ -31,7 +31,7 @@
     <div ref="gridWrapper">
       <DataTable :columns="columns" :rows="filtered" :loading="loading" :min-height="gridMinHeight">
         <template #title>Licenciados</template>
-        <template #col:actions="{ row }">
+        <template #actions="{ row }">
           <div class="flex items-center gap-1">
             <button class="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-200 text-gray-700" @click="openReport(row)" title="Relatório">
               <FileText class="w-4 h-4" />
@@ -45,8 +45,7 @@
           </div>
         </template>
         <template #col:avatar="{ row }">
-          <img v-if="row.user?.image_profile" :src="row.user.image_profile" class="w-8 h-8 rounded-full object-cover" />
-          <div v-else class="w-8 h-8 rounded-full bg-gray-200"></div>
+          <img :src="avatarUrl(row)" class="w-8 h-8 rounded-full object-cover" loading="lazy" />
         </template>
         <template #col:name="{ row }">
           {{ fullNameOrUsername(row) }}
@@ -56,7 +55,9 @@
         <template #col:created="{ row }">{{ formatDate(row.dtt_record) }}</template>
         <template #col:city="{ row }">{{ (row.city_lookup?.name || '-') + (row.city_lookup?.state ? ('-' + (row.city_lookup.state.uf||'')) : '') }}</template>
         <template #col:plan="{ row }">{{ row.plan?.name || '-' }}</template>
-        <template #col:status="{ row }">{{ row.stt_record ? 'Ativo' : 'Inativo' }}</template>
+        <template #col:status="{ row }">
+          <span :class="statusBadgeClass(row.stt_record)">{{ row.stt_record ? 'Ativo' : 'Inativo' }}</span>
+        </template>
       </DataTable>
     </div>
 
@@ -89,7 +90,7 @@
           <div class="md:col-span-1">
             <label class="text-xs text-gray-600">Foto</label>
             <div class="mt-1 w-28 h-28 rounded-md bg-gray-100 border overflow-hidden flex items-center justify-center">
-              <img v-if="current?.user?.image_profile || previewPhoto" :src="previewPhoto || current?.user?.image_profile" class="w-full h-full object-cover" />
+              <img :src="avatarUrl(current) || previewPhoto" v-if="(avatarUrl(current) || previewPhoto)" class="w-full h-full object-cover" />
             </div>
             <div class="mt-2">
               <button type="button" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm" @click="triggerPhoto">Anexar</button>
@@ -319,9 +320,8 @@ watch(() => form.value?.state_id, (nv) => { if (nv) { form.value.city_id = null;
 
 // DataTable columns e altura dinâmica
 const columns = [
-  { key: 'actions', label: 'Ações' },
-  { key: 'avatar', label: 'Avatar' },
-  { key: 'name', label: 'Nome' },
+  { key: 'avatar', label: 'Avatar', width: 'w-[64px]' },
+  { key: 'name', label: 'Nome', width: 'w-auto' },
   { key: 'login', label: 'Login' },
   { key: 'career', label: 'Qualificação' },
   { key: 'created', label: 'Dtt Cadastro' },
@@ -344,6 +344,30 @@ function fullNameOrUsername(row) {
   const ln = row.user?.last_name || ''
   const full = `${fn} ${ln}`.trim()
   return full || (row.user?.username || '-')
+}
+
+function statusBadgeClass(active) {
+  return active
+    ? 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-300'
+    : 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-300'
+}
+
+function avatarUrl(obj) {
+  const user = obj?.user || obj
+  const url =
+    user?.image_profile ||
+    user?.image ||
+    user?.avatar ||
+    obj?.avatar ||
+    obj?.image ||
+    obj?.image_profile ||
+    ''
+  if (!url) return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="%23e5e7eb"/></svg>'
+  // Se a API devolve caminho relativo, prefixa com origem
+  if (/^https?:\/\//i.test(url)) return url
+  const origin = window.location.origin
+  const pref = url.startsWith('/') ? url : `/${url}`
+  return origin + pref
 }
 </script>
 

@@ -81,9 +81,9 @@
       <template #title>Novo Licenciado</template>
       <FormPreRegister :key="preFormKey" ref="preForm" :in-modal="true" @close="showNew=false" @completed="preFormCompleted=true" />
       <template #footer>
-        <div class="flex justify-end gap-3 py-2 mt-0">
-          <button class="px-3 h-9 rounded border bg-gradient-to-b from-gray-50 to-gray-100 text-gray-700 hover:from-gray-200 hover:to-gray-300 mt-2" @click="showNew=false">Fechar</button>
-          <Button v-if="!hideGravar" :variant="'success'" class="px-4 h-9 rounded mt-2" :disabled="!isPreFormValid" @click="submitPreForm">Gravar</Button>
+        <div class="flex items-center justify-end gap-2 py-2">
+          <button class="px-4 py-2 rounded border" @click="showNew=false">Fechar</button>
+          <button form="preRegisterForm" type="submit" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Gravar</button>
         </div>
       </template>
     </Modal>
@@ -174,7 +174,7 @@
 <script setup>
 import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import Card from '@/components/ui/Card.vue'
 import { UserPlus, DollarSign, TrendingUp, Users, FileText, Plus, Share2, FileDown, Printer, CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-vue-next'
 import api from '@/services/axios'
@@ -189,7 +189,6 @@ const preForm = ref(null)
 const preFormKey = ref(0)
 const dashboardRef = ref(null)
 const preFormCompleted = ref(false)
-const hideGravar = computed(() => preFormCompleted.value === true)
 
 // Exemplo: se você salva grupos no `auth.user`
 const isLicensed = computed(() => auth.user?.groups?.includes('Licenciado'))
@@ -334,13 +333,7 @@ function submitPreForm() {
   } catch {}
 }
 
-// controle de habilitação do botão do modal com base na validação interna do formulário
-const isPreFormValid = computed(() => {
-  const vm = preForm.value
-  const done = !!(vm && vm.completed && (vm.completed.value === true || vm.completed === true))
-  if (done) return false
-  return !!(vm && vm.isFormValid && vm.isFormValid.value !== undefined ? vm.isFormValid.value : vm.isFormValid)
-})
+// mantém comportamento simples: usamos submit do form
 
 // Sempre resetar o formulário ao abrir o modal
 watch(showNew, (val) => {

@@ -4,21 +4,21 @@
       <table class="w-full text-sm">
         <thead class="bg-blue-800 text-white select-none">
           <tr>
-            <th v-if="hasActions" class="px-2 py-2"></th>
+            <th v-if="hasActions" class="px-1 py-2 text-left w-0">{{ actionsLabel }}</th>
             <th v-for="col in columns" :key="col.key"
                 class="px-3 py-2 text-left border-b border-blue-700"
-                :class="headerAlign(col)">
+                :class="[headerAlign(col), col.width]">
               {{ col.label }}
             </th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="row in pagedRows" :key="getRowKey(row)" class="even:bg-gray-50 hover:bg-gray-100">
-            <td v-if="hasActions" class="px-2 py-1 border-b">
+            <td v-if="hasActions" class="px-1 py-1 border-b whitespace-nowrap w-0">
               <slot name="actions" :row="row" />
             </td>
             <td v-for="col in columns" :key="col.key" class="px-3 py-2 border-b"
-                :class="cellAlign(col)">
+                :class="[cellAlign(col), col.width]">
               <slot :name="`col:${col.key}`" :row="row">{{ row[col.key] ?? '-' }}</slot>
             </td>
           </tr>
@@ -67,6 +67,7 @@ const rows = toRef(props, 'rows')
 
 const slots = useSlots()
 const hasActions = computed(() => props.showActions && !!slots.actions)
+const actionsLabel = computed(() => 'Ações')
 
 const pageState = defineModel('page', { type: Number, default: 1 })
 const page = pageState
