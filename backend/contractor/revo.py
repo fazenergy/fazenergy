@@ -2,7 +2,7 @@ import os
 import re
 import time
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 
 from django.conf import settings
@@ -11,6 +11,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+from django.db import transaction
 
 from .models import Contractor, Proposal, ProposalResult, ProposalLeadActor
 from .serializers import ProposalSerializer, ProposalResultSerializer
@@ -151,6 +152,11 @@ class RevoCEPView(APIView):
             data = resp.json()
             return Response(data, status=resp.status_code)
         except Exception as exc:
+            try:
+                if 'proposal' in locals() and proposal and getattr(proposal, 'pk', None):
+                    proposal.delete()
+            except Exception:
+                pass
             return Response({'detail': str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
 
 
@@ -169,14 +175,58 @@ class RevoSimulationView(APIView):
             if err:
                 return Response({'detail': err}, status=status.HTTP_400_BAD_REQUEST)
 
-        contractor_id = request.data.get('contractor_id') or request.data.get('prospect_id')
-        if not contractor_id:
-            return Response({'detail': 'contractor_id é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        # Lead actors recebidos no payload (para possíveis fallbacks na criação do contractor)
+        incoming_lead_actors_root = request.data.get('lead_actors') or []
+        la_contractor_incoming_root = next((a for a in incoming_lead_actors_root if (a.get('actor') or '').strip() == 'contractor'), {})
 
-        try:
-            prospect = Contractor.objects.get(pk=contractor_id)
-        except Contractor.DoesNotExist:
-            return Response({'detail': 'Contractor não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        contractor_id = request.data.get('contractor_id') or request.data.get('prospect_id')
+        contractor_block = request.data.get('contractor') or {}
+        prospect = None
+        if contractor_id:
+            try:
+                prospect = Contractor.objects.get(pk=contractor_id)
+            except Contractor.DoesNotExist:
+                return Response({'detail': 'Contractor não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Criar/Reutilizar contractor a partir do payload
+            try:
+                from core.models import Licensed as CoreLicensed  # import local para evitar ciclos
+            except Exception:
+                CoreLicensed = None
+            lic_id = contractor_block.get('licensed_id') or request.data.get('licensed_id')
+            fiscal_from_contractor = contractor_block.get('fiscal_number')
+            fiscal_from_root = request.data.get('fiscal_number')
+            if not lic_id:
+                return Response({'detail': 'licensed_id é obrigatório quando contractor_id não é enviado'}, status=status.HTTP_400_BAD_REQUEST)
+            if not (fiscal_from_contractor or fiscal_from_root):
+                return Response({'detail': 'fiscal_number é obrigatório para criar/associar contractor'}, status=status.HTTP_400_BAD_REQUEST)
+            if CoreLicensed is not None:
+                try:
+                    CoreLicensed.objects.only('id').get(pk=lic_id)
+                except Exception:
+                    return Response({'detail': 'Licensed não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            fiscal_number_norm_tmp = _sanitize_digits(fiscal_from_contractor or fiscal_from_root)
+            prospect = Contractor.objects.filter(fiscal_number=fiscal_number_norm_tmp, licensed_id=lic_id).first()
+            if not prospect:
+                derived_name = contractor_block.get('lead_name') or contractor_block.get('name') or la_contractor_incoming_root.get('name') or 'Novo Lead'
+                derived_email = contractor_block.get('email') or la_contractor_incoming_root.get('email') or ''
+                derived_cellphone = _sanitize_digits(
+                    contractor_block.get('cellphone') or la_contractor_incoming_root.get('cellphone') or ''
+                )
+                if not derived_email:
+                    return Response({'detail': 'email é obrigatório para criar contractor (lead_actors.contractor.email)'}, status=status.HTTP_400_BAD_REQUEST)
+                if not derived_cellphone:
+                    return Response({'detail': 'cellphone é obrigatório para criar contractor'}, status=status.HTTP_400_BAD_REQUEST)
+                prospect = Contractor.objects.create(
+                    licensed_id=lic_id,
+                    lead_name=derived_name,
+                    email=derived_email,
+                    cellphone=derived_cellphone,
+                    person_type=(contractor_block.get('person_type') or 'PF')[:2],
+                    fiscal_number=fiscal_number_norm_tmp,
+                    legal_name=contractor_block.get('legal_name'),
+                    usr_record=str(request.user),
+                )
 
         seller_email = request.data.get('seller_email')
         energy_provider_id = request.data.get('energy_provider_id') or None
@@ -197,11 +247,16 @@ class RevoSimulationView(APIView):
         if not fiscal_number_norm:
             return Response({'detail': 'fiscal_number é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # email do contractor é obrigatório (prioriza lead_actors.contractor.email; se não, prospect.email)
+        _derived_email_payload = la_contractor_incoming_root.get('email') or prospect.email or (contractor_block.get('email') if 'contractor_block' in locals() else None)
+        if not _derived_email_payload:
+            return Response({'detail': 'email é obrigatório (lead_actors.contractor.email)'}, status=status.HTTP_400_BAD_REQUEST)
+
         fallback = {
             'legal_name': prospect.legal_name,
             'name': prospect.lead_name,
-            'cellphone': _sanitize_digits(prospect.cellphone),
-            'email': prospect.email,
+            'cellphone': _sanitize_digits(prospect.cellphone) or _sanitize_digits(la_contractor_incoming_root.get('cellphone') or ''),
+            'email': _derived_email_payload,
             # A REVO não separa endereço do contratante; endereço de instalação fica na Proposal
             'zip_code': None,
             'address': None,
@@ -213,15 +268,17 @@ class RevoSimulationView(APIView):
         }
 
         body = {
-            'property_type': property_type or prospect.preferred_property_type,
+            'property_type': property_type,
             'zip_code': zip_code_norm,
-            'electric_bill': float((prospect.last_electric_bill) or 0),
-            'cellphone': _sanitize_digits(prospect.cellphone),
+            'electric_bill': float((request.data.get('electric_bill')) or 0),
+            'cellphone': _sanitize_digits(prospect.cellphone) or _sanitize_digits(la_contractor_incoming_root.get('cellphone') or ''),
             'contract_person': prospect.person_type or 'PF',
             'owner': request.data.get('owner') or 'Outro',
             'seller_email': seller_email,
             'energy_provider_id': energy_provider_id,
         }
+        if not body['cellphone']:
+            return Response({'detail': 'cellphone é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         body['fiscal_number'] = fiscal_number_norm
         if consumer_unit:
             body['consumer_unit'] = consumer_unit
@@ -240,18 +297,45 @@ class RevoSimulationView(APIView):
         if monthly_consumption:
             body['monthly_consumption'] = monthly_consumption
 
-        # Validação de aliciamento: CPF + CEP com proposta ativa
+        # Validação de aliciamento: CPF + CEP com proposta ativa e janela 30 dias pós-expiração
         cpf_norm = _sanitize_digits(prospect.fiscal_number or '')
         override = request.query_params.get('override') == '1'
         if cpf_norm and zip_code_norm and not override:
-            conflict = Proposal.objects.filter(
+            active_conflict = Proposal.objects.filter(
                 cpf_cnpj=cpf_norm,
                 zip_code=zip_code_norm,
                 status__in=['Aguardando', 'Simulated', 'Ativo'],
                 dtt_expired__gt=timezone.now(),
-            ).exclude(contractor=prospect).exists()
-            if conflict:
-                return Response({'detail': 'CPF já possui proposta ativa para este CEP até expirar.'}, status=409)
+            ).exclude(contractor=prospect).select_related('contractor').first()
+            if active_conflict:
+                return Response({'detail': 'CPF já possui proposta ativa para este CEP até expirar.', 'licensed_id': active_conflict.contractor.licensed_id}, status=409)
+            cutoff = timezone.now() - timedelta(days=30)
+            recent_conflict = Proposal.objects.filter(
+                cpf_cnpj=cpf_norm,
+                zip_code=zip_code_norm,
+                dtt_expired__isnull=False,
+                dtt_expired__gte=cutoff,
+            ).exclude(contractor__licensed_id=prospect.licensed_id).select_related('contractor').first()
+            if recent_conflict:
+                return Response({'detail': 'Proposta recente (≤30 dias) para este CPF+CEP associada a outro licenciado.', 'licensed_id': recent_conflict.contractor.licensed_id}, status=409)
+
+        # Idempotência: já existe proposta ativa igual para o mesmo licensed+CPF+CEP
+        existing = Proposal.objects.filter(
+            contractor__licensed_id=prospect.licensed_id,
+            cpf_cnpj=cpf_norm,
+            zip_code=zip_code_norm,
+            status__in=['Aguardando', 'Simulated', 'Ativo'],
+        ).order_by('-id').first()
+        if existing:
+            latest_result = ProposalResult.objects.filter(proposal=existing).order_by('-id').first()
+            return Response({
+                'detail': 'Já existe proposta ativa para este CPF+CEP neste licenciado.',
+                'licensed_id': existing.contractor.licensed_id,
+                'proposal_id': existing.id,
+                'result_id': latest_result.id if latest_result else None,
+                'proposal': ProposalSerializer(existing).data,
+                'result': ProposalResultSerializer(latest_result).data if latest_result else None,
+            }, status=409)
 
         url = f'{REVO_BASE_URL}/v3/simulation'
         try:
@@ -313,12 +397,14 @@ class RevoSimulationView(APIView):
                 cpf_cnpj=fiscal_number_norm or (_sanitize_digits(prospect.fiscal_number) if prospect.fiscal_number else None),
                 legal_name=prospect.legal_name,
                 email=prospect.email,
-                electric_bill_amount=Decimal(str(electric_bill_info.get('value') or prospect.last_electric_bill or 0)),
+                electric_bill_amount=Decimal(str(electric_bill_info.get('value') or request.data.get('electric_bill') or 0)),
                 consumer_unit=consumer_unit or electric_bill_info.get('consumer_unit'),
                 consumer_group=consumer_group or electric_bill_info.get('consumer_group'),
                 monthly_consumption=monthly_consumption,
                 energy_provider_id=energy_provider_id,
                 energy_provider_name=ep_name,
+                visit_1=request.data.get('visit_1'),
+                visit_2=request.data.get('visit_2'),
                 usr_record=str(request.user),
                 request_payload=body,
             )
@@ -365,13 +451,12 @@ class RevoSimulationView(APIView):
                 discount_percentage=Decimal(str(data.get('discount_percentage') or 0)),
                 discount_amount=Decimal(str(data.get('discount_amount') or 0)),
                 economy_thirty_years=Decimal(str(data.get('economy_thirty_years') or 0)),
-                economy_in_three_years=None,
                 installment_amount=Decimal('0'),
                 total_installments=0,
                 total_amount=Decimal('0'),
                 kwp=Decimal(str(data.get('kwp') or 0)),
                 kwh_annual=Decimal(str(data.get('kWh_annual') or 0)),
-                required_area=int(data.get('required_area') or 0) if data.get('required_area') is not None else None,
+                required_area=Decimal(str(data.get('required_area'))) if data.get('required_area') is not None else None,
                 qty_modules=int(data.get('quantity_modules') or 0) if data.get('quantity_modules') is not None else None,
                 energy_provider_id=int(data.get('energy_provider_id') or 0) if data.get('energy_provider_id') is not None else None,
                 energy_provider_name=data.get('energy_provider_name'),
@@ -458,14 +543,13 @@ class RevoSimulationView(APIView):
                 contract_duration_months=int(data.get('contract_duration') or 0),
                 discount_percentage=Decimal(str(data.get('discount_percentage') or 0)),
                 discount_amount=Decimal(str(data.get('discount_amount') or 0)),
-                annual_economy=Decimal(str(data.get('economy_thirty_years') or 0)),
-                economy_in_three_years=None,
+                economy_thirty_years=Decimal(str(data.get('economy_thirty_years') or 0)),
                 installment_amount=Decimal('0'),
                 total_installments=0,
                 total_amount=Decimal('0'),
                 kwp=Decimal(str(data.get('kwp') or 0)),
                 kwh_annual=Decimal(str(data.get('kWh_annual') or 0)),
-                required_area=int(data.get('required_area') or 0) if data.get('required_area') is not None else None,
+                required_area=Decimal(str(data.get('required_area'))) if data.get('required_area') is not None else None,
                 qty_modules=int(data.get('quantity_modules') or 0) if data.get('quantity_modules') is not None else None,
                 energy_provider_id=int(data.get('energy_provider_id') or 0) if data.get('energy_provider_id') is not None else None,
                 energy_provider_name=data.get('energy_provider_name'),
