@@ -217,16 +217,31 @@ class RevoSimulationView(APIView):
                     return Response({'detail': 'email é obrigatório para criar contractor (lead_actors.contractor.email)'}, status=status.HTTP_400_BAD_REQUEST)
                 if not derived_cellphone:
                     return Response({'detail': 'cellphone é obrigatório para criar contractor'}, status=status.HTTP_400_BAD_REQUEST)
+                # Deriva person_type: se vier contract_person PJ ou contractor tiver legal_name, assumimos PJ
+                desired_person_type = (request.data.get('contract_person') or '').strip().upper()
+                if desired_person_type == 'PJ' or (contractor_block.get('legal_name') or la_contractor_incoming_root.get('legal_name')):
+                    person_type_final = 'PJ'
+                else:
+                    person_type_final = (contractor_block.get('person_type') or 'PF')[:2]
                 prospect = Contractor.objects.create(
                     licensed_id=lic_id,
                     lead_name=derived_name,
                     email=derived_email,
                     cellphone=derived_cellphone,
-                    person_type=(contractor_block.get('person_type') or 'PF')[:2],
+                    person_type=person_type_final,
                     fiscal_number=fiscal_number_norm_tmp,
-                    legal_name=contractor_block.get('legal_name'),
+                    legal_name=contractor_block.get('legal_name') or la_contractor_incoming_root.get('legal_name'),
                     usr_record=str(request.user),
                 )
+            else:
+                # Atualiza legal_name se vier no payload e estiver vazio no registro
+                incoming_legal_name = contractor_block.get('legal_name') or la_contractor_incoming_root.get('legal_name')
+                if incoming_legal_name and not prospect.legal_name:
+                    prospect.legal_name = incoming_legal_name
+                    try:
+                        prospect.save(update_fields=['legal_name'])
+                    except Exception:
+                        pass
 
         seller_email = request.data.get('seller_email')
         energy_provider_id = request.data.get('energy_provider_id') or None
@@ -267,16 +282,27 @@ class RevoSimulationView(APIView):
             'st': None,
         }
 
+        # Define contract_person priorizando payload; caso contrário, usa person_type do contractor
+        _contract_person_payload = (request.data.get('contract_person') or '').strip().upper()
+        contract_person_final = _contract_person_payload if _contract_person_payload in ('PF', 'PJ') else (prospect.person_type or 'PF')
+
         body = {
             'property_type': property_type,
             'zip_code': zip_code_norm,
             'electric_bill': float((request.data.get('electric_bill')) or 0),
             'cellphone': _sanitize_digits(prospect.cellphone) or _sanitize_digits(la_contractor_incoming_root.get('cellphone') or ''),
-            'contract_person': prospect.person_type or 'PF',
+            'contract_person': contract_person_final,
             'owner': request.data.get('owner') or 'Outro',
             'seller_email': seller_email,
             'energy_provider_id': energy_provider_id,
         }
+        # Atualiza o person_type do contractor existente para refletir o payload (PF/PJ)
+        try:
+            if prospect and contract_person_final and prospect.person_type != contract_person_final:
+                prospect.person_type = contract_person_final
+                prospect.save(update_fields=['person_type'])
+        except Exception:
+            pass
         if not body['cellphone']:
             return Response({'detail': 'cellphone é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
         body['fiscal_number'] = fiscal_number_norm

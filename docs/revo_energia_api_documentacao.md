@@ -373,11 +373,12 @@ PUT https://sandbox.revoenergia.com.br/api/partners/v3/simulation
 ## Integração no Backend (FazEnergy)
 
 - Endpoint interno: `POST /api/contractor/revo/simulation/`
-- Comportamento:
-  - Encaminha a simulação para a REVO (aceita HTTP 200/201)
-  - Persiste o payload enviado em `ContractorProposal.request_payload`
-  - Persiste o retorno da REVO em `ContractorProposalResult` e `response_payload`
-  - Preenche endereço de instalação com dados da REVO, com fallback do body (`lead_actors.contractor`)
-  - Bloqueio por CPF+CEP até expiração (override com `?override=1`)
+- Regras e fluxo:
+  - Aceita criar/usar Contractor via payload (`licensed_id` + `lead_actors.contractor`), sem `contractor_id`.
+  - `contract_person` respeita o valor do payload (PF/PJ). Para PJ, exige `legal_responsible`.
+  - Persiste `visit_1/visit_2` na `ContractorProposal`.
+  - Persistência de payloads: `request_payload` (Proposal) e `response_payload` (Result).
+  - Anti-aliciamento: bloqueio de CPF+CEP ativo (409) e janela de 30 dias com outro licenciado (409). Idempotência: 409 para mesmo licenciado+CPF+CEP.
 - Retorno:
-  - `{ "revo": {…}, "proposal_id": <int>, "result_id": <int>, "proposal": {…}, "result": {…} }`
+  - `201` com `{ "revo": {…}, "proposal_id": <int>, "result_id": <int>, "proposal": {…}, "result": {…} }`
+  - `409` em conflitos, com `licensed_id`, `proposal` e `result` existentes.
