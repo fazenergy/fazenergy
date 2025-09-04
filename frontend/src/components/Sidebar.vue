@@ -149,6 +149,25 @@
           </ul>
         </div>
 
+        <!-- Usina (Licenciado, Operador ou Superadmin) -->
+        <div v-if="isLicensed || isOperador || isSuperUser">
+          <button v-if="!mini" type="button" @click="usinaOpen = !usinaOpen" class="w-full uppercase text-[10px] text-blue-200 mb-2 tracking-wider flex items-center justify-between">
+            <span>Usina</span>
+            <span class="inline-flex items-center">
+              <ChevronRight v-if="!usinaOpen" class="w-3.5 h-3.5 opacity-80" />
+              <ChevronDown v-else class="w-3.5 h-3.5 opacity-80" />
+            </span>
+          </button>
+          <ul class="space-y-1" v-show="mini || usinaOpen">
+            <li>
+              <router-link to="/proposal" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Proposta">
+                <FileText class="w-4 h-4" />
+                <span v-if="!mini">Proposta</span>
+              </router-link>
+            </li>
+          </ul>
+        </div>
+
         <!-- Geral (Licenciado, Operador ou Superadmin) -->
       <div v-if="isLicensed || isOperador || isSuperUser">
           <button v-if="!mini" type="button" @click="geralOpen = !geralOpen" class="w-full uppercase text-[10px] text-blue-200 mb-2 tracking-wider flex items-center justify-between">
@@ -215,4 +234,5 @@ const usersOpen = ref(true)
 const redeOpen = ref(true)
 const licOpen = ref(true)
 const geralOpen = ref(true)
+const usinaOpen = ref(true)
 </script>

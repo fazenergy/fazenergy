@@ -39,7 +39,10 @@ class ScoreReference(models.Model):
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
-        limit_choices_to=models.Q(app_label='prospect', model='proposal') | models.Q(app_label='plans', model='planadesion'),
+        limit_choices_to=(
+            models.Q(app_label='contractor', model='proposal') |
+            models.Q(app_label='plans', model='planadesion')
+        ),
         verbose_name='Tipo de Origem',
     )
     object_id = models.BigIntegerField('ID do Objeto de Origem')

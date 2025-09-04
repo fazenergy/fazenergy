@@ -20,6 +20,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     # Campos extras do Licensed
     phone = serializers.SerializerMethodField()
     cpf_cnpj = serializers.SerializerMethodField()
+    licensed_id = serializers.SerializerMethodField()
     city = serializers.SerializerMethodField()
     address = serializers.SerializerMethodField()
     number = serializers.SerializerMethodField()
@@ -33,7 +34,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'image_profile',
             'is_superuser', 'groups',
-            'phone', 'cpf_cnpj', 'city', 'address', 'number', 'complement', 'plan',
+            'phone', 'cpf_cnpj', 'licensed_id', 'city', 'address', 'number', 'complement', 'plan',
             'password'
         ]
 
@@ -50,6 +51,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_cpf_cnpj(self, obj):
         lic = self._get_licensed(obj)
         return getattr(lic, 'cpf_cnpj', None) if lic else None
+
+    def get_licensed_id(self, obj):
+        lic = self._get_licensed(obj)
+        return getattr(lic, 'id', None) if lic else None
 
     def get_city(self, obj):
         lic = self._get_licensed(obj)
