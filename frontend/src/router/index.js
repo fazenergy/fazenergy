@@ -24,6 +24,9 @@ import NotFound from '../views/NotFound.vue'
 import Documents from '../views/Documents.vue'
 import DocumentsReview from '../views/DocumentsReview.vue'
 import LicensedList from '../views/Licensed/List.vue'
+import AdminUsers from '../views/Admin/Users.vue'
+import AdminGroups from '../views/Admin/Groups.vue'
+import AdminPermissions from '../views/Admin/Permissions.vue'
 
 const routes = [
   {
@@ -46,13 +49,17 @@ const routes = [
   { path: '/network/tree', component: NetworkTree, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
   // Relatórios
   { path: '/reports', redirect: '/reports/points' },
-  { path: '/reports/points', component: PointsReport, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  { path: '/reports/points', component: PointsReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/reports/bonus', component: BonusReport, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/payment', component: PaymentIframe, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
   { path: '/documents', component: Documents, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
   { path: '/documents/review', component: DocumentsReview, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/licensed', component: LicensedList, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
+  // Admin (somente superadmin)
+  { path: '/admin/users', component: AdminUsers, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  { path: '/admin/groups', component: AdminGroups, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  { path: '/admin/permissions', component: AdminPermissions, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/settings', component: Settings, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/accessDenied', name: 'accessDenied', component: AccessDenied },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound, meta: { public: true } }

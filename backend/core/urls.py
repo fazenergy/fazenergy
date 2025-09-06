@@ -10,11 +10,17 @@ from .views import (
     DashboardView,
     LicensedDocumentViewSet,
     LicensedLookupView,
+    AdminUserViewSet,
+    AdminGroupViewSet,
+    AdminPermissionViewSet,
 )
 
 router = DefaultRouter()
 router.register(r'licensed', LicensedViewSet)
 router.register(r'licensed-documents', LicensedDocumentViewSet, basename='licensed-documents')
+router.register(r'admin/users', AdminUserViewSet, basename='admin-users')
+router.register(r'admin/groups', AdminGroupViewSet, basename='admin-groups')
+router.register(r'admin/permissions', AdminPermissionViewSet, basename='admin-permissions')
 
 urlpatterns = [
     path('', include(router.urls)),

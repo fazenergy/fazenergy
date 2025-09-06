@@ -2,7 +2,7 @@ import re
 from rest_framework import serializers
 from .models.User import User
 from .models.Licensed import Licensed
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from django.db import transaction, IntegrityError
 from core.models.LicensedDocument import LicensedDocument
 from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES
@@ -245,3 +245,57 @@ class DownlineListSerializer(LicensedListSerializer):
     def get_upline(self, obj):
         uname = (self.context.get('uplines') or {}).get(obj.id, None)
         return {'username': uname} if uname else None
+
+
+# --------------------------- Admin Serializers ---------------------------
+class AdminPermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = ['id', 'name', 'codename', 'content_type']
+
+
+class AdminGroupSerializer(serializers.ModelSerializer):
+    permissions = serializers.PrimaryKeyRelatedField(queryset=Permission.objects.all(), many=True, required=False)
+
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'permissions']
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    groups = serializers.PrimaryKeyRelatedField(queryset=Group.objects.all(), many=True, required=False)
+    user_permissions = serializers.PrimaryKeyRelatedField(queryset=Permission.objects.all(), many=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'is_staff', 'is_superuser', 'image_profile', 'groups', 'user_permissions', 'last_login', 'date_joined', 'password']
+        extra_kwargs = { 'password': { 'write_only': True, 'required': False } }
+
+    def create(self, validated_data):
+        groups = validated_data.pop('groups', [])
+        perms = validated_data.pop('user_permissions', [])
+        password = validated_data.pop('password', None)
+        user = User.objects.create(**validated_data)
+        if password:
+            user.set_password(password)
+        user.save()
+        if groups:
+            user.groups.set(groups)
+        if perms:
+            user.user_permissions.set(perms)
+        return user
+
+    def update(self, instance, validated_data):
+        groups = validated_data.pop('groups', None)
+        perms = validated_data.pop('user_permissions', None)
+        password = validated_data.pop('password', None)
+        for k, v in validated_data.items():
+            setattr(instance, k, v)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        if groups is not None:
+            instance.groups.set(groups)
+        if perms is not None:
+            instance.user_permissions.set(perms)
+        return instance

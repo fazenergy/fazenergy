@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@svg-maps/brazil": "^1.0.1",
     "@vueform/plugin-mask": "^1.0.7",
     "axios": "^1.10.0",
     "html2canvas": "^1.4.1",

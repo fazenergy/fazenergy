@@ -33,6 +33,7 @@
   <div ref="gridWrapper">
     <DataTable :columns="columns" :rows="filteredRows" :loading="loading" :min-height="gridMinHeight" :show-actions="false">
       <template #title>Relatório de Pontos</template>
+      <template #col:created_at="{ row }">{{ formatDate(row.created_at) }}</template>
     </DataTable>
   </div>
 </template>
@@ -49,10 +50,17 @@ const loading = ref(false)
 const search = ref('')
 const statusFilter = ref('')
 
+function pad(n){ return String(n).padStart(2,'0') }
 function formatDate(iso) {
   if (!iso) return '-'
   const d = new Date(iso)
-  return d.toLocaleString('pt-BR')
+  const day = pad(d.getDate())
+  const mon = pad(d.getMonth()+1)
+  const yr = d.getFullYear()
+  const hh = pad(d.getHours())
+  const mm = pad(d.getMinutes())
+  const ss = pad(d.getSeconds())
+  return `${day}/${mon}/${yr} ${hh}:${mm}:${ss}`
 }
 
 function statusLabel(v) {
@@ -64,15 +72,15 @@ async function fetchData() {
   loading.value = true
   try {
     const res = await api.get('/api/network/score-references/')
-    rows.value = (res.data || []).map(r => ({
-      id: r.id,
+    rows.value = (res.data || []).map((r, i) => ({
+      point_id: i + 1,
+      created_at: r.created_at,
+      sale_number: r.object_id,
+      receiver_username: r.receiver_username,
+      origin: r.origin_label || `${r.content_type_app || ''}.${r.content_type_model || ''}`,
       points_amount: r.points_amount,
       status: r.status,
-      receiver: r.receiver_licensed,
-      triggering: r.triggering_licensed,
-      origin: `${r.content_type?.app_label}.${r.content_type?.model}`,
-      object_id: r.object_id,
-      created_at: r.created_at,
+      _uuid: r.id,
     }))
   } finally {
     loading.value = false
@@ -82,26 +90,21 @@ async function fetchData() {
 onMounted(fetchData)
 
 const columns = [
-  { key: 'id', label: 'ID' },
-  { key: 'points_amount', label: 'Pontos', align: 'right' },
-  { key: 'status', label: 'Status' },
-  { key: 'receiver', label: 'Recebedor' },
-  { key: 'triggering', label: 'Causador' },
+  { key: 'point_id', label: 'Id do Ponto' },
   { key: 'origin', label: 'Origem' },
-  { key: 'object_id', label: 'Obj ID' },
-  { key: 'created_at', label: 'Criação' },
+  { key: 'sale_number', label: 'Nº Venda' },
+  { key: 'receiver_username', label: 'Bonificado' },
+  { key: 'points_amount', label: 'Qtd de Pontos', align: 'right' },
+  { key: 'created_at', label: 'Lançamento' },
+  { key: 'status', label: 'Status' },
 ]
 
 const filteredRows = computed(() => {
   const q = (search.value || '').toLowerCase()
   return rows.value.filter(r => {
-    const matchSearch = !q || [
-      String(r.id),
-      String(r.receiver),
-      String(r.triggering),
-      String(r.origin),
-      String(r.object_id),
-    ].some(v => (v || '').toString().toLowerCase().includes(q))
+    const matchSearch = !q || [r.point_id, r.sale_number, r.receiver_username, r.origin]
+      .map(v => String(v || ''))
+      .some(v => v.toLowerCase().includes(q))
     const matchStatus = !statusFilter.value || r.status === statusFilter.value
     return matchSearch && matchStatus
   })
@@ -112,17 +115,16 @@ function applySearch() {}
 
 // Exportações
 function exportExcel() {
-  const header = ['ID', 'Pontos', 'Status', 'Recebedor', 'Causador', 'Origem', 'Obj ID', 'Criação']
+  const header = ['Id do Ponto','Origem','Nº Venda','Bonificado','Qtd de Pontos','Lançamento','Status']
   const rowsHtml = filteredRows.value.map(r => (
     `<tr>`+
-    `<td>${r.id}</td>`+
-    `<td style="text-align:right;">${r.points_amount}</td>`+
-    `<td>${statusLabel(r.status)}</td>`+
-    `<td>${r.receiver}</td>`+
-    `<td>${r.triggering}</td>`+
+    `<td>${r.point_id}</td>`+
     `<td>${r.origin}</td>`+
-    `<td>${r.object_id}</td>`+
+    `<td>${r.sale_number}</td>`+
+    `<td>${r.receiver_username}</td>`+
+    `<td style="text-align:right;">${r.points_amount}</td>`+
     `<td>${formatDate(r.created_at)}</td>`+
+    `<td>${statusLabel(r.status)}</td>`+
     `</tr>`
   )).join('')
 
@@ -142,14 +144,13 @@ function printGrid() {
   const win = window.open('', '_blank')
   const rowsHtml = filteredRows.value.map(r => (
     `<tr>`+
-    `<td>${r.id}</td>`+
-    `<td style="text-align:right;">${r.points_amount}</td>`+
-    `<td>${statusLabel(r.status)}</td>`+
-    `<td>${r.receiver}</td>`+
-    `<td>${r.triggering}</td>`+
+    `<td>${r.point_id}</td>`+
     `<td>${r.origin}</td>`+
-    `<td>${r.object_id}</td>`+
+    `<td>${r.sale_number}</td>`+
+    `<td>${r.receiver_username}</td>`+
+    `<td style=\"text-align:right;\">${r.points_amount}</td>`+
     `<td>${formatDate(r.created_at)}</td>`+
+    `<td>${statusLabel(r.status)}</td>`+
     `</tr>`
   )).join('')
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8" />
@@ -159,12 +160,11 @@ function printGrid() {
       table{width:100%;border-collapse:collapse}
       th,td{border:1px solid #ddd;padding:6px;font-size:12px}
       th{background:#1e40af;color:#fff}
-      td:nth-child(2){text-align:right}
     </style>
   </head><body onload="window.print()">
     <h3>Relatório de Pontos</h3>
     <table>
-      <thead><tr><th>ID</th><th>Pontos</th><th>Status</th><th>Recebedor</th><th>Causador</th><th>Origem</th><th>Obj ID</th><th>Criação</th></tr></thead>
+      <thead><tr><th>Id do Ponto</th><th>Origem</th><th>Nº Venda</th><th>Bonificado</th><th>Qtd de Pontos</th><th>Lançamento</th><th>Status</th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
   </body></html>`

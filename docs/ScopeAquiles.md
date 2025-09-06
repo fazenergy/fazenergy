@@ -63,6 +63,52 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
 - Colunas: a primeira deve ser Ações; a segunda o ID da linha; a última também apresenta o ID quando aplicável.
 - Páginas alvo para aplicar o padrão: Rede (Diretos, Rede Completa, Árvore da Rede, Adesões) e todas as demais listagens do sistema.
 
+### Gerenciar Usuários (Plano de Execução)
+- Objetivo: criar visão administrativa completa (somente Superadmin) para manutenção de Usuários, Perfis/Permissões e Grupos, seguindo o padrão de barra de botões, filtros e grid.
+
+- Escopo das Telas
+  1) Usuários
+     - Grid com colunas: ID, Username, Nome, E-mail, Ativo, Última atualização.
+     - Filtros: Texto (username/nome/e-mail), Grupo, Status (ativo/inativo).
+     - Ações: Adicionar, Exportar, Imprimir.
+     - Modal de Cadastro/Edição com abas:
+       - Dados (username, e-mail, senha/confirmar, nome, ativo, imagem de perfil).
+       - Grupos & Permissões (seleção de grupos existentes; permissões granulares opcionais).
+       - Layout do topo à esquerda com anexo de foto, igual ao cadastro de Licenciado.
+  2) Perfis (Permissões)
+     - Grid de permissões do Django (app_label, codename, name).
+     - Filtros por app e busca.
+     - Ações: Exportar, Imprimir.
+  3) Grupos
+     - Grid com colunas: ID, Nome do Grupo, Qtde de Permissões.
+     - Filtros por texto.
+     - Ações: Adicionar, Exportar, Imprimir.
+     - Modal para criar/editar e vincular permissões ao grupo.
+
+- Backend (APIs)
+  - Endpoints autenticados (somente superadmin):
+    - `api/admin/users/` (CRUD de usuários)
+    - `api/admin/groups/` (CRUD de grupos + vincular permissões)
+    - `api/admin/permissions/` (listagem)
+  - Regras:
+    - Senhas só são obrigatórias na criação; na edição, alterar apenas se os campos forem enviados.
+    - Proteção para não remover o próprio superadmin único do sistema.
+
+- Frontend (Vue)
+  - Rotas protegidas (meta: requiresAuth + role superadmin):
+    - `/admin/users`, `/admin/groups`, `/admin/permissions`.
+  - Telas com DataTable padrão, filtros e barra de botões (Adicionar/Exportar/Imprimir).
+  - Modais com o mesmo padrão visual e validações de campos obrigatórios.
+
+- Entregáveis (ordem)
+  1) Implementar APIs (users, groups, permissions) no backend.
+  2) Telas de Grupos e Permissões (mais simples) no frontend.
+  3) Tela de Usuários com modal em abas (Dados; Grupos & Permissões).
+  4) Integração de exportar/imprimir e validações finais.
+
+### Dependências e Notas
+- Sem novas dependências obrigatórias neste escopo (reuso das bibliotecas atuais: DRF, DataTable, etc.).
+
 Atualizações aplicadas (2025-08)
 - Header (global)
   - Breadcrumbs dinâmicos ativados para: Rede (Diretos, Rede Completa, Adesões, Árvore da Rede), Licenciados, Documentos e Relatórios (Pontos, Bônus).
@@ -70,6 +116,13 @@ Atualizações aplicadas (2025-08)
 - Dashboard
   - Barra superior com botões: Convidar Licenciado (verde), Exportar (roxo), Imprimir (azul). Para superadmin, manter também Cadastrar Licenciado (verde).
   - Exportar/Imprimir exportam as métricas atuais (cards) em XLS e impressão simples.
+  - Bloco “Distribuição Geográfica”: mapa do Brasil clicável por UF com abertura de modal de totais filtrados por estado. Ao clicar, os dados são pré-carregados e o modal só é aberto após o retorno da API; um overlay de loading cobre o card do mapa durante a requisição.
+  - Conteúdo do modal com margem superior de 10px e espaçamento de 20px antes do rodapé.
+  - Regras de contagem no Dashboard:
+    - Total de Licenciados: considera somente licenciados que possuam ao menos uma adesão confirmada (paga).
+    - Resumo Operacional — Pré‑Cadastros (30 dias): licenciados criados nos últimos 30 dias que possuem apenas adesões não pagas (pending/canceled) e nenhuma adesão confirmada.
+    - Resumo Operacional — Ativações: licenciados com adesão confirmada com data de pagamento há 20 dias ou mais (liberação após 20 dias).
+
 - Rede
   - Diretos, Rede Completa, Adesões: toolbar padronizada (botões + filtros + busca expansível) sem borda, com footer do grid colado ao rodapé do container.
   - Árvore da Rede: endpoint ajustado para retornar URL ABSOLUTA da imagem de perfil (garante render no front).
@@ -94,6 +147,18 @@ Atualizações aplicadas (2025-08)
 - UX:
   - Botões: “Anexar” no grid; modal com “Fechar/Gravar”.
   - Erros de anexos exibidos dentro do modal (sem alert).
+
+### Dashboard — Mapa por Estado (Novo)
+- Componente: `frontend/src/components/BrazilStatesMap.vue`.
+  - Baseado no pacote `@svg-maps/brazil` para os caminhos SVG dos estados.
+  - ViewBox dinâmico remove bordas vazias; altura configurável via prop `height` (0 = auto; padrão 560).
+  - Labels das UFs centralizadas e em maiúsculas, com ajuste para estados pequenos.
+  - Hover com destaque (borda azul e brilho leve).
+  - Colorização opcional por gradiente baseada em `salesByUf` (apenas estados com venda recebem cor).
+- Integração na tela `frontend/src/views/Dashboard.vue`:
+  - O bloco “Configurações” foi substituído pela seção “Distribuição Geográfica”.
+  - Ao clicar em um estado, o front chama `GET /api/core/dashboard/?state=UF`; só abre o modal após o carregamento.
+  - `LoadingOverlay` cobre o card do mapa enquanto os dados do estado são carregados.
 
 ## Backend (Django + DRF)
 ### Plans
@@ -143,13 +208,20 @@ Atualizações aplicadas (2025-08)
   - Removidos campos `previous_career` e `dtt_previous_career`.
   - Ajustes no método de qualificação para carreira atual.
   - Admin `LicensedAdmin` atualizado (sem carreira anterior, `fieldsets` e validações ajustados).
+- Endpoint do Dashboard com filtro por UF (novo)
+  - `GET /api/core/dashboard/?state=UF` (admin/operador)
+    - Filtra por `Licensed.city_lookup__state__uf` quando aplicável.
+    - Adesões pagas: filtra por UF do licenciado da adesão (join até `Licensed`).
+    - Bônus: filtra por UF via `Transaction.virtual_account.licensed.city_lookup.state.uf`.
+    - Pontos: filtra por UF via `ScoreReference.receiver_licensed.city_lookup.state.uf`.
+    - Resumo (pré-cadastros, ativações, solicitações de saque) respeita a UF.
 
 ## Rotas/Endpoints (resumo)
 - Plans: `api/plans/plan-careers/`
 - Notifications: `api/notifications/config/`, `api/notifications/templates/`, `api/notifications/templates/{id}/test/`
 - Finance: `api/finance/gateway-config/`
 - Contracts: `api/contracts/config/`, `api/contracts/templates/`
-- Core: `api/core/licensed-documents/`, `api/core/licensed-documents/pending/` (pendentes para operador)
+- Core: `api/core/licensed-documents/`, `api/core/licensed-documents/pending/`, `api/core/dashboard/?state=UF`
 
 ## Migrações
 - Contracts: deleção de `ContractLog`.
@@ -161,6 +233,14 @@ Atualizações aplicadas (2025-08)
   - `python manage.py migrate`
 - Garantir token JWT válido para acessar rotas autenticadas no front.
 - Opcional: integrar CKEditor 5/Monaco oficiais se necessário (dependências de build).
+
+### Dependências adicionadas (Frontend)
+- `@svg-maps/brazil` — shapes SVG dos estados do Brasil para o componente de mapa.
+  - Instalação (no diretório `frontend/`):
+    - `npm install @svg-maps/brazil`
+  - Reinicie o Vite após instalar.
+
+Observação: avaliamos `vue3-svg-map`, mas a solução final não depende dela; usamos apenas `@svg-maps/brazil` e renderização SVG nativa.
 
 ---
 Atualizado por: Assistente (Aquiles) — data da última consolidação conforme execução das tarefas recentes.

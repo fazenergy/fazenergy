@@ -56,10 +56,11 @@ const search = ref('')
 const statusFilter = ref('')
 const operationFilter = ref('')
 
+function pad(n){ return String(n).padStart(2,'0') }
 function formatDate(iso) {
   if (!iso) return '-'
   const d = new Date(iso)
-  return d.toLocaleString('pt-BR')
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 function statusLabel(v) {
@@ -75,17 +76,15 @@ function operationLabel(v) {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await api.get('/api/finance/transactions/')
-    rows.value = (res.data || []).map(r => ({
-      id: r.id,
-      licensed: r.virtual_account?.licensed,
-      product: r.product,
-      description: r.description,
-      status: r.status,
-      operation: r.operation,
+    const res = await api.get('/api/network/bonus-references/')
+    rows.value = (res.data || []).map((r, i) => ({
+      id: i + 1,
+      origin: `${r.product_name || 'Produto'}: Id ${r.product}`,
+      licensed: r.receiver_username || '',
       amount: r.amount,
-      reference_date: r.reference_date,
-      dtt_record: r.dtt_record,
+      date: r.created_at,
+      status: r.status,
+      _raw: r,
     }))
   } finally {
     loading.value = false
@@ -95,15 +94,12 @@ async function fetchData() {
 onMounted(fetchData)
 
 const columns = [
-  { key: 'id', label: 'ID' },
+  { key: 'id', label: 'Id' },
+  { key: 'origin', label: 'Produto/Origem' },
   { key: 'licensed', label: 'Licenciado' },
-  { key: 'product', label: 'Produto' },
-  { key: 'description', label: 'Descrição' },
-  { key: 'status', label: 'Status' },
-  { key: 'operation', label: 'Operação' },
   { key: 'amount', label: 'Valor', align: 'right' },
-  { key: 'reference_date', label: 'Ref.' },
-  { key: 'dtt_record', label: 'Criação' },
+  { key: 'date', label: 'Data' },
+  { key: 'status', label: 'Status' },
 ]
 
 const filteredRows = computed(() => {
@@ -126,18 +122,15 @@ function applySearch() {}
 
 // Exportações
 function exportExcel() {
-  const header = ['ID', 'Licenciado', 'Produto', 'Descrição', 'Status', 'Operação', 'Valor', 'Ref.', 'Criação']
+  const header = ['Id','Produto/Origem','Licenciado','Valor','Data','Status']
   const rowsHtml = filteredRows.value.map(r => (
     `<tr>`+
     `<td>${r.id}</td>`+
+    `<td>${r.origin}</td>`+
     `<td>${r.licensed}</td>`+
-    `<td>${r.product}</td>`+
-    `<td>${r.description || ''}</td>`+
-    `<td>${statusLabel(r.status)}</td>`+
-    `<td>${operationLabel(r.operation)}</td>`+
     `<td style=\"text-align:right;\">${r.amount}</td>`+
-    `<td>${r.reference_date}</td>`+
-    `<td>${formatDate(r.dtt_record)}</td>`+
+    `<td>${formatDate(r.date)}</td>`+
+    `<td>${statusLabel(r.status)}</td>`+
     `</tr>`
   )).join('')
 
@@ -158,14 +151,11 @@ function printGrid() {
   const rowsHtml = filteredRows.value.map(r => (
     `<tr>`+
     `<td>${r.id}</td>`+
+    `<td>${r.origin}</td>`+
     `<td>${r.licensed}</td>`+
-    `<td>${r.product}</td>`+
-    `<td>${r.description || ''}</td>`+
-    `<td>${statusLabel(r.status)}</td>`+
-    `<td>${operationLabel(r.operation)}</td>`+
     `<td style=\"text-align:right;\">${r.amount}</td>`+
-    `<td>${r.reference_date}</td>`+
-    `<td>${formatDate(r.dtt_record)}</td>`+
+    `<td>${formatDate(r.date)}</td>`+
+    `<td>${statusLabel(r.status)}</td>`+
     `</tr>`
   )).join('')
   const html = `<!DOCTYPE html><html><head><meta charset=\"utf-8\" />
@@ -180,7 +170,7 @@ function printGrid() {
   </head><body onload=\"window.print()\">
     <h3>Relatório de Bônus</h3>
     <table>
-      <thead><tr><th>ID</th><th>Licenciado</th><th>Produto</th><th>Descrição</th><th>Status</th><th>Operação</th><th>Valor</th><th>Ref.</th><th>Criação</th></tr></thead>
+      <thead><tr><th>Id</th><th>Produto/Origem</th><th>Licenciado</th><th>Valor</th><th>Data</th><th>Status</th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
   </body></html>`
