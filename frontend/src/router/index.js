@@ -27,6 +27,7 @@ import LicensedList from '../views/Licensed/List.vue'
 import AdminUsers from '../views/Admin/Users.vue'
 import AdminGroups from '../views/Admin/Groups.vue'
 import AdminPermissions from '../views/Admin/Permissions.vue'
+import ProposalList from '../views/Proposal/List.vue'
 
 const routes = [
   {
@@ -47,6 +48,7 @@ const routes = [
   { path: '/network/downlines', component: Downlines, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
   { path: '/network/adesions', component: Adesions, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/network/tree', component: NetworkTree, meta: { requiresAuth: true, roles: ['superadmin', 'licenciado'] } },
+  { path: '/proposal', component: ProposalList, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
   // Relatórios
   { path: '/reports', redirect: '/reports/points' },
   { path: '/reports/points', component: PointsReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },

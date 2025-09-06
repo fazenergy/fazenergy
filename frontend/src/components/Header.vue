@@ -82,6 +82,9 @@ const breadcrumbs = computed(() => {
     else if (path.startsWith('/network/downlines')) list.push({ label: 'Rede Completa' })
     else if (path.startsWith('/network/adesions')) list.push({ label: 'Adesões' })
     else if (path.startsWith('/network/tree')) list.push({ label: 'Árvore da Rede' })
+  } else if (path.startsWith('/proposal')) {
+    list.push({ label: 'Usina', to: '/proposal' })
+    list.push({ label: 'Proposta' })
   } else if (path.startsWith('/licensed')) {
     list.push({ label: 'Licenciados' })
   } else if (path.startsWith('/documents')) {
