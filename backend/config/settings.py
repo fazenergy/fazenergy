@@ -18,7 +18,15 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent  # <-- Define antes de tudo
+# Carrega .env do diretório do backend
 load_dotenv(dotenv_path=BASE_DIR / ".env")
+# Carrega também o .env da raiz do monorepo, se existir
+try:
+    ROOT_ENV = BASE_DIR.parent / ".env"
+    if ROOT_ENV.exists():
+        load_dotenv(dotenv_path=ROOT_ENV, override=True)
+except Exception:
+    pass
 
 
 # Quick-start development settings - unsuitable for production

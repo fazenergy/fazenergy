@@ -243,7 +243,14 @@ class RevoSimulationView(APIView):
                     except Exception:
                         pass
 
-        seller_email = request.data.get('seller_email')
+        # Vendedor interno fixo via env (se não vier no payload)
+        # Define seller_email a partir do payload, settings ou .env
+        from django.conf import settings as dj_settings
+        seller_email = (
+            request.data.get('seller_email')
+            or getattr(dj_settings, 'REVO_SELLER_EMAIL', None)
+            or os.getenv('REVO_SELLER_EMAIL')
+        )
         energy_provider_id = request.data.get('energy_provider_id') or None
         energy_provider_name = request.data.get('energy_provider_name') or None
         property_type = request.data.get('property_type') or None
@@ -365,6 +372,10 @@ class RevoSimulationView(APIView):
 
         url = f'{REVO_BASE_URL}/v3/simulation'
         try:
+            print(f"[REVO_SIM] seller_email={seller_email}")
+        except Exception:
+            pass
+        try:
             resp = requests.post(url, json=body, headers=_bearer_headers(token), timeout=40)
             if resp.status_code in (401, 403) and not request.headers.get('X-Revo-Token'):
                 token, err = _get_revo_token_cached(force=True)
@@ -473,7 +484,7 @@ class RevoSimulationView(APIView):
             result = ProposalResult.objects.create(
                 proposal=proposal,
                 contract_type=data.get('contract_type') or '',
-                contract_duration_months=int(data.get('contract_duration') or 0),
+                contract_duration=int(data.get('contract_duration') or 0),
                 discount_percentage=Decimal(str(data.get('discount_percentage') or 0)),
                 discount_amount=Decimal(str(data.get('discount_amount') or 0)),
                 economy_thirty_years=Decimal(str(data.get('economy_thirty_years') or 0)),
@@ -535,6 +546,15 @@ class RevoSimulationView(APIView):
             return Response({'detail': 'reference é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
 
         body = dict(request.data)
+        # Garante seller_email via .env se não vier no payload
+        try:
+            if not body.get('seller_email'):
+                from django.conf import settings as dj_settings
+                env_seller = getattr(dj_settings, 'REVO_SELLER_EMAIL', None) or os.getenv('REVO_SELLER_EMAIL')
+                if env_seller:
+                    body['seller_email'] = env_seller
+        except Exception:
+            pass
         url = f'{REVO_BASE_URL}/v3/simulation'
         try:
             resp = requests.put(url, json=body, headers=_bearer_headers(token), timeout=40)
@@ -566,7 +586,7 @@ class RevoSimulationView(APIView):
             result = ProposalResult.objects.create(
                 proposal=proposal,
                 contract_type=data.get('contract_type') or '',
-                contract_duration_months=int(data.get('contract_duration') or 0),
+                contract_duration=int(data.get('contract_duration') or 0),
                 discount_percentage=Decimal(str(data.get('discount_percentage') or 0)),
                 discount_amount=Decimal(str(data.get('discount_amount') or 0)),
                 economy_thirty_years=Decimal(str(data.get('economy_thirty_years') or 0)),

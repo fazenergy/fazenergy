@@ -93,7 +93,7 @@ class ProposalLeadActor(models.Model):
 class ProposalResult(models.Model):
     proposal = models.ForeignKey('contractor.Proposal', on_delete=models.CASCADE, related_name='results', verbose_name='Proposta')
     contract_type = models.CharField(max_length=100, verbose_name='Tipo de Contrato')
-    contract_duration_months = models.IntegerField(null=True, blank=True, verbose_name='Duração (meses)')
+    contract_duration = models.IntegerField(null=True, blank=True, verbose_name='Duração (meses)')
     discount_percentage = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Desconto (%)')
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Desconto (R$)')
     economy_thirty_years = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, verbose_name='Economia em 30 Anos (R$)')
