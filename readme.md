@@ -95,6 +95,11 @@ curl --location 'http://127.0.0.1:8000/api/contractor/revo/simulation/' \
   }]}'
 ```
 
+Notas do endpoint:
+- Para criar contractor e proposta em uma etapa, envie `licensed_id`, `lead_actors` (com `actor: contractor`) e os campos da proposta.
+- `contract_person`: "PF" ou "PJ". Para PJ, enviar também `legal_responsible` em `lead_actors`.
+- Conflitos: retorna 409 quando já existir proposta ativa para o mesmo licenciado+CPF+CEP, ou quando houver proposta expirada ≤ 30 dias com outro licenciado.
+
 Resposta esperada (resumo):
 
 ```json

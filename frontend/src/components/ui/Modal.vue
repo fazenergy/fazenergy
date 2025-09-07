@@ -9,7 +9,7 @@
           </h3>
           <button :class="['', headerBlue ? 'text-white/90 hover:text-white' : 'text-gray-500 hover:text-gray-700']" @click="$emit('update:modelValue', false)">✕</button>
         </div>
-        <div class="px-4 pb-1 pt-0 max-h-[80vh] overflow-auto">
+        <div class="px-4 pb-5 pt-0 max-h-[80vh] overflow-auto">
           <slot />
         </div>
         <div v-if="$slots.footer" class="px-4 py-2 border-t bg-gray-50">

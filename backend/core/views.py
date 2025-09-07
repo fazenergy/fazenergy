@@ -11,6 +11,9 @@ from .serializers import (
     LicensedListSerializer,
     DownlineListSerializer,
     LicensedDocumentSerializer,
+    AdminUserSerializer,
+    AdminGroupSerializer,
+    AdminPermissionSerializer,
 )
 from network.models import UnilevelNetwork
 from django.http import JsonResponse
@@ -23,6 +26,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.exceptions import ValidationError
 from core.models.LicensedDocument import LicensedDocument
 from django.db import models
+from django.contrib.auth.models import Group, Permission
 
 User = get_user_model()
 
@@ -47,6 +51,32 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+# --------------------------- Admin Views ---------------------------
+class IsSuperAdmin(drf_permissions.BasePermission):
+    def has_permission(self, request, view):
+        u = request.user
+        return bool(getattr(u, 'is_superuser', False))
+
+
+class AdminUserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = AdminUserSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+
+class AdminGroupViewSet(viewsets.ModelViewSet):
+    queryset = Group.objects.all().order_by('name')
+    serializer_class = AdminGroupSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+
+
+class AdminPermissionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Permission.objects.select_related('content_type').order_by('content_type__app_label', 'codename')
+    serializer_class = AdminPermissionSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
 
 
 class LicensedDocumentViewSet(viewsets.ModelViewSet):
@@ -324,6 +354,7 @@ class DashboardView(APIView):
     def get(self, request):
         user = request.user
         from core.models.Licensed import Licensed
+        from django.db.models import Q
 
         is_admin = (
             getattr(user, 'is_superuser', False)
@@ -335,6 +366,13 @@ class DashboardView(APIView):
         now = timezone.now()
         last_30_days = now - timezone.timedelta(days=30)
 
+        # Filtro por UF (estado) opcional: ?state=SP
+        state_param = (request.query_params.get('state') or '').strip().upper()
+        by_state_filter = {}
+        if state_param:
+            # Licensed -> city_lookup -> state.uf
+            by_state_filter = {'city_lookup__state__uf__iexact': state_param}
+
         data = {
             'role': 'admin' if is_admin else ('operator' if is_operator else 'licensed'),
             'cards': [],
@@ -342,18 +380,40 @@ class DashboardView(APIView):
         }
 
         if is_admin or is_operator:
-            total_licensed = Licensed.objects.count()
-            active_licensed = Licensed.objects.filter(stt_record=True).count()
-            roots_count = Licensed.objects.filter(is_root=True).count()
-            new_licensed_30d = Licensed.objects.filter(dtt_record__gte=last_30_days).count()
+            # Base por UF (quando aplicável)
+            base_licensed_qs = Licensed.objects.filter(**by_state_filter)
+
+            # Total de licenciados: apenas quem possui adesões pagas (confirmadas)
+            from plans.models.PlanAdesion import PlanAdesion
+            paid_adesions_qs = PlanAdesion.objects.filter(ind_payment_status='confirmed')
+            if state_param:
+                paid_adesions_qs = paid_adesions_qs.filter(
+                    licensed__licensed__city_lookup__state__uf__iexact=state_param
+                )
+            total_licensed = (
+                base_licensed_qs
+                .filter(user__in=paid_adesions_qs.values('licensed_id'))
+                .distinct()
+                .count()
+            )
+
+            # Estatísticas auxiliares
+            roots_count = base_licensed_qs.filter(is_root=True).count()
+            new_licensed_30d = base_licensed_qs.filter(dtt_record__gte=last_30_days).count()
+            # A contagem de arestas da rede não é trivialmente particionável por estado; mantemos total
             network_edges = UnilevelNetwork.objects.count()
 
             # Métricas Operador
-            from plans.models.PlanAdesion import PlanAdesion
             from finance.models.Transaction import Transaction
             from network.models.ScoreReference import ScoreReference
 
+            # Adesões confirmadas, filtradas por UF do licenciado quando informado
             adesoes_pagas = PlanAdesion.objects.filter(ind_payment_status='confirmed')
+            if state_param:
+                # PlanAdesion.licensed aponta para User. Precisamos relacionar com Licensed pelo user
+                adesoes_pagas = adesoes_pagas.filter(
+                    licensed__licensed__city_lookup__state__uf__iexact=state_param
+                )
             # Valor total pago = soma dos preços dos planos confirmados
             try:
                 from plans.models.Plan import Plan
@@ -379,20 +439,23 @@ class DashboardView(APIView):
             # Bônus gerados: somatório liberado (transactions credit released)
             bonus_total = 0
             try:
-                bonus_total = (
-                    Transaction.objects
-                    .filter(status='released', operation='credit')
-                    .aggregate(total=models.Sum('amount'))['total'] or 0
-                )
+                bonus_qs = Transaction.objects.filter(status='released', operation='credit')
+                if state_param:
+                    # Transação -> VirtualAccount -> Licensed -> City.state.uf
+                    bonus_qs = bonus_qs.filter(
+                        virtual_account__licensed__city_lookup__state__uf__iexact=state_param
+                    )
+                bonus_total = bonus_qs.aggregate(total=models.Sum('amount'))['total'] or 0
             except Exception:
                 bonus_total = 0
 
             # Pontos gerados: ScoreReference válidos
-            pontos_total = (
-                ScoreReference.objects
-                .filter(status='valid')
-                .aggregate(total=models.Sum('points_amount'))['total'] or 0
-            )
+            pontos_qs = ScoreReference.objects.filter(status='valid')
+            if state_param:
+                pontos_qs = pontos_qs.filter(
+                    receiver_licensed__city_lookup__state__uf__iexact=state_param
+                )
+            pontos_total = pontos_qs.aggregate(total=models.Sum('points_amount'))['total'] or 0
 
             data['cards'] = [
                 {'key': 'total_licensed', 'title': 'Total de Licenciados', 'value': total_licensed, 'icon': 'Users', 'delta': f"+{new_licensed_30d} nos últimos 30 dias", 'route': '/network/downlines'},
@@ -409,11 +472,45 @@ class DashboardView(APIView):
             ]
 
             # Relatório sintético
-            pre_cadastros = Licensed.objects.filter(dtt_record__gte=last_30_days).count()
-            ativacoes = Licensed.objects.filter(stt_record=True).count()
+            # Pré-Cadastros (30d): somente licenciados com adesões NÃO pagas (pending/canceled) nos últimos 30 dias
+            unpaid_adesions = PlanAdesion.objects.exclude(ind_payment_status='confirmed')
+            if state_param:
+                unpaid_adesions = unpaid_adesions.filter(
+                    licensed__licensed__city_lookup__state__uf__iexact=state_param
+                )
+            pre_cadastros = (
+                base_licensed_qs
+                .filter(dtt_record__gte=last_30_days)
+                .filter(user__in=unpaid_adesions.values('licensed_id'))
+                # garante que não possui nenhuma confirmada
+                .exclude(user__in=paid_adesions_qs.values('licensed_id'))
+                .distinct()
+                .count()
+            )
+
+            # Ativações: usuários com adesão paga há mais de 20 dias
+            paid_20_days_ago = PlanAdesion.objects.filter(
+                ind_payment_status='confirmed',
+                dtt_payment__lte=now - timezone.timedelta(days=20)
+            )
+            if state_param:
+                paid_20_days_ago = paid_20_days_ago.filter(
+                    licensed__licensed__city_lookup__state__uf__iexact=state_param
+                )
+            ativacoes = (
+                base_licensed_qs
+                .filter(user__in=paid_20_days_ago.values('licensed_id'))
+                .distinct()
+                .count()
+            )
             try:
                 from finance.models.Transaction import Transaction
-                solicitacoes_saque = Transaction.objects.filter(product__icontains='Saque', operation='debit').count()
+                saque_qs = Transaction.objects.filter(product__icontains='Saque', operation='debit')
+                if state_param:
+                    saque_qs = saque_qs.filter(
+                        virtual_account__licensed__city_lookup__state__uf__iexact=state_param
+                    )
+                solicitacoes_saque = saque_qs.count()
             except Exception:
                 solicitacoes_saque = 0
             data['summary'] = {

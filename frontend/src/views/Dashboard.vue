@@ -90,7 +90,7 @@
 </div>
 <div class="flex">
     <div class="flex-1">
-    <main ref="dashboardRef" class="pt-6 pr-6 pb-6 pl-0 space-y-6">
+    <main ref="dashboardRef" class="pt-6 pr-6 pb-6 pl-0 space-y-6 relative">
     
     <!-- Alert/Banner de documentos pendentes -->
     <div v-if="isLicensed && documents?.pending" class="p-4 bg-amber-50 border border-amber-200 rounded flex items-center justify-between">
@@ -143,8 +143,7 @@
           </div>
 
           <div class="border p-4 rounded">
-            <h2 class="font-bold mb-2">Configurações</h2>
-            <p>Configurações aqui...</p>
+            <BrazilStatesMap @select="openUfTotals" />
           </div>
         </div>
 
@@ -165,6 +164,37 @@
             </div>
           </div>
         </div>
+
+        <!-- Modal UF -->
+        <Modal v-model="showUf" :header-blue="true" :no-header-border="true">
+          <template #title>Totais por Estado — {{ uf }}</template>
+          <div style="margin-top:10px; position: relative; min-height: 80px;">
+            <LoadingOverlay v-if="ufLoading" :fullscreen="false" message="Carregando..." />
+            <div v-else class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <Card v-for="c in ufCards" :key="c.key">
+                  <template #title><div>{{ c.title }}</div></template>
+                  <template #content><div><p class="text-xl font-bold">{{ c.value }}</p></div></template>
+                </Card>
+              </div>
+              <div class="border p-3 rounded text-sm">
+                <div class="font-semibold mb-2">Resumo</div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div><span class="text-gray-500">Pré-Cadastros (30d): </span><span class="font-medium">{{ ufSummary.pre_registers || 0 }}</span></div>
+                  <div><span class="text-gray-500">Ativações: </span><span class="font-medium">{{ ufSummary.activations || 0 }}</span></div>
+                  <div><span class="text-gray-500">Solicitações de Saque: </span><span class="font-medium">{{ ufSummary.withdraw_requests || 0 }}</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <template #footer>
+            <div class="flex items-center justify-end gap-2 py-2">
+              <button class="px-4 py-2 rounded border" @click="showUf=false">Fechar</button>
+            </div>
+          </template>
+        </Modal>
+        <!-- Overlay global para ações longas (exportar/imprimir) -->
+        <LoadingOverlay v-if="actionLoading" :fullscreen="true" message="Processando..." />
       </main>
     </div>
   </div>
@@ -181,6 +211,8 @@ import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
 import FormPreRegister from '@/components/FormPreRegister.vue'
+import BrazilStatesMap from '@/components/BrazilStatesMap.vue'
+import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -188,6 +220,7 @@ const showNew = ref(false)
 const preForm = ref(null)
 const preFormKey = ref(0)
 const dashboardRef = ref(null)
+const actionLoading = ref(false)
 const preFormCompleted = ref(false)
 
 // Exemplo: se você salva grupos no `auth.user`
@@ -287,6 +320,29 @@ function openPayment() {
   router.push({ path: '/payment', query: { adesion: adesionId } })
 }
 
+// Modal Totais por UF
+const showUf = ref(false)
+const ufLoading = ref(false)
+const uf = ref('')
+const ufCards = ref([])
+const ufSummary = ref({})
+
+async function openUfTotals(ufCode) {
+  uf.value = ufCode
+  ufLoading.value = true
+  try {
+    const { data } = await api.get(`/api/core/dashboard/?state=${encodeURIComponent(ufCode)}`)
+    ufCards.value = data?.cards || []
+    ufSummary.value = data?.summary || {}
+  } catch (e) {
+    ufCards.value = []
+    ufSummary.value = {}
+  } finally {
+    ufLoading.value = false
+    showUf.value = true
+  }
+}
+
 // Convite de licenciado
 const showInvite = ref(false)
 const inviteChannel = ref('whatsapp')
@@ -365,6 +421,7 @@ watch(showNew, (val) => {
 // Export/Print Dashboard
 async function exportDashboard() {
   try {
+    actionLoading.value = true
     const el = dashboardRef.value
     if (!el) return
     const { default: html2canvas } = await import('html2canvas')
@@ -384,11 +441,14 @@ async function exportDashboard() {
       if (y < imgHeight) pdf.addPage()
     }
     pdf.save(`dashboard_${new Date().toISOString().slice(0,10)}.pdf`)
-  } catch {}
+  } catch {} finally {
+    actionLoading.value = false
+  }
 }
 
 async function printDashboard() {
   try {
+    actionLoading.value = true
     const el = dashboardRef.value
     if (!el) return
     const { default: html2canvas } = await import('html2canvas')
@@ -403,6 +463,8 @@ async function printDashboard() {
     </body></html>`
     win.document.write(html)
     win.document.close()
-  } catch {}
+  } catch {} finally {
+    actionLoading.value = false
+  }
 }
 </script>

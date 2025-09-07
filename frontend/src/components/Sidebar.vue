@@ -78,9 +78,21 @@
             </span>
           </button>
           <ul class="space-y-1" v-show="mini || usersOpen">
-            <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Usuários"><Users class="w-4 h-4" /><span v-if="!mini">Usuários</span></a></li>
-            <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Perfis"><User class="w-4 h-4" /><span v-if="!mini">Perfis</span></a></li>
-            <li><a href="#" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Grupos"><Link class="w-4 h-4" /><span v-if="!mini">Grupos</span></a></li>
+            <li>
+              <router-link to="/admin/users" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Usuários">
+                <Users class="w-4 h-4" /><span v-if="!mini">Usuários</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/admin/permissions" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Perfis">
+                <User class="w-4 h-4" /><span v-if="!mini">Perfis</span>
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/admin/groups" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Grupos">
+                <Link class="w-4 h-4" /><span v-if="!mini">Grupos</span>
+              </router-link>
+            </li>
           </ul>
         </div>
 
@@ -96,7 +108,7 @@
             </span>
           </button>
           <ul class="space-y-1" v-show="mini || redeOpen">
-            <li>
+            <li v-if="!isSuperUser">
               <router-link to="/network/directs" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Diretos">
                 <ArrowRight class="w-4 h-4" />
                 <span v-if="!mini">Diretos</span>
