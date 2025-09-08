@@ -83,13 +83,13 @@ function paymentStatusLabel(v) {
 function paymentStatusBadgeClass(v) {
   switch (v) {
     case 'pending':
-      return 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-300'
+      return 'block w-full text-center px-2 py-1 rounded text-[12px] font-medium bg-amber-50 text-amber-700 border border-amber-200'
     case 'confirmed':
-      return 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 border border-emerald-300'
+      return 'block w-full text-center px-2 py-1 rounded text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'
     case 'canceled':
-      return 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-800 border border-rose-300'
+      return 'block w-full text-center px-2 py-1 rounded text-[12px] font-medium bg-rose-50 text-rose-700 border border-rose-200'
     default:
-      return 'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-300'
+      return 'block w-full text-center px-2 py-1 rounded text-[12px] font-medium bg-gray-50 text-gray-700 border border-gray-200'
   }
 }
 
@@ -97,6 +97,7 @@ function paymentTypeLabel(v) {
   const map = { pix: 'Pix', money: 'Dinheiro', creditCard: 'Cartão de Crédito', debitCard: 'Cartão de Débito' }
   return map[v] || '-'
 }
+
 
 function planName(id) {
   return plansMap.value[id] || `#${id}`
@@ -204,6 +205,9 @@ function printGrid() {
     `<td>${paymentTypeLabel(r.typ_payment)}</td>`+
     `<td>${formatDate(r.dtt_record)}</td>`+
     `<td>${formatDate(r.dtt_payment)}</td>`+
+    `<td>${paymentStatusLabel(r.ind_payment_status)}</td>`+
+    `<td>${docsStatusLabel(r.docs_status)}</td>`+
+    `<td>${r.is_active ? 'Ativo' : 'Inativo'}</td>`+
     `<td>${paymentStatusLabel(r.ind_payment_status)}</td>`+
     `</tr>`
   )).join('')

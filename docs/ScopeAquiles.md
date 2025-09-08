@@ -189,6 +189,7 @@ Atualizações aplicadas (2025-08)
 
 ### Network
 - Admin: registrado `ScoreReference` (listagem, filtros, busca) em `network/admin.py`.
+- Novo endpoint `api/network/upline-chain/` que retorna a cadeia de uplines (imediato até raiz) para um licenciado; utilizado no modal de Relatório do Licenciado.
 
 ### Core
 - `LicensedDocument` (novo)
@@ -203,6 +204,8 @@ Atualizações aplicadas (2025-08)
     - Licenciado cria/edita apenas os próprios; operador vê todos e pode aprovar/reprovar.
     - Upload via multipart; `licensed` inferido do usuário (operador deve informar explicitamente).
   - Dashboard expõe `documents.status` e `documents.pending`.
+- `LicensedListSerializer` expandido para suportar `documents_status` derivado (pendente, incompleto, aguardando aprovação, aprovado) e cidade/UF com ids.
+- `LicensedViewSet` ganhou action para operadores/superadmins atualizarem campos do usuário vinculado (nome, e‑mail, senha, foto) de forma segura.
 - Notificações
   - Envio de e-mail para operadores quando o conjunto obrigatório estiver completo e pendente de validação (template: `LicensedDocsSubmitted`).
   - Removidos campos `previous_career` e `dtt_previous_career`.
@@ -216,12 +219,32 @@ Atualizações aplicadas (2025-08)
     - Pontos: filtra por UF via `ScoreReference.receiver_licensed.city_lookup.state.uf`.
     - Resumo (pré-cadastros, ativações, solicitações de saque) respeita a UF.
 
+#### Segurança do Login (atual)
+- Endpoint `POST /api/token/` usa `SecureTokenObtainPairView` com bloqueio temporário após 5 tentativas falhas por usuário (lockout por cache).
+- Throttling e 2FA foram desativados neste momento conforme decisão de produto.
+- Parâmetros ajustáveis (em `settings.py`):
+  - `LOGIN_LOCKOUT_FAILURES` (padrão 5)
+  - `LOGIN_LOCKOUT_WINDOW` (padrão 900s)
+  - `LOGIN_LOCKOUT_DURATION` (padrão 900s)
+
 ## Rotas/Endpoints (resumo)
 - Plans: `api/plans/plan-careers/`
 - Notifications: `api/notifications/config/`, `api/notifications/templates/`, `api/notifications/templates/{id}/test/`
-- Finance: `api/finance/gateway-config/`
+- Finance: `api/finance/gateway-config/`, `api/finance/transactions/?licensed_username=&month=&year=`, `api/finance/virtual-account/balance/`
 - Contracts: `api/contracts/config/`, `api/contracts/templates/`
 - Core: `api/core/licensed-documents/`, `api/core/licensed-documents/pending/`, `api/core/dashboard/?state=UF`
+- Network: `api/network/upline-chain/`, `api/network/tree/`
+
+## Frontend — Atualizações relevantes
+- Licenciados
+  - Toolbar padrão (Adicionar, Exportar, Imprimir) e busca expansível.
+  - Ações por linha: Editar (azul), Relatórios (cinza), Extrato Virtual (roxo), Trocar Senha (laranja). Botão de Upline removido.
+  - Modal de Relatório: mantém informações do licenciado e acrescenta grid “Upline | Nível”.
+  - Modal Extrato Virtual: filtros Mês/Ano, saldo disponível no topo e grid (ID, Data Cadastro, Referência — origem Adesão/Usina, Descrição, Valor, Operação, Status).
+  - CEP com preenchimento automático (ViaCEP) e máscaras de Telefone/CEP/CPF.
+  - Modal Edição: `username` somente leitura; campos de senha removidos.
+  - Modal Trocar Senha: campos sempre limpos ao abrir; validação forte e alert flutuante com [×].
+
 
 ## Migrações
 - Contracts: deleção de `ContractLog`.

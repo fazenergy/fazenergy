@@ -123,6 +123,8 @@ class PlanAdesionSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
+    # Nenhum campo calculado adicional aqui; grid de documentos será no endpoint de Licensed
+
 
 class QualificationSerializer(serializers.ModelSerializer):
     class Meta:

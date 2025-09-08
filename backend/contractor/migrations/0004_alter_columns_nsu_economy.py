@@ -6,6 +6,8 @@ DO $$
 BEGIN
     -- Remove nsu da tabela de propostas
     IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ContractorProposal'
+    ) AND EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposal' AND column_name = 'nsu'
     ) THEN
@@ -13,7 +15,9 @@ BEGIN
     END IF;
 
     -- Adiciona economy_thirty_years no resultado da proposta
-    IF NOT EXISTS (
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ContractorProposalResult'
+    ) AND NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposalResult' AND column_name = 'economy_thirty_years'
     ) THEN
@@ -27,7 +31,9 @@ SQL_REVERSE = r'''
 DO $$
 BEGIN
     -- Recria nsu (rollback)
-    IF NOT EXISTS (
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ContractorProposal'
+    ) AND NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposal' AND column_name = 'nsu'
     ) THEN
@@ -36,6 +42,8 @@ BEGIN
 
     -- Remove economy_thirty_years (rollback)
     IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ContractorProposalResult'
+    ) AND EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposalResult' AND column_name = 'economy_thirty_years'
     ) THEN

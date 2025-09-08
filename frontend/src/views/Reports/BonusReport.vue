@@ -39,6 +39,10 @@
   <div ref="gridWrapper">
     <DataTable :columns="columns" :rows="filteredRows" :loading="loading" :min-height="gridMinHeight" :show-actions="false">
       <template #title>Relatório de Bônus</template>
+      <template #col:status="{ row }">
+        <span :class="statusBadgeClass(row.status)">{{ statusLabel(row.status) }}</span>
+      </template>
+      <template #col:date="{ row }">{{ formatDate(row.date) }}</template>
     </DataTable>
   </div>
 </template>
@@ -58,9 +62,12 @@ const operationFilter = ref('')
 
 function pad(n){ return String(n).padStart(2,'0') }
 function formatDate(iso) {
-  if (!iso) return '-'
-  const d = new Date(iso)
-  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  try {
+    if (!iso) return '-'
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return '-'
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  } catch { return '-' }
 }
 
 function statusLabel(v) {
@@ -71,6 +78,18 @@ function statusLabel(v) {
 function operationLabel(v) {
   const map = { credit: 'Crédito', debit: 'Débito' }
   return map[v] || '-'
+}
+
+function statusBadgeClass(v) {
+  switch (v) {
+    case 'released':
+      return 'block w-full text-center px-2 py-1 rounded text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'
+    case 'canceled':
+      return 'block w-full text-center px-2 py-1 rounded text-[12px] font-medium bg-rose-50 text-rose-700 border border-rose-200'
+    case 'blocked':
+    default:
+      return 'block w-full text-center px-2 py-1 rounded text-[12px] font-medium bg-amber-50 text-amber-700 border border-amber-200'
+  }
 }
 
 async function fetchData() {

@@ -1,6 +1,6 @@
 <!-- src/components/Header.vue -->
 <template>
-  <header class="flex justify-between items-center px-4 py-2 border-b border-gray-200 text-[80%]">
+  <header class="flex justify-between items-center px-4 py-2 border-b border-gray-200 text-[80%] sticky top-0 z-40 bg-white">
       <!-- Toggle + breadcrumb -->
     <div class="flex items-center gap-3">
       <button @click="$emit('toggle-sidebar')" class="hover:text-blue-600">
@@ -87,6 +87,8 @@ const breadcrumbs = computed(() => {
     list.push({ label: 'Proposta' })
   } else if (path.startsWith('/licensed')) {
     list.push({ label: 'Licenciados' })
+  } else if (path.startsWith('/profile')) {
+    list.push({ label: 'Meu Perfil' })
   } else if (path.startsWith('/documents')) {
     list.push({ label: 'Documentos', to: '/documents' })
     if (path.startsWith('/documents/review')) list.push({ label: 'Revisão' })

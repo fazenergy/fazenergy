@@ -20,13 +20,17 @@ BEGIN
 
     -- Ajustar tipo de required_area para numeric(12,2)
     IF EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'ContractorProposalResult' AND column_name = 'required_area'
+        SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='ContractorProposalResult'
     ) THEN
-        EXECUTE 'ALTER TABLE "ContractorProposalResult" ALTER COLUMN required_area TYPE numeric(12,2) USING required_area::numeric';
-    ELSE
-        -- Caso a coluna não exista, cria já com o tipo correto
-        EXECUTE 'ALTER TABLE "ContractorProposalResult" ADD COLUMN required_area numeric(12,2) NULL';
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'ContractorProposalResult' AND column_name = 'required_area'
+        ) THEN
+            EXECUTE 'ALTER TABLE "ContractorProposalResult" ALTER COLUMN required_area TYPE numeric(12,2) USING required_area::numeric';
+        ELSE
+            -- Caso a coluna não exista, cria já com o tipo correto
+            EXECUTE 'ALTER TABLE "ContractorProposalResult" ADD COLUMN required_area numeric(12,2) NULL';
+        END IF;
     END IF;
 END
 $$;

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DirectsTreeView, ScoreReferenceViewSet, BonusReferenceViewSet
+from .views import DirectsTreeView, ScoreReferenceViewSet, BonusReferenceViewSet, UplineChainView
 
 router = DefaultRouter()
 router.register(r'score-references', ScoreReferenceViewSet, basename='score-references')
@@ -8,6 +8,7 @@ router.register(r'bonus-references', BonusReferenceViewSet, basename='bonus-refe
 
 urlpatterns = [
     path('tree/', DirectsTreeView.as_view(), name='network-tree'),
+    path('upline-chain/', UplineChainView.as_view(), name='upline-chain'),
     path('', include(router.urls)),
 ]
 

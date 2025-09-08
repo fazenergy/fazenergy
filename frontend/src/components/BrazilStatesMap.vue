@@ -1,7 +1,6 @@
 <template>
   <div class="w-full">
     <div class="flex items-center justify-between mb-2">
-      <h3 class="font-bold">Total por Estado</h3>
       <div class="text-xs text-gray-500" v-if="selected">
         UF selecionada: <span class="font-medium">{{ selected }}</span>
       </div>

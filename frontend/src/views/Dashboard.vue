@@ -16,6 +16,7 @@
       v-if="isLicensed || isSuperadmin"
       @click="openInvite"
       class="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 inline-flex items-center gap-2"
+      style="background-color:#5cb85c;"
     >
       <Share2 class="w-4 h-4" />
       Convidar Licenciado
@@ -94,8 +95,8 @@
     
     <!-- Alert/Banner de documentos pendentes -->
     <div v-if="isLicensed && documents?.pending" class="p-4 bg-amber-50 border border-amber-200 rounded flex items-center justify-between">
-      <div class="flex items-start gap-3">
-        <div class="mt-0.5 w-2 h-2 rounded-full bg-amber-500"></div>
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
         <div>
           <div class="font-semibold text-amber-800">Você ainda não enviou seus documentos de licenciado para validação</div>
           <div class="text-amber-800/80 text-sm">Envie seus documentos para prosseguir com a validação.</div>
@@ -108,8 +109,8 @@
 
     <!-- Alert/Banner de pagamento pendente -->
     <div v-if="billing.pending_annual_payment" class="p-4 bg-amber-50 border border-amber-200 rounded flex items-center justify-between">
-      <div class="flex items-start gap-3">
-        <div class="mt-0.5 w-2 h-2 rounded-full bg-amber-500"></div>
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></div>
         <div>
           <div class="font-semibold text-amber-800">Pagamento do Plano Anual pendente</div>
           <div class="text-amber-800/80 text-sm">Conclua o pagamento para ativar e manter seus benefícios na rede.</div>
@@ -117,6 +118,22 @@
       </div>
       <div>
         <button @click="openPayment" class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-sm">Pagar Agora</button>
+      </div>
+    </div>
+
+    <!-- Alert/Banner de documentos pendentes de revisão (apenas para operadores) -->
+    <div v-if="isOperator && pendingDocumentsCount > 0" class="p-4 bg-blue-50 border border-blue-200 rounded flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+        <div>
+          <div class="font-semibold text-blue-800">
+            {{ pendingDocumentsCount }} {{ pendingDocumentsCount === 1 ? 'documento' : 'documentos' }} pendente{{ pendingDocumentsCount === 1 ? '' : 's' }} de revisão
+          </div>
+          <div class="text-blue-800/80 text-sm">Há documentos de licenciados aguardando sua revisão e aprovação.</div>
+        </div>
+      </div>
+      <div>
+        <button @click="router.push('/documents/review')" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm">Revisar Documentos</button>
       </div>
     </div>
 
@@ -131,36 +148,98 @@
     </div>
 
   <!-- Ações rápidas, relatórios e configurações -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div class="border p-4 rounded">
-            <h2 class="font-bold mb-2">Ações Rápidas</h2>
-            <button v-for="qa in quickActions" :key="qa.route" @click="router.push(qa.route)" class="block w-full p-2 bg-blue-500 text-white rounded mb-2">{{ qa.label }}</button>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Ações Rápidas -->
+          <div class="border p-6 rounded-lg bg-white shadow-sm">
+            <h2 class="font-bold text-lg mb-1">Ações Rápidas</h2>
+            <p class="text-gray-600 text-sm mb-4">Gerencie o sistema rapidamente</p>
+            <div class="grid grid-cols-2 gap-3">
+              <div 
+                v-for="qa in quickActions" 
+                :key="qa.route" 
+                @click="router.push(qa.route)" 
+                class="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+              >
+                <component :is="iconForQuickAction(qa)" class="w-8 h-8 mb-2 text-blue-600 group-hover:text-blue-700" />
+                <span class="text-sm font-medium text-center text-gray-700 group-hover:text-gray-900">{{ qa.label }}</span>
+              </div>
+            </div>
           </div>
 
-          <div class="border p-4 rounded">
-            <h2 class="font-bold mb-2">Relatórios</h2>
-            <p>Relatórios aqui...</p>
+          <!-- Relatórios -->
+          <div class="border p-6 rounded-lg bg-white shadow-sm">
+            <h2 class="font-bold text-lg mb-1">Relatórios</h2>
+            <p class="text-gray-600 text-sm mb-4">Acesse relatórios e análises</p>
+            <div class="grid grid-cols-3 gap-3">
+              <!-- Relatório Geral -->
+              <div 
+                @click="router.push('/reports/general')" 
+                class="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+              >
+                <BarChart3 class="w-8 h-8 mb-2 text-green-600 group-hover:text-green-700" />
+                <span class="text-sm font-medium text-center text-gray-700 group-hover:text-gray-900">Geral</span>
+              </div>
+              <!-- Relatório de Pontos -->
+              <div 
+                @click="router.push('/reports/points')" 
+                class="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+              >
+                <Target class="w-8 h-8 mb-2 text-green-600 group-hover:text-green-700" />
+                <span class="text-sm font-medium text-center text-gray-700 group-hover:text-gray-900">Pontos</span>
+              </div>
+              <!-- Relatório de Bônus -->
+              <div 
+                @click="router.push('/reports/bonus')" 
+                class="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+              >
+                <DollarSign class="w-8 h-8 mb-2 text-green-600 group-hover:text-green-700" />
+                <span class="text-sm font-medium text-center text-gray-700 group-hover:text-gray-900">Bônus</span>
+              </div>
+              <!-- Relatório de Fechamentos -->
+              <div 
+                @click="router.push('/reports/closures')" 
+                class="flex flex-col items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group col-span-3 sm:col-span-1"
+              >
+                <FileText class="w-8 h-8 mb-2 text-green-600 group-hover:text-green-700" />
+                <span class="text-sm font-medium text-center text-gray-700 group-hover:text-gray-900">Fechamentos</span>
+              </div>
+            </div>
           </div>
 
-          <div class="border p-4 rounded">
+          <!-- Distribuição Geográfica -->
+          <div class="border p-6 rounded-lg bg-white shadow-sm">
+            <h2 class="font-bold text-lg mb-1">Distribuição Geográfica</h2>
+            <p class="text-gray-600 text-sm mb-4">Visualize dados por estado</p>
             <BrazilStatesMap @select="openUfTotals" />
           </div>
         </div>
 
-        <div class="border p-4 rounded">
-          <h2 class="font-bold mb-2">Resumo Operacional</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <div class="p-3 rounded bg-gray-50 border">
-              <div class="text-gray-500">Pré-Cadastros (30 dias)</div>
-              <div class="text-2xl font-bold">{{ summary.pre_registers || 0 }}</div>
+        <!-- Resumo Operacional -->
+        <div class="bg-white border rounded-lg p-6 shadow-sm">
+          <h2 class="font-bold text-lg mb-6">Resumo Operacional</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Pontos Gerados 
+            <div class="text-center">
+              <div class="text-3xl font-bold text-blue-600 mb-1">{{ summary.points_generated || 0 }}</div>
+              <div class="text-sm text-gray-500">Pontos Gerados</div>
+            </div>-->
+            
+            <!-- Pré-Cadastros -->
+            <div class="text-center">
+              <div class="text-3xl font-bold text-green-600 mb-1">{{ summary.pre_registers || 0 }}</div>
+              <div class="text-sm text-gray-500">Pré-Cadastros (30 dias)</div>
             </div>
-            <div class="p-3 rounded bg-gray-50 border">
-              <div class="text-gray-500">Ativações</div>
-              <div class="text-2xl font-bold">{{ summary.activations || 0 }}</div>
+            
+            <!-- Ativações -->
+            <div class="text-center">
+              <div class="text-3xl font-bold text-purple-600 mb-1">{{ summary.activations || 0 }}</div>
+              <div class="text-sm text-gray-500">Ativações</div>
             </div>
-            <div class="p-3 rounded bg-gray-50 border">
-              <div class="text-gray-500">Solicitações de Saque</div>
-              <div class="text-2xl font-bold">{{ summary.withdraw_requests || 0 }}</div>
+            
+            <!-- Solicitações de Saque -->
+            <div class="text-center">
+              <div class="text-3xl font-bold text-orange-600 mb-1">{{ summary.withdraw_requests || 0 }}</div>
+              <div class="text-sm text-gray-500">Solicitações de Saque</div>
             </div>
           </div>
         </div>
@@ -206,7 +285,7 @@ import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
 import { computed, ref, onMounted, watch } from 'vue'
 import Card from '@/components/ui/Card.vue'
-import { UserPlus, DollarSign, TrendingUp, Users, FileText, Plus, Share2, FileDown, Printer, CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-vue-next'
+import { UserPlus, DollarSign, TrendingUp, Users, FileText, Plus, Share2, FileDown, Printer, CheckCircle2, Clock, XCircle, AlertTriangle, Settings, BarChart3, Network, Target } from 'lucide-vue-next'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
@@ -226,6 +305,7 @@ const preFormCompleted = ref(false)
 // Exemplo: se você salva grupos no `auth.user`
 const isLicensed = computed(() => auth.user?.groups?.includes('Licenciado'))
 const isSuperadmin = computed(() => auth.user?.is_superuser || auth.user?.groups?.includes('Superadmin'))
+const isOperator = computed(() => auth.user?.groups?.includes('Operador') || auth.user?.is_staff || auth.user?.is_superuser)
 
 // abre modal de cadastro pelo botão acima (showNew=true)
 
@@ -234,6 +314,7 @@ const quickActions = ref([])
 const billing = ref({ pending_annual_payment: false, payment_link_url: null, adesion_id: null })
 const documents = ref({ pending: false, status: 'pending' })
 const summary = ref({ pre_registers: 0, activations: 0, withdraw_requests: 0 })
+const pendingDocumentsCount = ref(0)
 
 // Mapeia status do cadastro/licença do usuário
 const licensedStatus = computed(() => {
@@ -262,6 +343,17 @@ async function fetchDashboard() {
   billing.value = data?.billing || { pending_annual_payment: false }
   documents.value = data?.documents || { pending: false, status: 'pending' }
   summary.value = data?.summary || { pre_registers: 0, activations: 0, withdraw_requests: 0 }
+  
+  // Buscar count de documentos pendentes se for operador
+  if (isOperator.value) {
+    try {
+      const { data: countData } = await api.get('/api/core/pending-documents-count/')
+      pendingDocumentsCount.value = countData?.count || 0
+    } catch (error) {
+      console.error('Erro ao buscar documentos pendentes:', error)
+      pendingDocumentsCount.value = 0
+    }
+  }
 }
 
 onMounted(fetchDashboard)
@@ -313,6 +405,23 @@ function iconFor(card) {
     default:
       return Users
   }
+}
+
+function iconForQuickAction(action) {
+  const key = action?.key || action?.route || ''
+  if (key.includes('network') || key.includes('tree') || key.includes('rede')) {
+    return Network
+  }
+  if (key.includes('report') || key.includes('relatorio')) {
+    return BarChart3
+  }
+  if (key.includes('settings') || key.includes('config')) {
+    return Settings
+  }
+  if (key.includes('licensed') || key.includes('afiliado') || key.includes('licenciado')) {
+    return Users
+  }
+  return Settings
 }
 function openPayment() {
   const adesionId = billing.value?.adesion_id

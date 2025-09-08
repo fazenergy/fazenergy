@@ -2,17 +2,21 @@ from django.db import migrations
 
 
 SQL_APPLY = r'''
--- Adiciona colunas JSONB para guardar payloads
+-- Adiciona colunas JSONB para guardar payloads (somente se as tabelas existirem)
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='ContractorProposal'
+    ) AND NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposal' AND column_name = 'request_payload'
     ) THEN
         EXECUTE 'ALTER TABLE "ContractorProposal" ADD COLUMN request_payload jsonb NULL';
     END IF;
 
-    IF NOT EXISTS (
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='ContractorProposalResult'
+    ) AND NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposalResult' AND column_name = 'response_payload'
     ) THEN
@@ -26,6 +30,8 @@ SQL_REVERSE = r'''
 DO $$
 BEGIN
     IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='ContractorProposal'
+    ) AND EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposal' AND column_name = 'request_payload'
     ) THEN
@@ -33,6 +39,8 @@ BEGIN
     END IF;
 
     IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='ContractorProposalResult'
+    ) AND EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'ContractorProposalResult' AND column_name = 'response_payload'
     ) THEN

@@ -117,6 +117,12 @@ class PaymentLink(models.Model):
                     licensed.dtt_payment_received = self.closed_at
                     licensed.is_in_network = True if licensed.is_in_network is False else licensed.is_in_network
                     licensed.save(update_fields=['dtt_payment_received', 'is_in_network'])
+                    # Após registrar pagamento, revalida regra de ativação
+                    try:
+                        from core.utils_activation import ensure_licensed_activation
+                        ensure_licensed_activation(licensed)
+                    except Exception:
+                        pass
                 except Exception as e:
                     print(f"Aviso: não foi possível atualizar Licensed: {e}")
 

@@ -13,6 +13,10 @@ class User(AbstractUser):
         verbose_name="Foto de Perfil"
     )
 
+    # 2FA (TOTP) opcional: quando habilitado, o login exige código OTP
+    twofa_enabled = models.BooleanField(default=False, verbose_name="2FA Habilitado?")
+    twofa_secret = models.CharField(max_length=64, blank=True, null=True, verbose_name="Segredo TOTP")
+
     #original de auth_user_groups do django
     groups = models.ManyToManyField(
         Group,

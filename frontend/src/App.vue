@@ -29,10 +29,11 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted  } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
 import Header from './components/Header.vue'
+import { useSettingsStore } from '@/store/settings'
 
 const showSidebar = ref(true)
 const route = useRoute()
@@ -55,6 +56,8 @@ onMounted(() => {
     isDark.value = true
   }
   setTheme()
+  // Inicializa favicon baseado nas configs
+  applyFavicon()
 })
 
 function toggleTheme() {
@@ -69,6 +72,27 @@ function setTheme() {
   } else {
     document.documentElement.classList.remove('dark')
   }
+}
+
+// =====================
+// FAVICON DINÂMICO
+// =====================
+const settingsStore = useSettingsStore()
+settingsStore.loadFromStorage()
+
+// Observa mudanças futuras no store (caso salve sem recarregar)
+watch(() => settingsStore.settings.general.favicon_data_url, () => applyFavicon())
+
+function applyFavicon() {
+  try {
+    const href = settingsStore.settings.general.favicon_data_url
+    // Garante um <link rel="icon"> no head
+    let link = document.querySelector("link[rel='icon']") || document.createElement('link')
+    link.setAttribute('rel', 'icon')
+    link.setAttribute('type', 'image/png')
+    link.setAttribute('href', href || '/favicon.ico')
+    if (!link.parentNode) document.head.appendChild(link)
+  } catch (e) { /* noop */ }
 }
 
 

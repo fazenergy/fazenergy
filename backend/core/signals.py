@@ -97,6 +97,13 @@ def _recalculate_licensed_document_status(licensed: Licensed):
         licensed.stt_document = new_status
         licensed.save(update_fields=['stt_document'])
 
+    # Após atualizar status de documentos, revalida regra de ativação
+    try:
+        from core.utils_activation import ensure_licensed_activation
+        ensure_licensed_activation(licensed)
+    except Exception:
+        pass
+
     # Notificar operadores quando conjunto completo está aguardando validação
     if complete_set and new_status == 'pending':
         try:

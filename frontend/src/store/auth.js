@@ -16,11 +16,11 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   actions: {
-    async login(username, password) {
-      const response = await api.post('/api/token/', {
-        username,
-        password,
-      })
+    async login(username, password, otp) {
+      // Envia OTP quando informado (2FA)
+      const payload = { username, password }
+      if (otp) payload.otp = otp
+      const response = await api.post('/api/token/', payload)
 
       this.accessToken = response.data.access
       this.refreshToken = response.data.refresh

@@ -78,6 +78,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    # Throttling global (mantemos vazio aqui; aplicamos no login apenas)
+    # Removemos throttles específicos. Mantemos apenas o lockout por 5 tentativas.
 }
 
 CORS_ALLOW_ALL_ORIGINS = True # Permita CORS para o frontend rodar separado:

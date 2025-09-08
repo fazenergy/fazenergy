@@ -51,8 +51,8 @@
               <input v-model.trim="form.email" type="email" placeholder="E-mail *" class="border rounded px-2 py-1" />
               <input v-model.trim="form.first_name" placeholder="Nome" class="border rounded px-2 py-1" />
               <input v-model.trim="form.last_name" placeholder="Sobrenome" class="border rounded px-2 py-1" />
-              <label class="inline-flex items-center gap-2 text-sm mt-1"><input type="checkbox" v-model="form.is_active" /> Ativo</label>
-              <label class="inline-flex items-center gap-2 text-sm mt-1"><input type="checkbox" v-model="form.is_staff" /> Staff</label>
+              <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="form.is_active" /> Ativo</label>
+              <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" v-model="form.is_staff" /> Staff</label>
             </div>
           </div>
           <div class="border rounded p-3">

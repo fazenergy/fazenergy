@@ -19,6 +19,88 @@ from network.models import UnilevelNetwork
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_GET
+
+# ==== Segurança do Login (throttle + lockout) ====
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.core.cache import cache
+from django.conf import settings
+
+
+class SecureTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Serializer padrão do SimpleJWT sem alteração de payload.
+
+    A lógica de lockout é aplicada na View; mantemos o serializer padrão
+    para evitar customizações desnecessárias aqui.
+    """
+    pass
+
+
+class SecureTokenObtainPairView(TokenObtainPairView):
+    """View de login com proteções:
+    - Throttling por IP e por username (reduz brute-force);
+    - Lockout temporário por usuário após múltiplas falhas.
+
+    Parâmetros configuráveis via settings:
+    - LOGIN_LOCKOUT_FAILURES: n° de tentativas antes do bloqueio (padrão: 5)
+    - LOGIN_LOCKOUT_WINDOW: janela para contar falhas, em segundos (padrão: 900 = 15 min)
+    - LOGIN_LOCKOUT_DURATION: duração do bloqueio, em segundos (padrão: 900 = 15 min)
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = SecureTokenObtainPairSerializer
+
+    def _lockout_cache_key(self, username: str) -> str:
+        return f"login:lockout:{username}"
+
+    def _fail_count_cache_key(self, username: str) -> str:
+        return f"login:failcount:{username}"
+
+    def post(self, request, *args, **kwargs):
+        username = (request.data.get("username") or "").strip().lower()
+
+        # 1) Verifica se o usuário está bloqueado
+        lock_key = self._lockout_cache_key(username)
+        if username and cache.get(lock_key):
+            # Responde como falha genérica para não revelar lockout
+            return Response({"detail": "Credenciais inválidas."}, status=401)
+
+        # 2) Tenta autenticar via fluxo normal do SimpleJWT
+        response = super().post(request, *args, **kwargs)
+
+        # 3) Se sucesso, zera contador de falhas
+        if response.status_code == 200 and username:
+            # Sucesso: zera contador e retorna
+            cache.delete(self._fail_count_cache_key(username))
+            return response
+
+        # 4) Se falha, incrementa contador e avalia lockout
+        if username:
+            failures_key = self._fail_count_cache_key(username)
+            window = getattr(settings, "LOGIN_LOCKOUT_WINDOW", 900)
+            max_failures = getattr(settings, "LOGIN_LOCKOUT_FAILURES", 5)
+            duration = getattr(settings, "LOGIN_LOCKOUT_DURATION", 900)
+
+            # Incrementa falhas na janela (usa add + incr para garantir ttl)
+            added = cache.add(failures_key, 1, timeout=window)
+            if not added:
+                try:
+                    cache.incr(failures_key)
+                except Exception:
+                    cache.set(failures_key, 1, timeout=window)
+
+            # Verifica total e aplica lockout se necessário
+            try:
+                total = int(cache.get(failures_key) or 0)
+            except Exception:
+                total = 1
+
+            if total >= max_failures:
+                cache.set(lock_key, True, timeout=duration)
+
+        # Resposta genérica de falha
+        return Response({"detail": "Credenciais inválidas."}, status=401)
+
 from django.views.decorators.csrf import csrf_exempt   
 from django.utils import timezone
 from rest_framework import viewsets, permissions as drf_permissions
@@ -26,9 +108,22 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.exceptions import ValidationError
 from core.models.LicensedDocument import LicensedDocument
 from django.db import models
+from django.db.models import Sum
 from django.contrib.auth.models import Group, Permission
+from rest_framework.response import Response
 
 User = get_user_model()
+
+# Registrar suporte a HEIF/AVIF no Pillow quando disponível
+try:  # pillow-heif
+    from pillow_heif import register_heif_opener  # type: ignore
+    register_heif_opener()
+except Exception:
+    pass
+try:  # pillow-avif-plugin
+    import pillow_avif  # type: ignore  # noqa: F401
+except Exception:
+    pass
 
 class LicensedViewSet(viewsets.ModelViewSet):
     queryset = Licensed.objects.select_related('user', 'plan', 'city_lookup', 'current_career').all()
@@ -45,12 +140,139 @@ class LicensedViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
+    @action(detail=True, methods=['patch'], url_path='user', parser_classes=[MultiPartParser, FormParser, JSONParser], permission_classes=[IsAuthenticated])
+    def update_linked_user(self, request, pk=None):
+        """Permite que Operadores e Superadmins editem dados básicos do User
+        vinculado ao Licensed selecionado. O próprio usuário também pode editar.
+
+        Campos aceitos (todos opcionais): username, email, first_name, last_name,
+        password, image_profile
+        """
+        licensed = self.get_object()
+        target_user = getattr(licensed, 'user', None)
+        if not target_user:
+            return Response({'detail': 'Usuário não encontrado.'}, status=404)
+
+        user = request.user
+        is_admin = getattr(user, 'is_superuser', False)
+        is_operator = user.groups.filter(name='Operador').exists() or getattr(user, 'is_staff', False)
+        is_self = user == target_user
+
+        if not (is_admin or is_operator or is_self):
+            return Response({'detail': 'Você não tem permissão para executar essa ação.'}, status=403)
+
+        allowed_fields = {'username', 'email', 'first_name', 'last_name'}
+        data = request.data
+
+        # Atualiza campos simples
+        for f in allowed_fields:
+            if f in data:
+                setattr(target_user, f, data.get(f))
+
+        # Senha opcional
+        if data.get('password'):
+            target_user.set_password(data.get('password'))
+
+        # Foto opcional (com renomeação cpf-hash.extensão)
+        if 'image_profile' in request.FILES:
+            file = request.FILES['image_profile']
+            try:
+                # tenta obter cpf do Licensed relacionado (somente dígitos)
+                lic = Licensed.objects.filter(user=target_user).first()
+                cpf = getattr(lic, 'cpf_cnpj', '') or ''
+                import re, hashlib, os, io
+                from django.core.files.uploadedfile import SimpleUploadedFile
+                from PIL import Image, ImageFile
+                ImageFile.LOAD_TRUNCATED_IMAGES = True
+                cpf_digits = re.sub(r'\D', '', str(cpf))
+                try:
+                    file.seek(0)
+                except Exception:
+                    pass
+                raw = file.read()
+                # Caso content_type esteja ausente/incorreto em PNG, tenta inferir pelo header
+                if not getattr(file, 'content_type', None):
+                    try:
+                        if raw[:8] == b'\x89PNG\r\n\x1a\n':
+                            file.content_type = 'image/png'
+                    except Exception:
+                        pass
+                # Tenta converter para JPEG para garantir validação
+                try:
+                    img = Image.open(io.BytesIO(raw))
+                    rgb = img.convert('RGB')
+                    buf = io.BytesIO()
+                    rgb.save(buf, format='JPEG', quality=90)
+                    file_bytes = buf.getvalue()
+                    ext = '.jpg'
+                    content_type = 'image/jpeg'
+                except Exception:
+                    # Se não conseguir converter, usa original mesmo
+                    file_bytes = raw
+                    ext = os.path.splitext(getattr(file, 'name', ''))[1] or '.jpg'
+                    content_type = getattr(file, 'content_type', None) or 'image/jpeg'
+                file_hash = hashlib.sha256(file_bytes).hexdigest()[:16]
+                new_name = f"{cpf_digits}-{file_hash}{ext}"
+                renamed = SimpleUploadedFile(new_name, file_bytes, content_type=content_type)
+                target_user.image_profile = renamed
+            except Exception:
+                # fallback: ignora imagem para não travar atualização
+                request._files = request._files.copy()
+                try:
+                    del request._files['image_profile']
+                except Exception:
+                    pass
+
+        try:
+            target_user.save()
+        except Exception as e:
+            return Response({'detail': str(e)}, status=400)
+
+        return Response({'detail': 'Atualizado com sucesso.'})
+
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # Permite multipart para upload de avatar/foto de perfil
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        """Sobrescreve para tratar renomeação de image_profile semelhante ao endpoint de operador."""
+        user = request.user
+        data = request.data
+
+        # Se houver arquivo de imagem, aplica estratégia simples (igual à tela de edição de licenciado):
+        # atribui o arquivo direto ao user antes do serializer, sem renomear/converter.
+        files = request.FILES
+        if 'image_profile' in files:
+            try:
+                user.image_profile = files['image_profile']
+                user.save(update_fields=['image_profile'])
+                # Remove do payload para não passar pelo serializer novamente
+                request._files = request._files.copy()
+                try:
+                    del request._files['image_profile']
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        return super().update(request, *args, **kwargs)
+
+
+class CurrentLicensedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            lic = Licensed.objects.select_related('user', 'city_lookup__state', 'plan').get(user=request.user)
+        except Licensed.DoesNotExist:
+            return Response({}, status=200)
+        ser = LicensedListSerializer(lic)
+        return Response(ser.data)
 
 
 # --------------------------- Admin Views ---------------------------
@@ -513,7 +735,18 @@ class DashboardView(APIView):
                 solicitacoes_saque = saque_qs.count()
             except Exception:
                 solicitacoes_saque = 0
+            # Pontos gerados (ScoreReference válidos)
+            try:
+                pontos_gerados = ScoreReference.objects.filter(
+                    stt_record=True
+                ).aggregate(
+                    total=models.Sum('points')
+                )['total'] or 0
+            except Exception:
+                pontos_gerados = 0
+                
             data['summary'] = {
+                'points_generated': pontos_gerados,
                 'pre_registers': pre_cadastros,
                 'activations': ativacoes,
                 'withdraw_requests': solicitacoes_saque,
@@ -601,3 +834,386 @@ class DashboardView(APIView):
             }
 
         return Response(data)
+
+
+class PendingDocumentsCountView(APIView):
+    """
+    Endpoint para contar documentos pendentes de revisão (apenas para operadores)
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+        
+        if not is_operator:
+            return Response({'count': 0, 'message': 'Acesso negado'}, status=403)
+        
+        # Contar documentos com status 'pending'
+        count = LicensedDocument.objects.filter(stt_validate='pending').count()
+        
+        return Response({'count': count})
+
+
+class CareerDataView(APIView):
+    """
+    Endpoint para buscar dados de carreira do usuário atual
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        try:
+            # Buscar licenciado atual
+            licensed = Licensed.objects.select_related('current_career').get(user=user)
+            
+            # Inicializar dados com valores padrão
+            career_data = {
+                'stats': {
+                    'sales': 0,
+                    'referrals': 0,
+                    'commissions': 0.0,
+                    'ranking': 1
+                },
+                'current_level': 'Bronze',
+                'career_plans': []
+            }
+            
+            # Buscar planos de carreira ordenados por pontos
+            try:
+                from plans.models.PlanCareer import PlanCareer
+                career_plans = PlanCareer.objects.filter(stt_record=True).order_by('required_points')
+                
+                # Processar planos de carreira
+                for plan in career_plans:
+                    career_data['career_plans'].append({
+                        'id': plan.id,
+                        'stage_name': plan.stage_name,
+                        'reward_description': plan.reward_description,
+                        'required_points': plan.required_points,
+                        'required_directs': plan.required_directs,
+                        'required_direct_sales': plan.required_direct_sales,
+                        'progress': 0.0,
+                        'is_current': plan == licensed.current_career,
+                        'cover_image': plan.cover_image.url if plan.cover_image else None
+                    })
+                
+                # Definir nível atual
+                if licensed.current_career:
+                    career_data['current_level'] = licensed.current_career.stage_name
+                    
+            except Exception as e:
+                print(f"Erro ao carregar planos de carreira: {e}")
+            
+            # Calcular estatísticas do usuário (com fallbacks)
+            try:
+                from contractor.models import Proposal
+                sales_count = Proposal.objects.filter(
+                    contractor__licensed=licensed,
+                    status='Aprovado'
+                ).count()
+                career_data['stats']['sales'] = sales_count
+            except Exception as e:
+                print(f"Erro ao calcular vendas: {e}")
+            
+            try:
+                direct_referrals = Licensed.objects.filter(
+                    user__groups__name='Licenciado',
+                    original_indicator=licensed
+                ).count()
+                career_data['stats']['referrals'] = direct_referrals
+            except Exception as e:
+                print(f"Erro ao calcular indicações: {e}")
+            
+            try:
+                from network.models.ScoreReference import ScoreReference
+                total_points = ScoreReference.objects.filter(
+                    receiver_licensed=licensed,
+                    stt_record=True
+                ).aggregate(total=Sum('points_amount'))['total'] or 0
+                career_data['stats']['commissions'] = float(total_points * 0.1)
+            except Exception as e:
+                print(f"Erro ao calcular comissões: {e}")
+            
+            # Recalcular progresso dos planos com os dados reais
+            sales_count = career_data['stats']['sales']
+            direct_referrals = career_data['stats']['referrals']
+            
+            for plan_data in career_data['career_plans']:
+                sales_progress = min((sales_count / plan_data['required_direct_sales']) * 100, 100) if plan_data['required_direct_sales'] > 0 else 100
+                referrals_progress = min((direct_referrals / plan_data['required_directs']) * 100, 100) if plan_data['required_directs'] > 0 else 100
+                plan_data['progress'] = round((sales_progress + referrals_progress) / 2, 1)
+            
+            return Response(career_data)
+            
+        except Licensed.DoesNotExist:
+            return Response({'error': 'Usuário não possui perfil de licenciado'}, status=404)
+        except Exception as e:
+            print(f"Erro geral na API de carreira: {e}")
+            return Response({'error': f'Erro interno: {str(e)}'}, status=500)
+
+
+class GeneralReportView(APIView):
+    """
+    Endpoint para buscar dados do relatório geral da plataforma
+    
+    Este endpoint fornece estatísticas completas sobre:
+    - Faturamento total e crescimento
+    - Comissões pagas e crescimento
+    - Afiliados ativos e crescimento
+    - Novos cadastros e crescimento
+    - Desempenho mensal (últimos 4 meses)
+    - Top afiliados por performance
+    
+    Acesso: Apenas operadores e superadmins
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Retorna dados do relatório geral
+        
+        Returns:
+            Response: JSON com estatísticas e dados detalhados
+        """
+        user = request.user
+        
+        try:
+            # ========================================
+            # VERIFICAÇÃO DE PERMISSÕES
+            # ========================================
+            # Verificar se é operador ou superadmin
+            is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+            
+            if not is_operator:
+                return Response({'error': 'Acesso negado'}, status=403)
+            
+            # ========================================
+            # CONFIGURAÇÃO DE DATAS
+            # ========================================
+            from datetime import datetime, timedelta
+            from django.utils import timezone
+            
+            # Calcular períodos para comparação
+            now = timezone.now()
+            current_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            last_month = (current_month - timedelta(days=1)).replace(day=1)
+            
+            # ========================================
+            # INICIALIZAÇÃO DOS DADOS
+            # ========================================
+            # Estrutura base do relatório
+            report_data = {
+                'stats': {
+                    'totalRevenue': 0.0,           # Faturamento total atual
+                    'revenueGrowth': 0.0,          # Crescimento do faturamento (%)
+                    'commissionsPaid': 0.0,        # Comissões pagas no período
+                    'commissionsGrowth': 0.0,      # Crescimento das comissões (%)
+                    'activeAffiliates': 0,         # Número de afiliados ativos
+                    'affiliatesGrowth': 0.0,       # Crescimento de afiliados (%)
+                    'newRegistrations': 0,         # Novos cadastros no período
+                    'registrationsGrowth': 0.0     # Crescimento de cadastros (%)
+                },
+                'monthly_performance': [],         # Desempenho dos últimos 4 meses
+                'top_affiliates': []               # Top 4 afiliados por performance
+            }
+            
+            # ========================================
+            # CÁLCULO DO FATURAMENTO TOTAL
+            # ========================================
+            # Baseado nos planos de adesão pagos
+            try:
+                from plans.models.PlanAdesion import PlanAdesion
+                
+                # Faturamento do mês atual
+                current_revenue = PlanAdesion.objects.filter(
+                    dtt_payment__gte=current_month,
+                    dtt_payment__lt=current_month + timedelta(days=32)
+                ).aggregate(total=Sum('plan__price'))['total'] or 0
+                
+                # Faturamento do mês passado (para comparação)
+                last_revenue = PlanAdesion.objects.filter(
+                    dtt_payment__gte=last_month,
+                    dtt_payment__lt=current_month
+                ).aggregate(total=Sum('plan__price'))['total'] or 0
+                
+                # Atualizar dados do relatório
+                report_data['stats']['totalRevenue'] = float(current_revenue)
+                if last_revenue > 0:
+                    report_data['stats']['revenueGrowth'] = round(((current_revenue - last_revenue) / last_revenue) * 100, 1)
+                    
+            except Exception as e:
+                print(f"Erro ao calcular faturamento: {e}")
+            
+            # ========================================
+            # CÁLCULO DAS COMISSÕES PAGAS
+            # ========================================
+            # Baseado nos pontos gerados (ScoreReference)
+            try:
+                from network.models.ScoreReference import ScoreReference
+                
+                # Pontos gerados no mês atual
+                current_commissions = ScoreReference.objects.filter(
+                    dtt_record__gte=current_month,
+                    dtt_record__lt=current_month + timedelta(days=32),
+                    stt_record=True
+                ).aggregate(total=Sum('points_amount'))['total'] or 0
+                
+                # Pontos gerados no mês passado (para comparação)
+                last_commissions = ScoreReference.objects.filter(
+                    dtt_record__gte=last_month,
+                    dtt_record__lt=current_month,
+                    stt_record=True
+                ).aggregate(total=Sum('points_amount'))['total'] or 0
+                
+                # Converter pontos para valor monetário (R$ 0,10 por ponto)
+                report_data['stats']['commissionsPaid'] = float(current_commissions * 0.1)
+                if last_commissions > 0:
+                    report_data['stats']['commissionsGrowth'] = round(((current_commissions - last_commissions) / last_commissions) * 100, 1)
+                    
+            except Exception as e:
+                print(f"Erro ao calcular comissões: {e}")
+            
+            # ========================================
+            # CÁLCULO DE AFILIADOS ATIVOS
+            # ========================================
+            # Afiliados com pagamento em dia (último ano)
+            try:
+                # Afiliados ativos atuais (com pagamento no último ano)
+                current_affiliates = Licensed.objects.filter(
+                    stt_record=True,
+                    dtt_payment_received__gte=current_month - timedelta(days=365)
+                ).count()
+                
+                # Afiliados ativos no mês passado (para comparação)
+                last_affiliates = Licensed.objects.filter(
+                    stt_record=True,
+                    dtt_payment_received__gte=last_month - timedelta(days=365),
+                    dtt_payment_received__lt=current_month - timedelta(days=365)
+                ).count()
+                
+                # Atualizar dados do relatório
+                report_data['stats']['activeAffiliates'] = current_affiliates
+                if last_affiliates > 0:
+                    report_data['stats']['affiliatesGrowth'] = round(((current_affiliates - last_affiliates) / last_affiliates) * 100, 1)
+                    
+            except Exception as e:
+                print(f"Erro ao calcular afiliados: {e}")
+            
+            # ========================================
+            # CÁLCULO DE NOVOS CADASTROS
+            # ========================================
+            # Novos licenciados cadastrados no período
+            try:
+                # Cadastros do mês atual
+                current_registrations = Licensed.objects.filter(
+                    dtt_record__gte=current_month,
+                    dtt_record__lt=current_month + timedelta(days=32)
+                ).count()
+                
+                # Cadastros do mês passado (para comparação)
+                last_registrations = Licensed.objects.filter(
+                    dtt_record__gte=last_month,
+                    dtt_record__lt=current_month
+                ).count()
+                
+                # Atualizar dados do relatório
+                report_data['stats']['newRegistrations'] = current_registrations
+                if last_registrations > 0:
+                    report_data['stats']['registrationsGrowth'] = round(((current_registrations - last_registrations) / last_registrations) * 100, 1)
+                    
+            except Exception as e:
+                print(f"Erro ao calcular cadastros: {e}")
+            
+            # ========================================
+            # DESEMPENHO MENSAL (ÚLTIMOS 4 MESES)
+            # ========================================
+            # Histórico de performance para análise de tendências
+            try:
+                months = []
+                for i in range(4):
+                    # Calcular período do mês (i meses atrás)
+                    month_start = current_month - timedelta(days=30*i)
+                    month_end = month_start + timedelta(days=32)
+                    
+                    # Faturamento do mês
+                    month_revenue = PlanAdesion.objects.filter(
+                        dtt_payment__gte=month_start,
+                        dtt_payment__lt=month_end
+                    ).aggregate(total=Sum('plan__price'))['total'] or 0
+                    
+                    # Comissões do mês (pontos convertidos)
+                    month_commissions = ScoreReference.objects.filter(
+                        dtt_record__gte=month_start,
+                        dtt_record__lt=month_end,
+                        stt_record=True
+                    ).aggregate(total=Sum('points_amount'))['total'] or 0
+                    
+                    # Novos afiliados do mês
+                    month_affiliates = Licensed.objects.filter(
+                        dtt_record__gte=month_start,
+                        dtt_record__lt=month_end
+                    ).count()
+                    
+                    # Adicionar dados do mês
+                    months.append({
+                        'month': month_start.strftime('%B'),
+                        'revenue': float(month_revenue),
+                        'commissions': float(month_commissions * 0.1),
+                        'affiliates': month_affiliates
+                    })
+                
+                # Ordenar do mais antigo para o mais recente
+                report_data['monthly_performance'] = list(reversed(months))
+                
+            except Exception as e:
+                print(f"Erro ao calcular desempenho mensal: {e}")
+            
+            # ========================================
+            # TOP AFILIADOS (BASEADO EM VENDAS)
+            # ========================================
+            # Ranking dos melhores performadores
+            try:
+                from contractor.models import Proposal
+                
+                top_affiliates_data = []
+                # Buscar top 4 afiliados por número de vendas
+                top_licensed = Licensed.objects.filter(
+                    stt_record=True
+                ).annotate(
+                    sales_count=models.Count('contractors__proposals', filter=models.Q(contractors__proposals__status='Aprovado'))
+                ).order_by('-sales_count')[:4]
+                
+                # Processar cada afiliado
+                for licensed in top_licensed:
+                    # Contar vendas aprovadas
+                    sales_count = Proposal.objects.filter(
+                        contractor__licensed=licensed,
+                        status='Aprovado'
+                    ).count()
+                    
+                    # Calcular comissão estimada (R$ 1000 por venda)
+                    commission = sales_count * 1000
+                    
+                    # Adicionar ao ranking
+                    top_affiliates_data.append({
+                        'name': licensed.user.get_full_name() or licensed.user.username,
+                        'sales': sales_count,
+                        'commission': float(commission),
+                        'level': licensed.current_career.stage_name if licensed.current_career else 'Bronze'
+                    })
+                
+                report_data['top_affiliates'] = top_affiliates_data
+                
+            except Exception as e:
+                print(f"Erro ao calcular top afiliados: {e}")
+            
+            # ========================================
+            # RETORNO DOS DADOS
+            # ========================================
+            return Response(report_data)
+            
+        except Exception as e:
+            print(f"Erro geral na API de relatório: {e}")
+            return Response({'error': f'Erro interno: {str(e)}'}, status=500)

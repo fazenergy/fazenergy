@@ -178,6 +178,54 @@ class DirectsTreeView(APIView):
         return Response({'root': root})
 
 
+class UplineChainView(APIView):
+    """Retorna a cadeia de uplines (do imediato até a raiz) para um Licensed.
+
+    GET /api/network/upline-chain/?licensed_id=123
+    GET /api/network/upline-chain/?username=foo
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        lic_id = request.query_params.get('licensed_id')
+        username = request.query_params.get('username')
+
+        target = None
+        if lic_id:
+            target = Licensed.objects.select_related('user').filter(id=lic_id).first()
+        elif username:
+            target = Licensed.objects.select_related('user').filter(user__username__iexact=username).first()
+        if not target:
+            return Response({'chain': []})
+
+        chain = []
+        current = target
+        visited = set()
+        while current and current.id not in visited:
+            visited.add(current.id)
+            # Encontra o upline imediato via UnilevelNetwork level=1 (downline=current)
+            rel = (
+                UnilevelNetwork.objects
+                .filter(downline_licensed=current, level=1)
+                .select_related('upline_licensed__user')
+                .first()
+            )
+            if not rel:
+                break
+            upline = rel.upline_licensed
+            chain.append({
+                'id': upline.id,
+                'username': upline.user.username,
+                'full_name': f"{upline.user.first_name or ''} {upline.user.last_name or ''}".strip()
+            })
+            current = upline
+
+        # Anexa nível de 1..N
+        for idx, item in enumerate(chain, start=1):
+            item['level'] = idx
+        return Response({'chain': chain})
+
+
 class ScoreReferenceViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ScoreReference.objects.select_related('receiver_licensed__user', 'triggering_licensed__user').all()
     serializer_class = ScoreReferenceSerializer

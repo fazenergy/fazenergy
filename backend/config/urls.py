@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
+from core.views import SecureTokenObtainPairView
 from webhooks.pagarme import pagarme_webhook
 #from webhooks.lexio import lexio_webhook  # se tiver esse também
 
@@ -13,7 +14,8 @@ urlpatterns = [
     path('api/plans/', include('plans.urls')),
     path('api/finance/', include('finance.urls')),
     path('api/notifications/', include('notifications.urls')),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # Endpoint de login protegido (throttle + lockout)
+    path('api/token/', SecureTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/users/', include('core.urls')),  # ou o nome do seu app
     path('api/location/', include('location.urls')),

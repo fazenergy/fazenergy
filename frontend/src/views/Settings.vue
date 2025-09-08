@@ -36,13 +36,15 @@ import NotificationsTab from './Tabs/NotificationsTab.vue'
 import GatewayTab from './Tabs/GatewayTab.vue'
 import ContractsTab from './Tabs/ContractsTab.vue'
 import GeneralTab from './Tabs/GeneralTab.vue'
+import NetworkTab from './Tabs/NetworkTab.vue'
+import PaymentsTab from './Tabs/PaymentsTab.vue'
 
 const GenericTab = {
   template: `<div class="text-gray-500">Aba <strong>{{ tab }}</strong> ainda não implementada.</div>`,
   props: ['tab']
 }
 
-const tabs = ['Geral', 'Comissões', 'Gateway', 'Planos', 'Planos de Carreira', 'Notificações', 'Webhooks', 'APIs', 'Contratos']
+const tabs = ['Geral', 'Rede', 'Pagamentos', 'Gateway', 'Planos', 'Planos de Carreira', 'Notificações', 'Webhooks', 'APIs', 'Contratos']
 const activeTab = ref('Planos') // já abre na aba Planos
 
 const currentTabComponent = computed(() => {
@@ -51,6 +53,10 @@ const currentTabComponent = computed(() => {
       return PlansTab
     case 'Geral':
       return GeneralTab
+    case 'Rede':
+      return NetworkTab
+    case 'Pagamentos':
+      return PaymentsTab
     case 'Planos de Carreira':
       return CareerPlansTab
     case 'Gateway':
