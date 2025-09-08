@@ -42,12 +42,17 @@
 - Backend: `api/core/`, `api/plans/`, `api/location/`, `api/network/`, `api/contractor/`
 
 ## Mudanças recentes (técnico)
-- App `contractor` criado e substitui `prospect`.
+- App `contractor` consolidado e substitui `prospect`.
 - Persistência REVO:
-  - `ContractorProposal.request_payload` (JSONB) — corpo enviado
-  - `ContractorProposalResult.response_payload` (JSONB) — resposta da REVO
-  - `economy_thirty_years` adicionado em Result
-- Regra de prioridade/aliciamento: CPF + CEP válidos até `proposal_expiration_date` (override via `?override=1`).
+  - `ContractorProposal.request_payload` — corpo enviado no POST.
+  - `ContractorProposalResult.response_payload` — resposta do POST.
+  - `ContractorProposalResult.response_payload_put` — resposta do PUT (Efetivar Proposta).
+- Efetivar Proposta (PUT): atualiza proposta na REVO e localmente (não cria novo Result), upsert em `ContractorProposalLeadActor` para `owner`/`legal_responsible`.
+- Regras de Lead Actors:
+  - `contractor` sempre obrigatório.
+  - Para PJ, `legal_responsible` obrigatório.
+  - Quando proprietário != "Próprio", enviar ator `owner`; quando voltar a "Próprio", registro de `owner` é removido.
+- Frontend: UI padronizada com fieldsets/cards nas seções (Dados Iniciais, Agendamento, Consumo Mensal, Atores, Planos disponíveis, Dados para Efetivação); destaque visual para plano selecionado.
 
 ## Pendências técnicas alinhadas ao DER
 - `plans.PlanAdesion.licensed` deve referenciar `core.Licensed` (hoje aponta para `User`).
