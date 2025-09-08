@@ -510,10 +510,20 @@ class RevoSimulationView(APIView):
                 print(f"[REVO_SIM] Result created id={result.id} proposal_id={proposal.id} contract_type={result.contract_type}")
             except Exception:
                 pass
-            # guarda payload de resposta bruto no objeto (para refletir no serializer)
+            # guarda payload do POST em response_payload
             try:
                 result.response_payload = payload
                 result.save(update_fields=['response_payload'])
+            except Exception:
+                pass
+
+            # snapshot do response POST dentro do request_payload da Proposal (até criarmos campos dedicados)
+            try:
+                rp = proposal.request_payload or {}
+                rp_snap = dict(rp)
+                rp_snap['response_post'] = payload
+                proposal.request_payload = rp_snap
+                proposal.save(update_fields=['request_payload'])
             except Exception:
                 pass
 
@@ -567,7 +577,13 @@ class RevoSimulationView(APIView):
                 return Response(resp.json(), status=resp.status_code)
 
             payload = resp.json()
-            data = (payload.get('data') or [{}])[0]
+            raw_data = payload.get('data')
+            if isinstance(raw_data, list):
+                data = (raw_data or [{}])[0]
+            elif isinstance(raw_data, dict):
+                data = raw_data
+            else:
+                data = {}
 
             try:
                 proposal = Proposal.objects.get(reference_code=str(reference))
@@ -583,35 +599,129 @@ class RevoSimulationView(APIView):
                 except Exception:
                     dtt_exp = None
 
-            result = ProposalResult.objects.create(
-                proposal=proposal,
-                contract_type=data.get('contract_type') or '',
-                contract_duration=int(data.get('contract_duration') or 0),
-                discount_percentage=Decimal(str(data.get('discount_percentage') or 0)),
-                discount_amount=Decimal(str(data.get('discount_amount') or 0)),
-                economy_thirty_years=Decimal(str(data.get('economy_thirty_years') or 0)),
-                installment_amount=Decimal('0'),
-                total_installments=0,
-                total_amount=Decimal('0'),
-                kwp=Decimal(str(data.get('kwp') or 0)),
-                kwh_annual=Decimal(str(data.get('kWh_annual') or 0)),
-                required_area=Decimal(str(data.get('required_area'))) if data.get('required_area') is not None else None,
-                qty_modules=int(data.get('quantity_modules') or 0) if data.get('quantity_modules') is not None else None,
-                energy_provider_id=int(data.get('energy_provider_id') or 0) if data.get('energy_provider_id') is not None else None,
-                energy_provider_name=data.get('energy_provider_name'),
-                provider_costs=Decimal(str(data.get('energy_provider_costs') or 0)),
-                revo_costs=Decimal(str(data.get('energy_revo_costs') or 0)),
-                electric_bill_value=Decimal(str(data.get('energy_provider_electric_bill') or 0)),
-                consumer_unit=( (data.get('electric_bill') or {}).get('consumer_unit') or body.get('consumer_unit') ),
-                consumer_group=( (data.get('electric_bill') or {}).get('consumer_group') or body.get('consumer_group') ),
-                proposal_expiration_at=dtt_exp or make_aware(datetime.utcnow()),
-                status='Ativo',
-                usr_record=str(request.user),
-            )
+            # Atualiza a Proposal com dados retornados pela REVO (endereço e conta)
+            installation = data.get('installation_address') or {}
+            electric_bill_info = data.get('electric_bill') or {}
+            if proposal is not None:
+                try:
+                    # Atualiza owner/is_owner_self se vier no payload
+                    try:
+                        if 'owner' in body and isinstance(body.get('owner'), str):
+                            owner_text = body.get('owner')
+                            proposal.owner = owner_text
+                            proposal.is_owner_self = _normalize_bool_owner(owner_text)
+                    except Exception:
+                        pass
+
+                    if installation:
+                        proposal.address = installation.get('address') or proposal.address
+                        proposal.number = installation.get('number') or proposal.number
+                        proposal.complement = installation.get('complement') or proposal.complement
+                        proposal.neighborhood = installation.get('neighborhood') or proposal.neighborhood
+                        proposal.city = installation.get('city') or proposal.city
+                        st_val = installation.get('st')
+                        if st_val:
+                            proposal.state = (st_val or '')[:2]
+                    if electric_bill_info:
+                        proposal.consumer_unit = electric_bill_info.get('consumer_unit') or body.get('consumer_unit') or proposal.consumer_unit
+                        proposal.consumer_group = electric_bill_info.get('consumer_group') or body.get('consumer_group') or proposal.consumer_group
+                    ep_id = data.get('energy_provider_id')
+                    ep_name = data.get('energy_provider_name')
+                    if ep_id is not None:
+                        proposal.energy_provider_id = ep_id
+                    if ep_name is not None:
+                        proposal.energy_provider_name = ep_name
+                    proposal.save()
+                except Exception:
+                    pass
+
+            # Atualiza/limpa Lead Actors (somente owner/legal_responsible) conforme payload enviado
+            try:
+                if proposal is not None:
+                    incoming_lead_actors = body.get('lead_actors') or []
+                    # Se proprietário for "Próprio", removemos qualquer registro de owner existente
+                    if _normalize_bool_owner(body.get('owner') or ''):
+                        ProposalLeadActor.objects.filter(proposal=proposal, actor='owner').delete()
+                    # Upsert para atores enviados (owner/legal_responsible). Ignora contractor por regra de negócio
+                    for item in incoming_lead_actors:
+                        actor_kind = (item.get('actor') or '').strip()
+                        if actor_kind not in ('owner', 'legal_responsible'):
+                            continue
+                        ProposalLeadActor.objects.update_or_create(
+                            proposal=proposal,
+                            actor=actor_kind,
+                            defaults={
+                                'legal_name': item.get('legal_name'),
+                                'name': item.get('name'),
+                                'cpf_cnpj': item.get('cpf') or item.get('cpf_cnpj'),
+                                'cellphone': item.get('cellphone'),
+                                'email': item.get('email'),
+                                'zip_code': item.get('zip_code'),
+                                'address': item.get('address'),
+                                'number': item.get('number'),
+                                'complement': item.get('complement'),
+                                'neighborhood': item.get('neighborhood'),
+                                'city': item.get('city'),
+                                'st': item.get('st'),
+                            }
+                        )
+            except Exception:
+                pass
+
+            # Atualiza último resultado existente ao invés de criar novo
+            latest_result = None
+            if proposal is not None:
+                latest_result = ProposalResult.objects.filter(proposal=proposal).order_by('-id').first()
+            if latest_result is None:
+                latest_result = ProposalResult()
+                latest_result.proposal = proposal
+                latest_result.usr_record = str(request.user)
+
+            latest_result.contract_type = data.get('contract_type') or ''
+            latest_result.contract_duration = int(data.get('contract_duration') or 0)
+            latest_result.discount_percentage = Decimal(str(data.get('discount_percentage') or 0))
+            latest_result.discount_amount = Decimal(str(data.get('discount_amount') or 0))
+            latest_result.economy_thirty_years = Decimal(str(data.get('economy_thirty_years') or 0))
+            latest_result.installment_amount = Decimal('0')
+            latest_result.total_installments = 0
+            latest_result.total_amount = Decimal('0')
+            latest_result.kwp = Decimal(str(data.get('kwp') or 0))
+            latest_result.kwh_annual = Decimal(str(data.get('kWh_annual') or 0))
+            latest_result.required_area = Decimal(str(data.get('required_area'))) if data.get('required_area') is not None else None
+            latest_result.qty_modules = int(data.get('quantity_modules') or 0) if data.get('quantity_modules') is not None else None
+            latest_result.energy_provider_id = int(data.get('energy_provider_id') or 0) if data.get('energy_provider_id') is not None else None
+            latest_result.energy_provider_name = data.get('energy_provider_name')
+            latest_result.provider_costs = Decimal(str(data.get('energy_provider_costs') or 0))
+            latest_result.revo_costs = Decimal(str(data.get('energy_revo_costs') or 0))
+            latest_result.electric_bill_value = Decimal(str(data.get('energy_provider_electric_bill') or 0))
+            latest_result.consumer_unit = ( (data.get('electric_bill') or {}).get('consumer_unit') or body.get('consumer_unit') )
+            latest_result.consumer_group = ( (data.get('electric_bill') or {}).get('consumer_group') or body.get('consumer_group') )
+            latest_result.proposal_expiration_at = dtt_exp or make_aware(datetime.utcnow())
+            latest_result.status = 'Ativo'
+            latest_result.save()
+
+            # guarda payload do PUT nos campos dedicados do resultado
+            try:
+                latest_result.response_payload = payload
+                latest_result.response_payload_put = payload
+                latest_result.save(update_fields=['response_payload', 'response_payload_put'])
+            except Exception:
+                pass
+
+            # snapshot do response PUT dentro do request_payload da Proposal (até criarmos campos dedicados)
+            if proposal is not None:
+                try:
+                    rp = proposal.request_payload or {}
+                    rp_snap = dict(rp)
+                    rp_snap['response_put'] = payload
+                    proposal.request_payload = rp_snap
+                    proposal.save(update_fields=['request_payload'])
+                except Exception:
+                    pass
 
             response = {
                 'revo': payload,
-                'result': ProposalResultSerializer(result).data,
+                'result': ProposalResultSerializer(latest_result).data,
             }
             if proposal:
                 response['proposal'] = ProposalSerializer(proposal).data

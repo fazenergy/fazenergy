@@ -115,7 +115,8 @@ class ProposalResult(models.Model):
     status = models.CharField(max_length=50, default='Ativo', verbose_name='Status')
     usr_record = models.CharField(max_length=50, verbose_name='Usuário Registro')
     dtt_record = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
-    response_payload = models.JSONField(null=True, blank=True, verbose_name='Payload de Resposta (REVO)')
+    response_payload = models.JSONField(null=True, blank=True, verbose_name='Payload REVO (POST)')
+    response_payload_put = models.JSONField(null=True, blank=True, verbose_name='Payload REVO (PUT)')
 
     class Meta:
         db_table = 'ContractorProposalResult'
