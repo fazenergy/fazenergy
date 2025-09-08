@@ -93,7 +93,7 @@ class ProposalLeadActor(models.Model):
 class ProposalResult(models.Model):
     proposal = models.ForeignKey('contractor.Proposal', on_delete=models.CASCADE, related_name='results', verbose_name='Proposta')
     contract_type = models.CharField(max_length=100, verbose_name='Tipo de Contrato')
-    contract_duration_months = models.IntegerField(null=True, blank=True, verbose_name='Duração (meses)')
+    contract_duration = models.IntegerField(null=True, blank=True, verbose_name='Duração (meses)')
     discount_percentage = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name='Desconto (%)')
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name='Desconto (R$)')
     economy_thirty_years = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True, verbose_name='Economia em 30 Anos (R$)')
@@ -115,7 +115,8 @@ class ProposalResult(models.Model):
     status = models.CharField(max_length=50, default='Ativo', verbose_name='Status')
     usr_record = models.CharField(max_length=50, verbose_name='Usuário Registro')
     dtt_record = models.DateTimeField(auto_now_add=True, verbose_name='Data Cadastro')
-    response_payload = models.JSONField(null=True, blank=True, verbose_name='Payload de Resposta (REVO)')
+    response_payload = models.JSONField(null=True, blank=True, verbose_name='Payload REVO (POST)')
+    response_payload_put = models.JSONField(null=True, blank=True, verbose_name='Payload REVO (PUT)')
 
     class Meta:
         db_table = 'ContractorProposalResult'

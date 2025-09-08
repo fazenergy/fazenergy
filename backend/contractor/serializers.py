@@ -21,18 +21,21 @@ class ContractorSerializer(serializers.ModelSerializer):
         return data
 
 
-class ProposalSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Proposal
-        fields = '__all__'
-        read_only_fields = ['dtt_record', 'dtt_update']
-
-
 class ProposalLeadActorSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalLeadActor
         fields = '__all__'
         read_only_fields = []
+
+
+class ProposalSerializer(serializers.ModelSerializer):
+    contractor = ContractorSerializer(read_only=True)
+    lead_actors = ProposalLeadActorSerializer(read_only=True, many=True)
+
+    class Meta:
+        model = Proposal
+        fields = '__all__'
+        read_only_fields = ['dtt_record', 'dtt_update']
 
 
 class ProposalResultSerializer(serializers.ModelSerializer):
