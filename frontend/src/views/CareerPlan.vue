@@ -116,18 +116,33 @@ const formatCurrency = (value) => {
   }).format(value)
 }
 
+// Cor do troféu por nível (fallback azul)
+const getTrophyColor = (stageName) => {
+  const name = String(stageName || '').toLowerCase()
+  if (name.includes('bronze')) return 'text-amber-600'
+  if (name.includes('prata') || name.includes('silver')) return 'text-gray-400'
+  if (name.includes('ouro') || name.includes('gold')) return 'text-yellow-500'
+  if (name.includes('platina') || name.includes('platinum')) return 'text-slate-400'
+  if (name.includes('diamante') || name.includes('diamond')) return 'text-cyan-500'
+  return 'text-blue-600'
+}
+
 // Carregar dados do usuário
 const loadCareerData = async () => {
   try {
     loading.value = true
+    console.log('DEBUG: Fazendo requisição para /api/core/career-data/')
     const response = await api.get('/api/core/career-data/')
+    console.log('DEBUG: Resposta recebida:', response.data)
     const data = response.data
     
     stats.value = data.stats
     currentLevel.value = data.current_level
     careerPlans.value = data.career_plans
+    console.log('DEBUG: Dados processados:', { stats: stats.value, currentLevel: currentLevel.value, careerPlans: careerPlans.value })
   } catch (error) {
     console.error('Erro ao carregar dados de carreira:', error)
+    console.error('Detalhes do erro:', error.response?.data)
     // Fallback para dados mockados em caso de erro
     stats.value = {
       sales: 0,

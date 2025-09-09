@@ -42,11 +42,14 @@ api.interceptors.response.use(
 
         return api(originalRequest)
       } catch (err) {
-        debugger;
         console.error('Refresh token inválido')
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
-        //window.location.href = '/login'
+        // Redireciona ao login para renovar sessão
+        try {
+          window.location.href = '/login'
+        } catch (_) {}
+        return Promise.reject(err)
       }
     }
 

@@ -6,7 +6,6 @@
       <div class="p-3 flex items-start md:items-center justify-between gap-4">
         <div>
           <h3 class="text-sm font-semibold">Configurações de Rede Multinível</h3>
-          <p class="text-[11px] text-gray-500">Defina parâmetros da rede UNILEVEL (visual, sem persistência por enquanto).</p>
         </div>
         <button @click="save" class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white">Gravar</button>
       </div>

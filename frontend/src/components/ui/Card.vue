@@ -20,7 +20,7 @@
       </div>
 
       <!-- Ícone (direita, centralizado) -->
-      <div v-if="$slots.icon" class="bg-white/20 rounded p-3">
+      <div v-if="$slots.icon" :class="[iconBgClass, 'rounded p-3']">
         <slot name="icon" />
       </div>
     </div>
@@ -32,6 +32,10 @@ defineProps({
   className: {
     type: String,
     default: ''
+  },
+  iconBgClass: {
+    type: String,
+    default: 'bg-white/20'
   }
 })
 </script>

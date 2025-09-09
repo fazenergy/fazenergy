@@ -783,10 +783,55 @@ class DashboardView(APIView):
         team_size = len(collected_ids)
         active_team = Licensed.objects.filter(id__in=collected_ids, stt_record=True).count()
 
+        # Pontos projetados x consolidados e projeção de bônus (conforme SCOPE: 0,10 por ponto)
+        try:
+            from network.models.ScoreReference import ScoreReference
+            from django.db.models import Sum as DjSum
+            points_projected = (
+                ScoreReference.objects
+                .filter(receiver_licensed=current_licensed, status='pending')
+                .aggregate(total=DjSum('points_amount'))['total'] or 0
+            )
+            points_consolidated = (
+                ScoreReference.objects
+                .filter(receiver_licensed=current_licensed, status='valid')
+                .aggregate(total=DjSum('points_amount'))['total'] or 0
+            )
+        except Exception:
+            points_projected = 0
+            points_consolidated = 0
+
+        # Conversão simples ponto->R$ (R$0,10 por ponto) – ver docs/SCOPE.md
+        bonus_projection_value = float(points_projected * 0.1)
+        # Saldo disponível (carteira virtual)
+        try:
+            from finance.models.VirtualAccount import VirtualAccount
+            va = VirtualAccount.objects.filter(licensed=current_licensed).first()
+            balance_available = float(getattr(va, 'balance_available', 0) or 0)
+        except Exception:
+            balance_available = 0.0
+
+        month_label = timezone.now().strftime('%m/%Y')
+
+        # Usinas vendidas: propostas aprovadas do licenciado (ver docs/ScopeAquiles.md e SCOPE.md)
+        try:
+            from contractor.models import Proposal
+            sold_plants_count = Proposal.objects.filter(
+                contractor__licensed=current_licensed,
+                status='Aprovado'
+            ).count()
+        except Exception:
+            sold_plants_count = 0
+
         data['cards'] = [
-            {'key': 'directs', 'title': 'Diretos', 'value': directs_count, 'icon': 'UserPlus', 'delta': None},
-            {'key': 'team_size', 'title': 'Minha Rede', 'value': team_size, 'icon': 'Users', 'delta': None},
-            {'key': 'career', 'title': 'Carreira Atual', 'value': (current_licensed.current_career.stage_name if current_licensed.current_career else '-'), 'icon': 'TrendingUp', 'delta': None},
+            # Sequência solicitada: Rede, Usinas Vendidas, Projeção de Bonus, Carreira Atual, Pontos Projetados, Pontos Consolidados, Saldo Disponível, Documentação
+            {'key': 'network', 'title': 'Rede', 'value': team_size, 'icon': 'Users', 'delta': f"Diretos: {directs_count}"},
+            {'key': 'sold_plants', 'title': 'Usinas Vendidas', 'value': sold_plants_count, 'icon': 'Factory', 'delta': None},
+            {'key': 'bonus_projection', 'title': 'Projeção de Bônu', 'value': bonus_projection_value, 'icon': 'DollarSign', 'delta': f"mês {month_label}"},
+            {'key': 'career', 'title': 'Carreira Atual', 'value': (current_licensed.current_career.stage_name if current_licensed.current_career else '-'), 'icon': 'Shield', 'delta': None},
+            {'key': 'points_projected', 'title': 'Pontos Projetados', 'value': points_projected, 'icon': 'Target', 'delta': None},
+            {'key': 'points_consolidated', 'title': 'Pontos Consolidados', 'value': points_consolidated, 'icon': 'CheckCircle', 'delta': None},
+            {'key': 'balance_available', 'title': 'Saldo Disponível', 'value': balance_available, 'icon': 'DollarSign', 'delta': 'consolidado'},
             {'key': 'docs_status', 'title': 'Documentação', 'value': current_licensed.stt_document.capitalize(), 'icon': 'File', 'delta': None},
         ]
 
@@ -831,6 +876,49 @@ class DashboardView(APIView):
                 'pending_annual_payment': False,
                 'payment_link_url': None,
                 'adesion_id': None,
+            }
+
+        # Detalhes de assinatura/plano (lista para o dashboard do licenciado)
+        try:
+            plan_name = getattr(getattr(current_licensed, 'plan', None), 'name', None)
+            dtt_cadastro = getattr(current_licensed, 'dtt_record', None)
+            dtt_ativacao = getattr(current_licensed, 'dtt_activation', None)
+
+            expires_at = None
+            contract_status_raw = None
+            contract_status = 'pending'
+
+            if last_adesion:
+                contract_status_raw = getattr(last_adesion, 'contract_status', None)
+                # Expiração: 12 meses após pagamento confirmado
+                if getattr(last_adesion, 'ind_payment_status', None) == 'confirmed' and getattr(last_adesion, 'dtt_payment', None):
+                    try:
+                        expires_at = last_adesion.dtt_payment + timezone.timedelta(days=365)
+                    except Exception:
+                        expires_at = None
+                # Normaliza status de contrato em "signed" | "pending"
+                cs = str(contract_status_raw or '').strip().lower()
+                if cs in {'signed', 'approved', 'assinado', 'ativo', 'active'}:
+                    contract_status = 'signed'
+                else:
+                    contract_status = 'pending'
+
+            data['subscription'] = {
+                'plan_name': plan_name,
+                'dtt_record': dtt_cadastro.isoformat() if dtt_cadastro else None,
+                'dtt_activation': dtt_ativacao.isoformat() if dtt_ativacao else None,
+                'expires_at': expires_at.isoformat() if expires_at else None,
+                'contract_status': contract_status,
+                'contract_status_raw': contract_status_raw,
+            }
+        except Exception:
+            data['subscription'] = {
+                'plan_name': None,
+                'dtt_record': None,
+                'dtt_activation': None,
+                'expires_at': None,
+                'contract_status': 'pending',
+                'contract_status_raw': None,
             }
 
         return Response(data)
@@ -884,6 +972,7 @@ class CareerDataView(APIView):
             try:
                 from plans.models.PlanCareer import PlanCareer
                 career_plans = PlanCareer.objects.filter(stt_record=True).order_by('required_points')
+                print(f"DEBUG: Encontrados {career_plans.count()} planos de carreira")
                 
                 # Processar planos de carreira
                 for plan in career_plans:
@@ -902,9 +991,14 @@ class CareerDataView(APIView):
                 # Definir nível atual
                 if licensed.current_career:
                     career_data['current_level'] = licensed.current_career.stage_name
+                    print(f"DEBUG: Carreira atual: {licensed.current_career.stage_name}")
+                else:
+                    print("DEBUG: Licenciado não possui carreira atual definida")
                     
             except Exception as e:
                 print(f"Erro ao carregar planos de carreira: {e}")
+                import traceback
+                traceback.print_exc()
             
             # Calcular estatísticas do usuário (com fallbacks)
             try:
@@ -930,7 +1024,7 @@ class CareerDataView(APIView):
                 from network.models.ScoreReference import ScoreReference
                 total_points = ScoreReference.objects.filter(
                     receiver_licensed=licensed,
-                    stt_record=True
+                    status='valid'
                 ).aggregate(total=Sum('points_amount'))['total'] or 0
                 career_data['stats']['commissions'] = float(total_points * 0.1)
             except Exception as e:
@@ -945,6 +1039,7 @@ class CareerDataView(APIView):
                 referrals_progress = min((direct_referrals / plan_data['required_directs']) * 100, 100) if plan_data['required_directs'] > 0 else 100
                 plan_data['progress'] = round((sales_progress + referrals_progress) / 2, 1)
             
+            print(f"DEBUG: Retornando dados de carreira: {career_data}")
             return Response(career_data)
             
         except Licensed.DoesNotExist:

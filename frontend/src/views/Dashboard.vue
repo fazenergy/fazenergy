@@ -37,6 +37,16 @@
       <Printer class="w-4 h-4" />
       Imprimir
     </button>
+    
+    <!-- Botão Info: só aparece para Licenciado -->
+    <button
+      v-if="isLicensed"
+      @click="showInfo=true"
+      class="inline-flex items-center justify-center w-9 h-9 rounded text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300" 
+      title="Informações sobre os cards"
+    >
+      <Info class="w-5 h-5" />
+    </button>
   </div>
 
   <!-- Indicador de status do cadastro (lado direito) -->
@@ -87,6 +97,88 @@
           <button form="preRegisterForm" type="submit" class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Gravar</button>
         </div>
       </template>
+    </Modal>
+
+    <!-- Modal Info - Explicação dos Cards -->
+    <Modal v-model="showInfo" :header-blue="true" :no-header-border="true">
+      <template #title>Informações sobre os Cards</template>
+      <div class="w-[600px] max-w-[90vw] p-1 text-sm leading-6">
+        <div class="space-y-4">
+          <div class="flex items-start gap-3">
+            <Users class="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Rede</h4>
+              <p class="text-gray-600">Mostra o total de pessoas na sua rede (incluindo você) e quantos são seus diretos (pessoas que você indicou diretamente).</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <Users class="w-5 h-5 text-amber-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Usinas Vendidas</h4>
+              <p class="text-gray-600">Quantidade de usinas fotovoltaicas que você vendeu e que foram aprovadas.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <DollarSign class="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Projeção de Bônus</h4>
+              <p class="text-gray-600">Valor estimado de bônus que você receberá no mês, baseado nos pontos pendentes (R$ 0,10 por ponto).</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <Shield class="w-5 h-5 text-purple-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Carreira Atual</h4>
+              <p class="text-gray-600">Seu nível atual na carreira (Bronze, Prata, Ouro, Platina, Diamante). A cor do escudo muda conforme o nível.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <Target class="w-5 h-5 text-orange-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Pontos Projetados</h4>
+              <p class="text-gray-600">Total de pontos que você tem pendentes (ainda não consolidados). Estes pontos geram bônus quando consolidados.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <CheckCircle2 class="w-5 h-5 text-emerald-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Pontos Consolidados</h4>
+              <p class="text-gray-600">Total de pontos já consolidados (validados). Estes pontos já geraram bônus e estão no seu saldo.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <DollarSign class="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Saldo Disponível</h4>
+              <p class="text-gray-600">Valor total disponível para saque na sua conta virtual. Este valor já foi consolidado e pode ser sacado.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start gap-3">
+            <FileText class="w-5 h-5 text-gray-600 mt-1 flex-shrink-0" />
+            <div>
+              <h4 class="font-semibold text-gray-800">Documentação</h4>
+              <p class="text-gray-600">Status da sua documentação (Pendente, Aprovado, Reprovado). Deve estar aprovada para ativação.</p>
+            </div>
+          </div>
+          
+          <hr class="border-gray-200" />
+          
+          <div class="bg-blue-50 p-3 rounded-lg">
+            <h4 class="font-semibold text-blue-800 mb-2">Regras para Saque</h4>
+            <p class="text-blue-700 text-xs">
+              O saque está disponível conforme as configurações gerais do sistema. 
+              Consulte as configurações para ver os valores mínimos e prazos estabelecidos.
+            </p>
+          </div>
+        </div>
+      </div>
     </Modal>
 </div>
 <div class="flex">
@@ -139,9 +231,9 @@
 
     <!-- Cards principais -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card v-for="(c, idx) in cards" :key="c.key" :className="cardClass(c, idx)" @click="c.route && router.push(c.route)" class="cursor-pointer">
+      <Card v-for="(c, idx) in cards" :key="c.key" :className="cardClass(c, idx)" :iconBgClass="iconBgFor(c)" @click="c.route && router.push(c.route)" class="cursor-pointer">
          <template #title><div>{{ c.title }}</div></template>
-         <template #content><div><p class="text-2xl font-bold">{{ c.value }}</p></div></template>
+         <template #content><div><p class="text-2xl font-bold">{{ displayValue(c) }}</p></div></template>
          <template #description><div v-if="c.delta">{{ c.delta }}</div></template>
          <template #icon><component :is="iconFor(c)" class="w-7 h-7" /></template>
       </Card>
@@ -214,8 +306,54 @@
           </div>
         </div>
 
+        <!-- Assinatura / Plano (Licenciado) -->
+        <div v-if="isLicensed" class="bg-white border rounded-lg p-6 shadow-sm">
+          <h2 class="font-bold text-lg mb-4">Assinatura</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="flex items-start gap-3">
+              <div class="w-2.5 h-2.5 rounded-full bg-blue-500 mt-1.5"></div>
+              <div>
+                <div class="text-xs text-gray-500">Plano Atual</div>
+                <div class="font-semibold text-gray-800">{{ subscription.plan_name || '-' }}</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-2.5 h-2.5 rounded-full bg-gray-500 mt-1.5"></div>
+              <div>
+                <div class="text-xs text-gray-500">Data de Cadastro</div>
+                <div class="font-semibold text-gray-800">{{ formatDate(subscription.dtt_record) }}</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5"></div>
+              <div>
+                <div class="text-xs text-gray-500">Data de Ativação</div>
+                <div class="font-semibold text-gray-800">{{ formatDate(subscription.dtt_activation) }}</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-2.5 h-2.5 rounded-full bg-orange-500 mt-1.5"></div>
+              <div>
+                <div class="text-xs text-gray-500">Expira em</div>
+                <div class="font-semibold text-gray-800">{{ formatDate(subscription.expires_at) }}</div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 sm:col-span-2 lg:col-span-1">
+              <div class="w-2.5 h-2.5 rounded-full" :class="subscription.contract_status==='signed' ? 'bg-emerald-500' : 'bg-amber-500'" style="margin-top:6px"></div>
+              <div>
+                <div class="text-xs text-gray-500">Assinatura de Contrato de Adesão</div>
+                <div class="flex items-center gap-2">
+                  <span v-if="subscription.contract_status==='signed'" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Assinado</span>
+                  <span v-else class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Pendente</span>
+                  <button v-if="subscription.contract_status!=='signed'" @click="goToContracts" class="px-2 py-1 rounded text-xs bg-blue-600 hover:bg-blue-700 text-white">Assinar agora</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Resumo Operacional -->
-        <div class="bg-white border rounded-lg p-6 shadow-sm">
+        <div v-if="!isLicensed" class="bg-white border rounded-lg p-6 shadow-sm">
           <h2 class="font-bold text-lg mb-6">Resumo Operacional</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Pontos Gerados 
@@ -285,7 +423,7 @@ import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
 import { computed, ref, onMounted, watch } from 'vue'
 import Card from '@/components/ui/Card.vue'
-import { UserPlus, DollarSign, TrendingUp, Users, FileText, Plus, Share2, FileDown, Printer, CheckCircle2, Clock, XCircle, AlertTriangle, Settings, BarChart3, Network, Target } from 'lucide-vue-next'
+import { UserPlus, DollarSign, TrendingUp, Users, FileText, Plus, Share2, FileDown, Printer, CheckCircle2, Clock, XCircle, AlertTriangle, Settings, BarChart3, Network, Target, Shield, Info } from 'lucide-vue-next'
 import api from '@/services/axios'
 import Modal from '@/components/ui/Modal.vue'
 import Button from '@/components/ui/Button.vue'
@@ -296,6 +434,7 @@ import LoadingOverlay from '@/components/ui/LoadingOverlay.vue'
 const auth = useAuthStore()
 const router = useRouter()
 const showNew = ref(false)
+const showInfo = ref(false)
 const preForm = ref(null)
 const preFormKey = ref(0)
 const dashboardRef = ref(null)
@@ -314,6 +453,7 @@ const quickActions = ref([])
 const billing = ref({ pending_annual_payment: false, payment_link_url: null, adesion_id: null })
 const documents = ref({ pending: false, status: 'pending' })
 const summary = ref({ pre_registers: 0, activations: 0, withdraw_requests: 0 })
+const subscription = ref({ plan_name: null, dtt_record: null, dtt_activation: null, expires_at: null, contract_status: 'pending' })
 const pendingDocumentsCount = ref(0)
 
 // Mapeia status do cadastro/licença do usuário
@@ -343,6 +483,7 @@ async function fetchDashboard() {
   billing.value = data?.billing || { pending_annual_payment: false }
   documents.value = data?.documents || { pending: false, status: 'pending' }
   summary.value = data?.summary || { pre_registers: 0, activations: 0, withdraw_requests: 0 }
+  subscription.value = data?.subscription || subscription.value
   
   // Buscar count de documentos pendentes se for operador
   if (isOperator.value) {
@@ -374,6 +515,12 @@ function cardClass(card, index) {
     operator_paid_plants: 'from-blue-500 to-blue-600',
     operator_bonus_total: 'from-purple-600 to-purple-700',
     operator_points_total: 'from-orange-600 to-orange-700',
+    bonus_projection: 'from-purple-600 to-purple-700',
+    points_projected: 'from-orange-500 to-orange-600',
+    points_consolidated: 'from-emerald-600 to-emerald-700',
+    balance_available: 'from-emerald-600 to-emerald-700',
+    network: 'from-purple-500 to-purple-600',
+    sold_plants: 'from-amber-400 to-amber-500',
   }
   const palette = [
     'from-blue-500 to-blue-600',
@@ -392,8 +539,20 @@ function iconFor(card) {
       return UserPlus
     case 'team_size':
       return Users
+    case 'bonus_projection':
+      return DollarSign
+    case 'points_projected':
+      return Target
+    case 'points_consolidated':
+      return CheckCircle2
+    case 'balance_available':
+      return DollarSign
+    case 'network':
+      return Users
+    case 'sold_plants':
+      return Users
     case 'career':
-      return TrendingUp
+      return Shield
     case 'docs_status':
       return FileText
     case 'operator_paid_adesions':
@@ -404,6 +563,50 @@ function iconFor(card) {
       return DollarSign
     default:
       return Users
+  }
+}
+
+function iconBgFor(card) {
+  const key = card?.key
+  if (key === 'sold_plants') {
+    return 'bg-amber-300/30'
+  }
+  if (key === 'career') {
+    // Cores do escudo baseadas no nível de carreira
+    const careerValue = card?.value || ''
+    if (!careerValue || careerValue === '-') {
+      return 'bg-gray-300/30' // Cinza quando sem carreira
+    }
+    const careerLower = careerValue.toLowerCase()
+    if (careerLower.includes('bronze')) return 'bg-amber-300/30'
+    if (careerLower.includes('prata') || careerLower.includes('silver')) return 'bg-gray-300/30'
+    if (careerLower.includes('ouro') || careerLower.includes('gold')) return 'bg-yellow-300/30'
+    if (careerLower.includes('platina') || careerLower.includes('platinum')) return 'bg-blue-300/30'
+    if (careerLower.includes('diamante') || careerLower.includes('diamond')) return 'bg-purple-300/30'
+    return 'bg-emerald-300/30' // Verde padrão para outros níveis
+  }
+  return 'bg-white/20'
+}
+
+function displayValue(card) {
+  const monetaryKeys = new Set(['bonus_projection', 'balance_available'])
+  if (monetaryKeys.has(card?.key) && typeof card?.value === 'number') {
+    try {
+      return card.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    } catch (_) {
+      return `R$ ${Number(card.value).toFixed(2)}`
+    }
+  }
+  return card?.value
+}
+
+function formatDate(iso) {
+  if (!iso) return '-'
+  try {
+    const d = new Date(iso)
+    return d.toLocaleDateString('pt-BR')
+  } catch (_) {
+    return '-'
   }
 }
 
@@ -575,5 +778,9 @@ async function printDashboard() {
   } catch {} finally {
     actionLoading.value = false
   }
+}
+
+function goToContracts() {
+  router.push('/settings')
 }
 </script>

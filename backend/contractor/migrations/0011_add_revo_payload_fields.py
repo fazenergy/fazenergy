@@ -9,16 +9,26 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql=(
-                'ALTER TABLE "ContractorProposalResult" '
-                'ADD COLUMN IF NOT EXISTS response_payload_post JSONB NULL, '
-                'ADD COLUMN IF NOT EXISTS response_payload_put JSONB NULL;'
-            ),
-            reverse_sql=(
-                'ALTER TABLE "ContractorProposalResult" '
-                'DROP COLUMN IF EXISTS response_payload_post, '
-                'DROP COLUMN IF EXISTS response_payload_put;'
-            )
+            sql="""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ContractorProposalResult') THEN
+                    ALTER TABLE "ContractorProposalResult" 
+                    ADD COLUMN IF NOT EXISTS response_payload_post JSONB NULL, 
+                    ADD COLUMN IF NOT EXISTS response_payload_put JSONB NULL;
+                END IF;
+            END $$;
+            """,
+            reverse_sql="""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ContractorProposalResult') THEN
+                    ALTER TABLE "ContractorProposalResult" 
+                    DROP COLUMN IF EXISTS response_payload_post, 
+                    DROP COLUMN IF EXISTS response_payload_put;
+                END IF;
+            END $$;
+            """
         ),
     ]
 
