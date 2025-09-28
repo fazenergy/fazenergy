@@ -39,6 +39,8 @@ import NotFound from '../views/NotFound.vue'
 import Documents from '../views/Documents.vue'
 import DocumentsReview from '../views/DocumentsReview.vue'
 import LicensedList from '../views/Licensed/List.vue'
+import LicensedCompanies from '../views/Company/LicensedCompanies.vue'
+import WithdrawAccounts from '../views/Finance/WithdrawAccounts.vue'
 
 // Administração
 import AdminUsers from '../views/Admin/Users.vue'
@@ -93,12 +95,14 @@ const routes = [
   { path: '/reports/general', component: GeneralReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/reports/points', component: PointsReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/reports/bonus', component: BonusReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
-  { path: '/reports/closures', component: ClosuresReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
+  { path: '/reports/closures', component: ClosuresReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
   { path: '/reports/virtual-accounts', component: VirtualAccountsReport, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
 
   // Financeiro
   { path: '/finance/withdrawals', component: WithdrawRequests, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/finance/virtual-accounts', component: AccountBalances, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
+  // Conta de Saque (Licenciado)
+  { path: '/finance/withdraw-accounts', component: WithdrawAccounts, meta: { requiresAuth: true, roles: ['licenciado','superadmin'] } },
   
   // Perfil e documentos
   { path: '/profile', component: Profile, meta: { requiresAuth: true, roles: ['superadmin', 'afiliado', 'operador', 'licenciado'] } },
@@ -106,6 +110,7 @@ const routes = [
   { path: '/documents', component: Documents, meta: { requiresAuth: true, roles: ['superadmin', 'operador', 'licenciado'] } },
   { path: '/documents/review', component: DocumentsReview, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
   { path: '/licensed', component: LicensedList, meta: { requiresAuth: true, roles: ['superadmin', 'operador'] } },
+  { path: '/company', component: LicensedCompanies, meta: { requiresAuth: true, roles: ['licenciado', 'superadmin'] } },
   
   // Administração (somente superadmin)
   { path: '/admin/users', component: AdminUsers, meta: { requiresAuth: true, roles: ['superadmin'] } },

@@ -45,6 +45,20 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
 - Badges de status unificados.
 - `RichTextEditor.vue` e `CodeEditor.vue` adicionados (rich + monoespaçado), com props de tamanho.
 
+- Acordeon de alertas no Dashboard
+  - Header do acordeon com sininho e contador de mensagens.
+  - Agrupa múltiplos avisos (contrato pendente, documentos PF/PJ pendentes, pagamento pendente, pendências de revisão para Operador).
+  - Cada alerta mantém CTA específico (ex.: Reenviar Contrato, Enviar Documentos, Pagar Agora, Revisar Documentos).
+  - O mesmo contador aparece no sininho do header global; ao clicar, abre modal com mensagens importantes.
+
+### Conta de Saque (Novo)
+- Rota: `/finance/withdraw-accounts` (roles: licenciado, superadmin)
+- Grid padrão listando contas do licenciado: ID, Titular (PF/PJ), Banco, Tipo, Agência, Conta, Padrão.
+- Modal Cadastro/Edição:
+  - PF/PJ: se PJ, selecionar empresa aprovada (`LicensedCompany.stt_validate='approved'`). Caso não exista, cadastrar em “Minhas Empresas” e validar documentos.
+  - Campos: Banco (código/nome), Tipo (corrente/poupança/pagamento), Agência + dígito, Conta + dígito, Titular, CPF/CNPJ, marcar como Padrão.
+- Regras: CRUD apenas das contas do próprio usuário; exclusão bloqueada se houver saque pendente vinculado.
+
 #### Padrão de Grid (obrigatório em todas as telas)
 - Breadcrumb global no cabeçalho principal (Header.vue), derivado da rota atual.
   - As telas de listagem não devem renderizar breadcrumb local duplicado.
@@ -62,6 +76,19 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
   - Aplicar min-height responsivo (cálculo por viewport) para que o grid preencha a área útil e mantenha o footer visível, como em Rede > Diretos.
 - Colunas: a primeira deve ser Ações; a segunda o ID da linha; a última também apresenta o ID quando aplicável.
 - Páginas alvo para aplicar o padrão: Rede (Diretos, Rede Completa, Árvore da Rede, Adesões) e todas as demais listagens do sistema.
+
+### Meu PJ (Novo)
+- Rota: `/company` (roles: licenciado, superadmin)
+- Menu: item "Meu PJ" no grupo Geral do sidebar.
+- Listagem (grid padrão) das empresas do licenciado com Ações (editar), ID, CNPJ, Razão Social, Status, ID final.
+- Modal de Cadastro/Edição:
+  - Campos: CNPJ, Razão Social, Nome Fantasia, IE, IM, CEP, Endereço, Número, Complemento, Bairro, Telefone, Observação.
+  - Uploads obrigatórios: Cartão CNPJ e Contrato Social.
+  - Status da empresa: pending/rejected/approved (aprovada quando os 2 documentos estiverem aprovados).
+- Regras:
+  - Cadastro PJ é opcional; licenciado pode ter 0..N empresas (vários CNPJs).
+  - Se cadastrar empresa, os 2 documentos PJ tornam-se obrigatórios e ficam pendentes até validação por Operador.
+  - Tela de Revisão de Documentos permite filtrar por `owner_type` (PF/PJ) e exibe colunas Origem e Empresa.
 
 ### Gerenciar Usuários (Plano de Execução)
 - Objetivo: criar visão administrativa completa (somente Superadmin) para manutenção de Usuários, Perfis/Permissões e Grupos, seguindo o padrão de barra de botões, filtros e grid.
@@ -130,6 +157,7 @@ Atualizações aplicadas (2025-08)
   - Lista padronizada com toolbar (Adicionar, Exportar, Imprimir) e busca expansível.
 - Relatórios
   - Pontos e Bônus: toolbar padronizada com Exportar/Imprimir, filtros e busca expansível; breadcrumbs no header.
+  - Fechamentos: botão Info com regras e modal “Solicitar Saque” (licenciado); ao selecionar a conta, preenche automaticamente banco/tipo/agência/conta (campos bloqueados) e permite informar o valor.
 - Documentos do Licenciado
   - Padronizar a tela com a mesma toolbar (Exportar/Imprimir, filtro de status, busca expansível) e grid com footer fixo.
   - Ações “Anexar/Reenviar” em modal com botões “Fechar/Gravar”.
@@ -160,6 +188,18 @@ Atualizações aplicadas (2025-08)
   - Ao clicar em um estado, o front chama `GET /api/core/dashboard/?state=UF`; só abre o modal após o carregamento.
   - `LoadingOverlay` cobre o card do mapa enquanto os dados do estado são carregados.
 
+### Dashboard — Atualizações visuais e de fluxo (2025-09)
+- Barra superior
+  - Inclui botão “Verificar Carreira” (Licenciado) que chama o backend e abre modal de resultado.
+  - Removido chip de “Contrato: Pendente/Assinar”; aviso movido para o acordeon de alertas.
+- Cards
+  - Card “Documentação” reintroduzido com layout cinza suave; exibe PF e PJ com bolinhas de status:
+    - Verde: aprovado; Amarelo: pendente/incompleto; Azul: aguardando; Vermelho: não enviado/reprovado.
+  - Ordem de cards do Licenciado: Rede, Usinas Vendidas, Projeção de Bônus, Carreira Atual (no header), Pontos Projetados, Pontos Consolidados, Saldo Disponível, Documentação.
+- Alertas
+  - Acordeon agrega: contrato pendente (CTA “Reenviar Contrato”), documentos PF/PJ pendentes (CTA “Enviar Documentos”/“Minhas Empresas”), pagamento anual pendente (CTA “Pagar Agora”).
+  - Sininho no header global mostra contador de alertas e abre modal com mensagens importantes.
+
 ## Backend (Django + DRF)
 ### Plans
 - `PlanCareer` API
@@ -167,6 +207,12 @@ Atualizações aplicadas (2025-08)
   - ViewSet `PlanCareerViewSet`.
   - Rota: `api/plans/plan-careers/` (CRUD autenticado).
 - `PlanAdesionSerializer`: incluído `licensed_username` para exibir `id-username` no front.
+
+- Verificação/Evolução de Carreira
+  - Endpoint `POST /api/core/career/verify/`:
+    - Calcula pontos válidos (`ScoreReference.status='valid'`), diretos e vendas de usina aprovadas.
+    - Seleciona o maior `PlanCareer` que atende `required_points`, `required_directs` e `required_direct_sales` e atualiza `Licensed.current_career`.
+    - Resposta inclui `updated`, `before`, `after`, `metrics {points,directs,sales}`, `next {stage_name,required_*}` e `missing {points,directs,sales}`.
 
 ### Notifications
 - Modelos já existentes: `NotifyConfig`, `NotifyTemplate`.
@@ -180,10 +226,25 @@ Atualizações aplicadas (2025-08)
   - Serializer/ViewSet/URL: `api/finance/gateway-config/`.
   - GET cria registro default caso não exista (para facilitar o preenchimento via UI).
 
+### Finance (Saque — Novo)
+- Models:
+  - `finance.BankAccount`: contas bancárias do licenciado (PF/PJ com vínculo opcional a `core.LicensedCompany` aprovada).
+  - `finance.WithdrawRequest`: solicitações de saque com status (`pending|processing|paid|canceled|rejected`), taxas e impostos.
+- Serializers/Views/URLs:
+  - `api/finance/bank-accounts/` (CRUD autenticado; retorna/edita apenas contas do usuário corrente; operador/superadmin podem filtrar por `licensed_id`).
+  - `api/finance/withdraw-requests/` (CRUD autenticado; criação valida saldo, mínimo, bloqueia duplicadas pendentes e retorna snapshot do banco).
+- Regras de validação:
+  - Conta PJ exige empresa aprovada; PF não permite empresa.
+  - Solicitação bloqueada se já existir `pending` para o licenciado.
+  - Valor mínimo e taxa fixa via `WITHDRAW_MIN_VALUE` e `WITHDRAW_FEE_FIXED`.
+
 ### Contracts (Lexo)
 - APIs
   - `api/contracts/config/` (singleton GET/POST/PUT de `ContractConfig`).
   - `api/contracts/templates/` (CRUD de `ContractTemplate`).
+- Reenvio de Contrato
+  - `POST /api/contracts/templates/resend-adesion/` — reenvia contrato de adesão via Lexo para o e‑mail do licenciado atual.
+  - Front exibe modal de confirmação: “Contrato reenviado para o e‑mail {email}”.
 - Remoções
   - `ContractLog` removido do projeto (model/admin), migração criada e referências limpas em `contracts/services.py`.
 
@@ -192,10 +253,15 @@ Atualizações aplicadas (2025-08)
 - Novo endpoint `api/network/upline-chain/` que retorna a cadeia de uplines (imediato até raiz) para um licenciado; utilizado no modal de Relatório do Licenciado.
 
 ### Core
-- `LicensedDocument` (novo)
-  - Campos: `licensed`, `document_type`, `file`, `observation`, `stt_validate` (pending/rejected/approved), `rejection_reason`, timestamps.
-  - Unicidade: (`licensed`, `document_type`).
-  - Admin: registro com listagem/filtros/busca e link para arquivo.
+- `LicensedCompany` (novo)
+  - N:1 com `core.Licensed` (um licenciado pode ter várias empresas/CNPJs).
+  - Campos principais: `cnpj` (único), `razao_social`, `nome_fantasia`, `insc_estadual`, `insc_municipal`, `cep`, `city_lookup`, `endereco`, `numero`, `complemento`, `bairro`, `telefone`, `observacao`, `stt_validate` (pending/rejected/approved), `rejection_reason`, timestamps.
+- `LicensedDocument`
+  - Acrescentado `owner_type` (`pf`|`pj`) e FK opcional `company` (quando `owner_type='pj'`).
+  - Unicidade:
+    - PF: (`licensed`, `owner_type`, `document_type`).
+    - PJ: (`company`, `document_type`).
+  - Novos tipos: `cnpj_card` (Cartão CNPJ) e `social_contract` (Contrato Social).
 - `Licensed`
   - Campo `stt_document` (pending/rejected/approved) usado pelo Dashboard.
   - Regras de sinal: recalcula automaticamente o `stt_document` quando documentos são criados/atualizados/excluídos.
@@ -204,6 +270,9 @@ Atualizações aplicadas (2025-08)
     - Licenciado cria/edita apenas os próprios; operador vê todos e pode aprovar/reprovar.
     - Upload via multipart; `licensed` inferido do usuário (operador deve informar explicitamente).
   - Dashboard expõe `documents.status` e `documents.pending`.
+- Dashboard — Documentação PF/PJ
+  - Card `docs_status` passa a trazer objeto `{ pf, pj }` com status independentes.
+  - Estrutura `documents` inclui `pf`, `pj` e `company_cnpjs` para montar alertas direcionados (PF e PJ).
 - `LicensedListSerializer` expandido para suportar `documents_status` derivado (pendente, incompleto, aguardando aprovação, aprovado) e cidade/UF com ids.
 - `LicensedViewSet` ganhou action para operadores/superadmins atualizarem campos do usuário vinculado (nome, e‑mail, senha, foto) de forma segura.
 - Notificações
@@ -231,8 +300,9 @@ Atualizações aplicadas (2025-08)
 - Plans: `api/plans/plan-careers/`
 - Notifications: `api/notifications/config/`, `api/notifications/templates/`, `api/notifications/templates/{id}/test/`
 - Finance: `api/finance/gateway-config/`, `api/finance/transactions/?licensed_username=&month=&year=`, `api/finance/virtual-account/balance/`
+ - Finance: `api/finance/gateway-config/`, `api/finance/transactions/?licensed_username=&month=&year=`, `api/finance/virtual-account/balance/`, `api/finance/bank-accounts/`, `api/finance/withdraw-requests/`
 - Contracts: `api/contracts/config/`, `api/contracts/templates/`
-- Core: `api/core/licensed-documents/`, `api/core/licensed-documents/pending/`, `api/core/dashboard/?state=UF`
+- Core: `api/core/licensed-documents/`, `api/core/licensed-documents/pending/`, `api/core/licensed-companies/`, `api/core/dashboard/?state=UF`
 - Network: `api/network/upline-chain/`, `api/network/tree/`
 
 ## Frontend — Atualizações relevantes

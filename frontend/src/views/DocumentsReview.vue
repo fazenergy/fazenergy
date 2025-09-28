@@ -12,6 +12,11 @@
             <option value="approved">Aprovado</option>
             <option value="rejected">Reprovado</option>
           </select>
+          <select v-model="filters.owner_type" class="border rounded px-2 py-1 h-8 text-xs">
+            <option value="">PF & PJ</option>
+            <option value="pf">PF</option>
+            <option value="pj">PJ</option>
+          </select>
           <button @click="applySearch" class="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-600 hover:bg-blue-700 text-white" title="Pesquisar">
             <Search class="w-4 h-4" />
           </button>
@@ -28,6 +33,8 @@
         <template #col:id="{ row }">#{{ row.id }}</template>
         <template #col:licensed="{ row }">{{ row.licensed_username }}</template>
         <template #col:type="{ row }">{{ labelType(row.document_type) }}</template>
+        <template #col:owner="{ row }">{{ row.owner_type?.toUpperCase?.() || 'PF' }}</template>
+        <template #col:company="{ row }">{{ row.company || '-' }}</template>
         <template #col:observation="{ row }">{{ row.observation || '-' }}</template>
         <template #col:file="{ row }">
           <div v-if="row.file" class="flex items-center gap-2">
@@ -88,14 +95,16 @@ const DOC_TYPES = {
   cpf: 'CPF',
   rg: 'RG',
   comprovante_endereco: 'Comprovante de Endereço',
-  pis: 'PIS'
+  pis: 'PIS',
+  cnpj_card: 'Cartão CNPJ',
+  social_contract: 'Contrato Social',
 }
 
 const docs = ref([])
 const loading = ref(false)
 const showPreview = ref(false)
 const previewUrl = ref('')
-const filters = ref({ licensed: '', status: '' })
+const filters = ref({ licensed: '', status: '', owner_type: '' })
 const showReject = ref(false)
 const rejectDoc = ref(null)
 const rejectReason = ref('')
@@ -110,14 +119,28 @@ async function fetchData() {
   const params = new URLSearchParams()
   if (filters.value.licensed) params.append('licensed_username', filters.value.licensed)
   if (filters.value.status) params.append('status', filters.value.status)
-  const url = '/api/core/licensed-documents/pending/' + (params.toString() ? `?${params.toString()}` : '')
-  const { data } = await api.get(url)
-  docs.value = data || []
-  loading.value = false
+  if (filters.value.owner_type) params.append('owner_type', filters.value.owner_type)
+  const suffix = params.toString() ? `?${params.toString()}` : ''
+  try {
+    // Tentativa 1: endpoint dedicado de pendentes (para Operador)
+    const { data } = await api.get('/api/core/licensed-documents/pending/' + suffix)
+    docs.value = Array.isArray(data?.results) ? data.results : (data || [])
+  } catch (e) {
+    try {
+      // Fallback: usa listagem geral com filtro status=pending (também funciona para Operador)
+      if (!params.has('status')) params.append('status', 'pending')
+      const { data } = await api.get('/api/core/licensed-documents/' + `?${params.toString()}`)
+      docs.value = Array.isArray(data?.results) ? data.results : (data || [])
+    } catch (err) {
+      docs.value = []
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 function applySearch() { fetchData() }
-function clearSearch() { filters.value = { licensed: '', status: '' }; fetchData() }
+function clearSearch() { filters.value = { licensed: '', status: '', owner_type: '' }; fetchData() }
 
 async function setStatus(doc, st) {
   await api.patch(`/api/core/licensed-documents/${doc.id}/`, { stt_validate: st, rejection_reason: st==='rejected' ? (doc.rejection_reason || 'Documento inconsistente') : null })
@@ -133,6 +156,8 @@ onMounted(fetchData)
 const columns = [
   { key: 'id', label: 'ID' },
   { key: 'licensed', label: 'Licenciado' },
+  { key: 'owner', label: 'Origem' },
+  { key: 'company', label: 'Empresa' },
   { key: 'type', label: 'Tipo' },
   { key: 'observation', label: 'Observação' },
   { key: 'file', label: 'Arquivo' },

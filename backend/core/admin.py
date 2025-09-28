@@ -2,6 +2,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from core.models import User, Licensed, Operator, CoreGroup, LicensedDocument
+from core.models.LicensedCompany import LicensedCompany
 
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
@@ -241,18 +242,26 @@ class LicensedDocumentAdmin(admin.ModelAdmin):
         return "-"
 
     list_display = (
-        'id', 'licensed', 'document_type', 'stt_validate', 'file_link', 'formatted_dtt_record'
+        'id', 'licensed', 'owner_type', 'company', 'document_type', 'stt_validate', 'file_link', 'formatted_dtt_record'
     )
-    list_filter = ('document_type', 'stt_validate', 'dtt_record')
+    list_filter = ('owner_type', 'document_type', 'stt_validate', 'dtt_record')
     search_fields = ('licensed__user__username', 'licensed__cpf_cnpj')
     readonly_fields = ('dtt_record', 'dtt_update')
 
     fieldsets = (
-        ('Vínculo', {'fields': ('licensed',)}),
+        ('Vínculo', {'fields': ('licensed', 'owner_type', 'company')}),
         ('Documento', {'fields': ('document_type', 'file')}),
         ('Validação', {'fields': ('stt_validate', 'rejection_reason')}),
         ('Observação', {'fields': ('observation',)}),
         ('Timestamps', {'fields': ('dtt_record', 'dtt_update')}),
     )
     ordering = ('-dtt_record',)
+
+
+@admin.register(LicensedCompany)
+class LicensedCompanyAdmin(admin.ModelAdmin):
+    list_display = ('cnpj', 'razao_social', 'licensed', 'stt_validate', 'dtt_record')
+    list_filter = ('stt_validate', 'city_lookup')
+    search_fields = ('cnpj', 'razao_social', 'licensed__user__username')
+    autocomplete_fields = ['licensed', 'city_lookup']
 

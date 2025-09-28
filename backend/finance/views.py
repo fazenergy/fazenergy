@@ -5,8 +5,12 @@ from rest_framework.views import APIView
 from .models.GatewayConfig import GatewayConfig
 from .models.Transaction import Transaction
 from .models.PaymentLink import PaymentLink
-from .serializers import GatewayConfigSerializer, TransactionSerializer, PaymentLinkSerializer
+from .serializers import (
+    GatewayConfigSerializer, TransactionSerializer, PaymentLinkSerializer,
+    BankAccountSerializer, WithdrawRequestSerializer
+)
 from .models.VirtualAccount import VirtualAccount
+from .models import BankAccount, WithdrawRequest
 from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 from django.contrib.auth.models import Group
@@ -181,4 +185,49 @@ class VirtualAccountBalanceView(APIView):
             'balance_blocked': float(va.balance_blocked),
             'licensed_username': getattr(getattr(va.licensed, 'user', None), 'username', None)
         })
+
+
+class BankAccountViewSet(viewsets.ModelViewSet):
+    """CRUD de contas bancárias do próprio licenciado.
+
+    Regras de permissão:
+    - Listar: retorna apenas contas do usuário autenticado.
+    - Criar/Editar/Excluir: somente do próprio usuário.
+    - Operador/Superadmin podem listar por `?licensed_id=` para auxílio, se necessário.
+    """
+    serializer_class = BankAccountSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = BankAccount.objects.select_related('licensed__user', 'company')
+        user = self.request.user
+        if user.is_superuser or user.is_staff or user.groups.filter(name='Operador').exists():
+            licensed_id = self.request.query_params.get('licensed_id')
+            if licensed_id:
+                return qs.filter(licensed_id=licensed_id)
+        return qs.filter(licensed__user=user)
+
+    def perform_destroy(self, instance):
+        # Impede apagar conta usada em saque pendente
+        if WithdrawRequest.objects.filter(bank_account=instance, status='pending').exists():
+            raise Exception('Conta vinculada a solicitação de saque pendente.')
+        super().perform_destroy(instance)
+
+
+class WithdrawRequestViewSet(viewsets.ModelViewSet):
+    """API para solicitações de saque do licenciado.
+
+    Criação aplica validações de saldo, valor mínimo e bloqueia duplicidade pendente.
+    """
+    serializer_class = WithdrawRequestSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = WithdrawRequest.objects.select_related('bank_account', 'licensed__user')
+        user = self.request.user
+        if user.is_superuser or user.is_staff or user.groups.filter(name='Operador').exists():
+            licensed_id = self.request.query_params.get('licensed_id')
+            if licensed_id:
+                return qs.filter(licensed_id=licensed_id)
+        return qs.filter(licensed__user=user)
 

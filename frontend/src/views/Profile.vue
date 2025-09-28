@@ -1,54 +1,72 @@
 <template>
-  <div class="space-y-3">
-    <!-- Toolbar: apenas ações -->
-    <div class="mb-3 bg-white rounded">
-      <div class="flex items-center gap-2 flex-wrap">
-        <button class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm" @click="show=true">Editar cadastro</button>
-        <button class="px-3 py-1.5 rounded bg-orange-500 hover:bg-orange-600 text-white text-sm" @click="openResetPass">Trocar senha</button>
-      </div>
-    </div>
-
-    <!-- Card de perfil (somente leitura) -->
-    <div class="bg-white rounded border p-4">
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-        <!-- Avatar -->
-        <div class="md:col-span-3 flex flex-col items-center gap-3">
-          <div class="w-[128px] h-[128px] rounded-md overflow-hidden border bg-gray-100 flex items-center justify-center">
-            <img v-if="displayAvatar" :src="displayAvatar" class="object-cover w-full h-full" />
-          </div>
-          <div class="text-xs text-gray-500 truncate max-w-[8rem]">{{ user?.username }}</div>
+  <div class="px-4 pt-0 pb-4 space-y-3">
+    <!-- Hero header com gradiente -->
+    <div class="rounded-b-lg bg-gradient-to-r from-indigo-600 via-blue-600 to-purple-600 text-white p-5 -mx-4 -mt-2">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 rounded-md overflow-hidden bg-white/10 border border-white/20 flex items-center justify-center">
+          <img v-if="displayAvatar" :src="displayAvatar" class="object-cover w-full h-full" />
         </div>
-
-        <!-- Bloco: Dados pessoais -->
-        <div class="md:col-span-9">
-          <div class="border rounded-lg p-4">
-            <div class="text-sm font-semibold mb-3">Dados pessoais</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <div><div class="text-[12px] font-semibold text-gray-700">Nome</div><div class="mt-0.5">{{ form?.first_name }}</div></div>
-              <div><div class="text-[12px] font-semibold text-gray-700">Sobrenome</div><div class="mt-0.5">{{ form?.last_name }}</div></div>
-              <div><div class="text-[12px] font-semibold text-gray-700">Email</div><div class="mt-0.5 break-all">{{ form?.email }}</div></div>
-              <div><div class="text-[12px] font-semibold text-gray-700">Usuário</div><div class="mt-0.5">{{ form?.username }}</div></div>
-              <div><div class="text-[12px] font-semibold text-gray-700">Telefone</div><div class="mt-0.5">{{ form?.phone }}</div></div>
-              <div><div class="text-[12px] font-semibold text-gray-700">CPF/CNPJ</div><div class="mt-0.5">{{ form?.cpf_cnpj }}</div></div>
+        <div class="flex-1 min-w-0">
+          <div class="text-lg font-semibold truncate">{{ form?.first_name }} {{ form?.last_name }}</div>
+          <div class="text-xs opacity-90 truncate">{{ form?.username }} · {{ form?.email }}</div>
+          <div class="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+            <span class="px-2 py-[2px] rounded bg-white/20">Licenciado</span>
+            <span class="px-2 py-[2px] rounded bg-emerald-400/80 text-emerald-950">Verificado</span>
+          </div>
+        </div>
+        <div class="hidden md:flex flex-col items-end gap-2">
+          <div class="text-right text-xs">
+            <div class="opacity-90">Nível</div>
+            <div class="font-semibold">Licenciado</div>
+            <div class="mt-1 inline-flex items-center gap-2 text-[11px]">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span class="px-2 py-[2px] rounded bg-emerald-100 text-emerald-800">Ativo</span>
             </div>
           </div>
-          <!-- Bloco: Endereço -->
-          <div class="border rounded-lg p-4">
-            <div class="text-sm font-semibold mb-3">Endereço</div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm">
-              <div class="md:col-span-1"><div class="text-[12px] font-semibold text-gray-700">CEP</div><div class="mt-0.5">{{ form?.cep }}</div></div>
-              <div class="md:col-span-1"><div class="text-[12px] font-semibold text-gray-700">Estado</div><div class="mt-0.5">{{ displayUF }}</div></div>
-              <div class="md:col-span-1"><div class="text-[12px] font-semibold text-gray-700">Cidade</div><div class="mt-0.5">{{ displayCity }}</div></div>
-              <div class="md:col-span-1"><div class="text-[12px] font-semibold text-gray-700">Bairro</div><div class="mt-0.5">{{ form?.district }}</div></div>
-              <div class="md:col-span-2"><div class="text-[12px] font-semibold text-gray-700">Endereço</div><div class="mt-0.5">{{ form?.address }}</div></div>
-              <div class="md:col-span-1"><div class="text-[12px] font-semibold text-gray-700">Número</div><div class="mt-0.5">{{ form?.number }}</div></div>
-              <div class="md:col-span-3"><div class="text-[12px] font-semibold text-gray-700">Complemento</div><div class="mt-0.5">{{ form?.complement }}</div></div>
-            </div>
+          <div class="flex gap-2">
+            <button class="px-3 py-1.5 rounded bg-white/20 hover:bg-white/30 text-white text-sm" @click="show=true">Editar Perfil</button>
+            <button class="px-3 py-1.5 rounded bg-white/20 hover:bg-white/30 text-white text-sm" @click="openResetPass">Alterar Senha</button>
           </div>
         </div>
       </div>
+      <!-- Ações em mobile -->
+      <div class="mt-3 md:hidden flex gap-2">
+        <button class="px-3 py-1.5 rounded bg-white/20 hover:bg-white/30 text-white text-sm" @click="show=true">Editar Perfil</button>
+        <button class="px-3 py-1.5 rounded bg-white/20 hover:bg-white/30 text-white text-sm" @click="openResetPass">Alterar Senha</button>
+      </div>
     </div>
-          </div>
+
+
+    <!-- Linha 1: Dados Pessoais | Endereço -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div class="bg-white rounded border p-4">
+        <div class="text-sm font-semibold mb-3">Dados Pessoais</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <div><div class="text-[12px] font-semibold text-gray-700">Nome</div><div class="mt-0.5">{{ form?.first_name }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">Sobrenome</div><div class="mt-0.5">{{ form?.last_name }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">E‑mail</div><div class="mt-0.5 break-all">{{ form?.email }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">Usuário</div><div class="mt-0.5">{{ form?.username }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">Telefone</div><div class="mt-0.5">{{ form?.phone || '-' }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">CPF/CNPJ</div><div class="mt-0.5">{{ form?.cpf_cnpj || '-' }}</div></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded border p-4">
+        <div class="text-sm font-semibold mb-3">Endereço</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+          <div><div class="text-[12px] font-semibold text-gray-700">CEP</div><div class="mt-0.5">{{ form?.cep || '-' }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">Estado</div><div class="mt-0.5">{{ displayUF }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">Cidade</div><div class="mt-0.5">{{ displayCity }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">Bairro</div><div class="mt-0.5">{{ form?.district || '-' }}</div></div>
+          <div class="md:col-span-2"><div class="text-[12px] font-semibold text-gray-700">Endereço</div><div class="mt-0.5">{{ form?.address || '-' }}</div></div>
+          <div><div class="text-[12px] font-semibold text-gray-700">Número</div><div class="mt-0.5">{{ form?.number || '-' }}</div></div>
+          <div class="md:col-span-3"><div class="text-[12px] font-semibold text-gray-700">Complemento</div><div class="mt-0.5">{{ form?.complement || '-' }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Linha 2 removida: status/segurança agora representados na barra -->
+  </div>
 
   <!-- Modal Editar -->
   <Modal v-model="show" :header-blue="true" :no-header-border="true">

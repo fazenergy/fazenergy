@@ -5,7 +5,8 @@ from .models.Licensed import Licensed
 from django.contrib.auth.models import Group, Permission
 from django.db import transaction, IntegrityError
 from core.models.LicensedDocument import LicensedDocument
-from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES
+from core.models.LicensedCompany import LicensedCompany
+from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES, DOCUMENT_OWNER_TYPE_CHOICES
 from notifications.utils import send_email
 
 class UserSerializer(serializers.ModelSerializer):
@@ -27,6 +28,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     licensed_id = serializers.SerializerMethodField()
     city = serializers.SerializerMethodField()
     plan = serializers.SerializerMethodField()
+    companies = serializers.SerializerMethodField()
     # Campos de escrita para Licensed
     cep = serializers.CharField(write_only=True, required=False, allow_blank=True)
     district = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -40,6 +42,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name', 'image_profile',
             'is_superuser', 'groups',
             'phone', 'cpf_cnpj', 'licensed_id', 'city', 'address', 'number', 'complement', 'plan',
+            'companies',
             # write-only extras para gravar no Licensed
             'cep', 'district', 'city_lookup',
             'password'
@@ -90,6 +93,33 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_plan(self, obj):
         lic = self._get_licensed(obj)
         return getattr(getattr(lic, 'plan', None), 'name', None) if lic else None
+
+    def get_companies(self, obj):
+        lic = self._get_licensed(obj)
+        if not lic:
+            return []
+        try:
+            from core.models.LicensedCompany import LicensedCompany
+            items = (
+                LicensedCompany.objects
+                .filter(licensed=lic)
+                .values('id', 'cnpj', 'razao_social', 'stt_validate', 'dtt_record')
+                .order_by('-dtt_record')
+            )
+            # Sanitiza CNPJ para apenas dígitos na saída opcionalmente
+            import re as _re
+            out = []
+            for it in items:
+                out.append({
+                    'id': it['id'],
+                    'cnpj': _re.sub(r'\D', '', str(it['cnpj'] or '')),
+                    'razao_social': it['razao_social'],
+                    'stt_validate': it['stt_validate'],
+                    'dtt_record': it['dtt_record'],
+                })
+            return out
+        except Exception:
+            return []
 
     def update(self, instance, validated_data):
         # Trata imagem (renomeia para cpf-hash.ext) e senha opcional
@@ -543,14 +573,34 @@ class LicensedListSerializer(serializers.ModelSerializer):
 class LicensedDocumentSerializer(serializers.ModelSerializer):
     licensed = serializers.PrimaryKeyRelatedField(read_only=True)
     licensed_username = serializers.SerializerMethodField()
+    company = serializers.PrimaryKeyRelatedField(queryset=LicensedCompany.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = LicensedDocument
         fields = [
-            'id', 'licensed', 'licensed_username', 'document_type', 'file', 'observation',
+            'id', 'licensed', 'licensed_username', 'owner_type', 'company', 'document_type', 'file', 'observation',
             'stt_validate', 'rejection_reason', 'dtt_record', 'dtt_update'
         ]
         read_only_fields = ['dtt_record', 'dtt_update']
+
+    def validate(self, attrs):
+        owner_type = attrs.get('owner_type') or getattr(self.instance, 'owner_type', 'pf')
+        company = attrs.get('company') if 'company' in attrs else getattr(self.instance, 'company', None)
+        document_type = attrs.get('document_type') if 'document_type' in attrs else getattr(self.instance, 'document_type', None)
+
+        if owner_type == 'pj':
+            if company is None:
+                raise serializers.ValidationError({'company': 'Obrigatória para documentos de empresa.'})
+            # Restringe tipos aceitos para empresa
+            if document_type not in {'cnpj_card', 'social_contract'}:
+                raise serializers.ValidationError({'document_type': 'Para PJ use cnpj_card ou social_contract.'})
+        else:
+            # PF não deve enviar company
+            attrs['company'] = None
+            # Restringe tipos de PF a não incluir os de PJ
+            if document_type in {'cnpj_card', 'social_contract'}:
+                raise serializers.ValidationError({'document_type': 'Tipos de PJ não são válidos para PF.'})
+        return attrs
 
     def create(self, validated_data):
         instance = super().create(validated_data)
@@ -574,6 +624,43 @@ class LicensedDocumentSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return instance
+
+    def get_licensed_username(self, obj):
+        try:
+            return getattr(getattr(obj.licensed, 'user', None), 'username', None)
+        except Exception:
+            return None
+
+
+class LicensedCompanySerializer(serializers.ModelSerializer):
+    licensed = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = LicensedCompany
+        fields = [
+            'id', 'licensed', 'cnpj', 'razao_social', 'nome_fantasia',
+            'insc_estadual', 'insc_municipal',
+            'cep', 'city_lookup', 'endereco', 'numero', 'complemento', 'bairro', 'telefone',
+            'observacao', 'stt_validate', 'rejection_reason', 'dtt_record', 'dtt_update'
+        ]
+        read_only_fields = ['dtt_record', 'dtt_update', 'stt_validate', 'rejection_reason']
+
+    def _only_digits(self, value, max_len=None):
+        import re as _re
+        if value is None:
+            return None
+        v = _re.sub(r'\D', '', str(value))
+        return v[:max_len] if max_len else v
+
+    def validate(self, attrs):
+        # Sanitização simples
+        if 'cnpj' in attrs:
+            attrs['cnpj'] = self._only_digits(attrs.get('cnpj'))
+        if 'cep' in attrs:
+            attrs['cep'] = self._only_digits(attrs.get('cep'), 8)
+        if 'telefone' in attrs:
+            attrs['telefone'] = self._only_digits(attrs.get('telefone'), 20)
+        return attrs
 
     def get_licensed_username(self, obj):
         try:

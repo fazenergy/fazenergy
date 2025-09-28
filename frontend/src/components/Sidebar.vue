@@ -44,6 +44,21 @@
                 <span v-if="!mini">Dashboard</span>
               </router-link>
             </li>
+            <!-- Acesso rápido a Fechamentos na sessão principal (somente Licenciado) -->
+            <li v-if="isLicensed && !isOperador && !isSuperUser">
+              <router-link to="/reports/closures" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Fechamentos">
+                <DollarSign class="w-4 h-4" />
+                <span v-if="!mini">Fechamentos</span>
+              </router-link>
+            </li>
+
+            <!-- Banco Saque (somente Licenciado) -->
+            <li v-if="isLicensed && !isOperador && !isSuperUser">
+              <router-link to="/finance/withdraw-accounts" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" active-class="bg-blue-800" title="Banco Saque">
+                <Banknote class="w-4 h-4" />
+                <span v-if="!mini">Banco Saque</span>
+              </router-link>
+            </li>
             
             
             <li v-if="isSuperUser">
@@ -266,6 +281,12 @@
                 <span v-if="!mini">Meu Perfil</span>
               </router-link>
             </li>
+            <li>
+              <router-link to="/company" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Minhas Empresas">
+                <Users class="w-4 h-4" />
+                <span v-if="!mini">Minhas Empresas</span>
+              </router-link>
+            </li>
           </ul>
         </div>
       </nav>
@@ -293,7 +314,7 @@ defineProps({
 import {
   Zap, LayoutDashboard, FileText, FileCheck, Settings, Users, User, Link,
   ArrowRight, TreePine, Book, LifeBuoy, BarChart, UserCircle,
-  ChevronDown, ChevronRight
+  ChevronDown, ChevronRight, DollarSign, Banknote
 } from 'lucide-vue-next'
 
 import { computed, ref, onMounted } from 'vue'

@@ -21,6 +21,9 @@ DOCUMENT_TYPE_CHOICES = [
     ('rg', 'RG'),
     ('comprovante_endereco', 'Comprovante de Endereço'),
     ('pis', 'PIS'),
+    # Empresa (PJ)
+    ('cnpj_card', 'Cartão CNPJ'),
+    ('social_contract', 'Contrato Social'),
 ]
 
 # Choices para status de validação de documentos
@@ -28,4 +31,10 @@ DOCUMENT_STATUS_CHOICES = [
     ('pending', 'Pendente'),
     ('rejected', 'Reprovado'),
     ('approved', 'Aprovado'),
+]
+
+# Owner type para LicensedDocument
+DOCUMENT_OWNER_TYPE_CHOICES = [
+    ('pf', 'Pessoa Física'),
+    ('pj', 'Pessoa Jurídica'),
 ]

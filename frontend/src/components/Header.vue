@@ -33,7 +33,10 @@
       </button>
 
       <!-- Notificações -->
-      <Bell class="w-4 h-4" />
+      <button @click="$emit('open-alerts')" class="relative w-8 h-8 flex items-center justify-center hover:text-blue-600">
+        <Bell class="w-4 h-4" />
+        <span v-if="alertsCount > 0" class="absolute -top-1 -right-1 text-[10px] leading-none bg-amber-500 text-white px-1.5 py-0.5 rounded-full">{{ alertsCount }}</span>
+      </button>
 
       <!-- Nome user -->
       <span>Olá, {{ displayName }}</span>
@@ -70,6 +73,9 @@ const displyProfile = computed(() => {
   }
 })
 
+// Count de alertas vindo do pai via prop opcional
+const props = defineProps({ alertsCount: { type: Number, default: 0 } })
+
 
 // Breadcrumbs simples derivados da rota atual
 const route = useRoute()
@@ -89,13 +95,19 @@ const breadcrumbs = computed(() => {
     list.push({ label: 'Licenciados' })
   } else if (path.startsWith('/profile')) {
     list.push({ label: 'Meu Perfil' })
+  } else if (path.startsWith('/company')) {
+    list.push({ label: 'Minhas Empresas' })
   } else if (path.startsWith('/documents')) {
     list.push({ label: 'Documentos', to: '/documents' })
     if (path.startsWith('/documents/review')) list.push({ label: 'Revisão' })
+  } else if (path.startsWith('/finance/withdraw-accounts')) {
+    list.push({ label: 'Financeiro', to: '/finance/virtual-accounts' })
+    list.push({ label: 'Banco Saque' })
   } else if (path.startsWith('/reports')) {
     list.push({ label: 'Relatórios', to: '/reports/points' })
     if (path.startsWith('/reports/points')) list.push({ label: 'Pontos' })
     if (path.startsWith('/reports/bonus')) list.push({ label: 'Bônus' })
+    if (path.startsWith('/reports/closures')) list.push({ label: 'Fechamentos' })
   }
   return list
 })

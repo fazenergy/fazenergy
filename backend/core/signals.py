@@ -7,6 +7,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from core.models.Licensed import Licensed  # ajuste para seu import real
 from core.models.LicensedDocument import LicensedDocument
+from core.models.LicensedCompany import LicensedCompany
 from notifications.utils import send_email
 from plans.models import PlanAdesion  
 from network.models import UnilevelNetwork
@@ -74,6 +75,7 @@ def send_contract_api_lexo(sender, instance, created, **kwargs):
 # - approved somente se todos os tipos exigidos existirem e estiverem aprovados
 # ------------------------------------------------------------------------------------
 REQUIRED_DOC_TYPES = { 'cpf', 'rg', 'comprovante_endereco', 'pis' }
+REQUIRED_COMPANY_DOC_TYPES = { 'cnpj_card', 'social_contract' }
 
 def _recalculate_licensed_document_status(licensed: Licensed):
     docs = list(LicensedDocument.objects.filter(licensed=licensed))
@@ -131,7 +133,33 @@ def on_document_saved(sender, instance: LicensedDocument, created, **kwargs):
     # Caso operador altere status manualmente, recalcular pelo conjunto
     _recalculate_licensed_document_status(lic)
 
+    # Se for documento de empresa, recalcular status da empresa
+    if instance.owner_type == 'pj' and instance.company_id:
+        _recalculate_company_document_status(instance.company)
+
 
 @receiver(post_delete, sender=LicensedDocument)
 def on_document_deleted(sender, instance: LicensedDocument, **kwargs):
     _recalculate_licensed_document_status(instance.licensed)
+    if instance.owner_type == 'pj' and instance.company_id:
+        _recalculate_company_document_status(instance.company)
+
+
+def _recalculate_company_document_status(company: LicensedCompany):
+    docs = list(LicensedDocument.objects.filter(company=company, owner_type='pj'))
+    existing_types = {d.document_type for d in docs}
+    complete_set = REQUIRED_COMPANY_DOC_TYPES.issubset(existing_types)
+    if not complete_set:
+        new_status = 'pending'
+    else:
+        statuses = {d.stt_validate for d in docs if d.document_type in REQUIRED_COMPANY_DOC_TYPES}
+        if 'pending' in statuses:
+            new_status = 'pending'
+        elif 'rejected' in statuses:
+            new_status = 'rejected'
+        else:
+            new_status = 'approved'
+
+    if company.stt_validate != new_status:
+        company.stt_validate = new_status
+        company.save(update_fields=['stt_validate'])

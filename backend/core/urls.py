@@ -14,6 +14,7 @@ from .views import (
     DownlineTreeListView,         # Árvore de downlines
     DashboardView,                # Dados do dashboard
     LicensedDocumentViewSet,      # CRUD de documentos
+    LicensedCompanyViewSet,       # CRUD de empresas do licenciado
     LicensedLookupView,           # Busca de licenciados
     AdminUserViewSet,             # CRUD de usuários (admin)
     AdminGroupViewSet,            # CRUD de grupos (admin)
@@ -22,6 +23,7 @@ from .views import (
     CareerDataView,               # Dados de carreira do usuário
     GeneralReportView,            # Relatório geral da plataforma
     CurrentLicensedView,          # Licensed do usuário atual
+    VerifyCareerView,             # Verificar/atualizar carreira
 )
 
 # ========================================
@@ -31,6 +33,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'licensed', LicensedViewSet)                                    # /api/core/licensed/
 router.register(r'licensed-documents', LicensedDocumentViewSet, basename='licensed-documents')  # /api/core/licensed-documents/
+router.register(r'licensed-companies', LicensedCompanyViewSet, basename='licensed-companies')  # /api/core/licensed-companies/
 router.register(r'admin/users', AdminUserViewSet, basename='admin-users')       # /api/core/admin/users/
 router.register(r'admin/groups', AdminGroupViewSet, basename='admin-groups')    # /api/core/admin/groups/
 router.register(r'admin/permissions', AdminPermissionViewSet, basename='admin-permissions')  # /api/core/admin/permissions/
@@ -54,5 +57,6 @@ urlpatterns = [
     path('lookup/licensed/', LicensedLookupView.as_view(), name='lookup-licensed'),     # Busca de licenciados
     path('pending-documents-count/', PendingDocumentsCountView.as_view(), name='pending-documents-count'),  # Contagem de documentos
     path('career-data/', CareerDataView.as_view(), name='career-data'),                 # Dados de carreira
+    path('career/verify/', VerifyCareerView.as_view(), name='career-verify'),           # Verificar carreira atual
     path('general-report/', GeneralReportView.as_view(), name='general-report'),        # Relatório geral
 ]

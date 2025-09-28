@@ -1,5 +1,5 @@
 from django.db import models
-from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES
+from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES, DOCUMENT_OWNER_TYPE_CHOICES
 import os
 import re
 import uuid
@@ -22,7 +22,15 @@ def licensed_document_upload_to(instance, filename):
     key = uuid.uuid4().hex[:12]
 
     filename_sanitized = f"{doc_type}_{key}{ext}"
-    return os.path.join('licensed', cpf_digits, filename_sanitized)
+    base = ['licensed', cpf_digits]
+    try:
+        if getattr(instance, 'owner_type', 'pf') == 'pj' and getattr(instance, 'company_id', None):
+            cnpj = getattr(getattr(instance, 'company', None), 'cnpj', '') or ''
+            cnpj_digits = re.sub(r'\D', '', str(cnpj)) or 'company'
+            base.extend(['company', cnpj_digits])
+    except Exception:
+        pass
+    return os.path.join(*base, filename_sanitized)
 
 
 class LicensedDocument(models.Model):
@@ -31,6 +39,21 @@ class LicensedDocument(models.Model):
         on_delete=models.CASCADE,
         related_name='documents',
         verbose_name='Licenciado'
+    )
+
+    # Quando documento for de empresa (PJ), referenciar a empresa específica
+    owner_type = models.CharField(
+        max_length=2,
+        choices=DOCUMENT_OWNER_TYPE_CHOICES,
+        default='pf',
+        verbose_name='Tipo do Dono do Documento (PF/PJ)'
+    )
+    company = models.ForeignKey(
+        'core.LicensedCompany',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='documents',
+        verbose_name='Empresa (quando PJ)'
     )
 
     document_type = models.CharField(
@@ -63,10 +86,18 @@ class LicensedDocument(models.Model):
         verbose_name = 'Documento do Licenciado'
         verbose_name_plural = 'Documentos dos Licenciados'
         constraints = [
+            # Unicidade por tipo para PF (sem company)
             models.UniqueConstraint(
-                fields=['licensed', 'document_type'],
-                name='uq_licensed_document_unique_type_per_licensed'
-            )
+                fields=['licensed', 'owner_type', 'document_type'],
+                condition=models.Q(owner_type='pf'),
+                name='uq_doc_unique_type_per_licensed_pf'
+            ),
+            # Unicidade por tipo para PJ (por empresa)
+            models.UniqueConstraint(
+                fields=['company', 'document_type'],
+                condition=models.Q(owner_type='pj'),
+                name='uq_doc_unique_type_per_company_pj'
+            ),
         ]
 
     def __str__(self) -> str:

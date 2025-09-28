@@ -11,10 +11,15 @@ from .serializers import (
     LicensedListSerializer,
     DownlineListSerializer,
     LicensedDocumentSerializer,
+    LicensedCompanySerializer,
+    # Company
+    # serializers para admin serão mantidos
     AdminUserSerializer,
     AdminGroupSerializer,
     AdminPermissionSerializer,
 )
+from core.models.LicensedCompany import LicensedCompany
+from core.models.LicensedDocument import LicensedDocument
 from network.models import UnilevelNetwork
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
@@ -111,6 +116,7 @@ from django.db import models
 from django.db.models import Sum
 from django.contrib.auth.models import Group, Permission
 from rest_framework.response import Response
+from django.db import transaction
 
 User = get_user_model()
 
@@ -302,7 +308,7 @@ class AdminPermissionViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class LicensedDocumentViewSet(viewsets.ModelViewSet):
-    queryset = LicensedDocument.objects.select_related('licensed').order_by('-dtt_record')
+    queryset = LicensedDocument.objects.select_related('licensed', 'company').order_by('-dtt_record')
     serializer_class = LicensedDocumentSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -322,6 +328,12 @@ class LicensedDocumentViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(licensed__user__username__iexact=licensed_username)
             if status_param in {'pending', 'approved', 'rejected'}:
                 qs = qs.filter(stt_validate=status_param)
+            company_id = self.request.query_params.get('company')
+            owner_type = self.request.query_params.get('owner_type')
+            if company_id:
+                qs = qs.filter(company_id=company_id)
+            if owner_type in {'pf', 'pj'}:
+                qs = qs.filter(owner_type=owner_type)
             return qs
         # Licenciado só vê os próprios
         try:
@@ -332,6 +344,45 @@ class LicensedDocumentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Garantir que licenciado só crie para si
+        user = self.request.user
+        is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+        lic = None
+        if not is_operator:
+            lic = Licensed.objects.filter(user=user).first()
+            if not lic:
+                raise ValidationError({'detail': 'Usuário atual não possui perfil de Licenciado.'})
+        else:
+            lic = serializer.validated_data.get('licensed')
+            if not lic:
+                raise ValidationError({'licensed': ['Este campo é obrigatório para operadores.']})
+        serializer.save(licensed=lic)
+
+
+class LicensedCompanyViewSet(viewsets.ModelViewSet):
+    queryset = LicensedCompany.objects.select_related('licensed', 'city_lookup').order_by('-dtt_record')
+    serializer_class = LicensedCompanySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
+        if is_operator:
+            licensed_id = self.request.query_params.get('licensed')
+            status_param = self.request.query_params.get('status')
+            if licensed_id:
+                qs = qs.filter(licensed_id=licensed_id)
+            if status_param in {'pending', 'approved', 'rejected'}:
+                qs = qs.filter(stt_validate=status_param)
+            return qs
+        # Licenciado vê apenas as próprias empresas
+        try:
+            lic = Licensed.objects.get(user=user)
+            return qs.filter(licensed=lic)
+        except Licensed.DoesNotExist:
+            return qs.none()
+
+    def perform_create(self, serializer):
         user = self.request.user
         is_operator = user.groups.filter(name='Operador').exists() or user.is_staff or user.is_superuser
         lic = None
@@ -823,16 +874,42 @@ class DashboardView(APIView):
         except Exception:
             sold_plants_count = 0
 
+        # Status de documentação PF/PJ para o card (exibição no front)
+        try:
+            from core.models.LicensedDocument import LicensedDocument as _LD
+            from core.choices import DOCUMENT_TYPE_CHOICES as _DOC_CHOICES
+            required_all = {k for k, _ in _DOC_CHOICES}
+            required_pj = {'cnpj_card', 'social_contract'}
+            required_pf = required_all - required_pj
+
+            def derive_status(owner: str) -> str:
+                qs = _LD.objects.filter(licensed=current_licensed, owner_type=owner)
+                if not qs.exists():
+                    return 'pending'
+                present = set(qs.values_list('document_type', flat=True))
+                req = required_pf if owner == 'pf' else required_pj
+                if not req.issubset(present):
+                    return 'incomplete'
+                if qs.filter(stt_validate='pending').exists():
+                    return 'awaiting'
+                if qs.filter(stt_validate='rejected').exists():
+                    return 'rejected'
+                return 'approved'
+
+            docs_map = {'pf': derive_status('pf'), 'pj': derive_status('pj')}
+        except Exception:
+            docs_map = {'pf': (current_licensed.stt_document or 'pending'), 'pj': 'pending'}
+
         data['cards'] = [
             # Sequência solicitada: Rede, Usinas Vendidas, Projeção de Bonus, Carreira Atual, Pontos Projetados, Pontos Consolidados, Saldo Disponível, Documentação
             {'key': 'network', 'title': 'Rede', 'value': team_size, 'icon': 'Users', 'delta': f"Diretos: {directs_count}"},
             {'key': 'sold_plants', 'title': 'Usinas Vendidas', 'value': sold_plants_count, 'icon': 'Factory', 'delta': None},
-            {'key': 'bonus_projection', 'title': 'Projeção de Bônu', 'value': bonus_projection_value, 'icon': 'DollarSign', 'delta': f"mês {month_label}"},
+            {'key': 'bonus_projection', 'title': 'Projeção de Bônus', 'value': bonus_projection_value, 'icon': 'DollarSign', 'delta': f"mês {month_label}"},
             {'key': 'career', 'title': 'Carreira Atual', 'value': (current_licensed.current_career.stage_name if current_licensed.current_career else '-'), 'icon': 'Shield', 'delta': None},
             {'key': 'points_projected', 'title': 'Pontos Projetados', 'value': points_projected, 'icon': 'Target', 'delta': None},
             {'key': 'points_consolidated', 'title': 'Pontos Consolidados', 'value': points_consolidated, 'icon': 'CheckCircle', 'delta': None},
             {'key': 'balance_available', 'title': 'Saldo Disponível', 'value': balance_available, 'icon': 'DollarSign', 'delta': 'consolidado'},
-            {'key': 'docs_status', 'title': 'Documentação', 'value': current_licensed.stt_document.capitalize(), 'icon': 'File', 'delta': None},
+            {'key': 'docs_status', 'title': 'Documentação', 'value': docs_map, 'icon': 'File', 'delta': None},
         ]
 
         data['quickActions'] = [
@@ -841,10 +918,22 @@ class DashboardView(APIView):
             {'label': 'Enviar Documentos', 'route': '/documents'},
         ]
 
-        # Banner de documentos pendentes para licenciados
+        # Banner de documentos — incluir PF/PJ detalhado e CNPJs de empresas
+        try:
+            from core.models.LicensedCompany import LicensedCompany as _LC
+            import re as _re
+            company_cnpjs = [
+                _re.sub(r'\D', '', str(c.cnpj or ''))
+                for c in _LC.objects.filter(licensed=current_licensed).only('cnpj')
+            ]
+        except Exception:
+            company_cnpjs = []
         data['documents'] = {
             'status': current_licensed.stt_document,
-            'pending': current_licensed.stt_document == 'pending'
+            'pending': (docs_map.get('pf') != 'approved') or (company_cnpjs and docs_map.get('pj') != 'approved'),
+            'pf': docs_map.get('pf'),
+            'pj': docs_map.get('pj'),
+            'company_cnpjs': company_cnpjs,
         }
 
         # Billing banner: se não é raiz, tem adesão pendente e não é cortesia
@@ -1312,3 +1401,120 @@ class GeneralReportView(APIView):
         except Exception as e:
             print(f"Erro geral na API de relatório: {e}")
             return Response({'error': f'Erro interno: {str(e)}'}, status=500)
+
+
+class VerifyCareerView(APIView):
+    """
+    Verifica a pontuação e diretos do licenciado atual e atualiza a carreira conforme
+    a configuração de planos de carreira (PlanCareer).
+    Regras básicas:
+      - Seleciona o maior plano cujo required_points e required_directs foram atendidos.
+      - Pontos: soma de ScoreReference.valid para o licenciado.
+      - Diretos: quantidade de licenciados com original_indicator = licenciado.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            from plans.models.PlanCareer import PlanCareer
+            from network.models.ScoreReference import ScoreReference
+            from contractor.models import Proposal
+            current_licensed = Licensed.objects.select_related('user', 'current_career').get(user=request.user)
+
+            # Métricas atuais
+            total_points = (
+                ScoreReference.objects
+                .filter(receiver_licensed=current_licensed, status='valid')
+                .aggregate(total=Sum('points_amount'))['total'] or 0
+            )
+            directs = Licensed.objects.filter(original_indicator=current_licensed).count()
+            sales_count = Proposal.objects.filter(contractor__licensed=current_licensed, status='Aprovado').count()
+
+            # Escolhe o melhor plano atingido
+            careers = (
+                PlanCareer.objects
+                .filter(stt_record=True)
+                .order_by('required_points', 'required_directs')
+            )
+            best = None
+            for c in careers:
+                if (
+                    total_points >= (getattr(c, 'required_points', 0) or 0)
+                    and directs >= (getattr(c, 'required_directs', 0) or 0)
+                    and sales_count >= (getattr(c, 'required_direct_sales', 0) or 0)
+                ):
+                    best = c
+            # Próximo alvo (primeiro plano acima do best que ainda não atingiu)
+            next_plan = None
+            for c in careers:
+                if best is None:
+                    # Primeiro plano da lista que não atingiu
+                    if not (
+                        total_points >= (getattr(c, 'required_points', 0) or 0)
+                        and directs >= (getattr(c, 'required_directs', 0) or 0)
+                        and sales_count >= (getattr(c, 'required_direct_sales', 0) or 0)
+                    ):
+                        next_plan = c
+                        break
+                else:
+                    if (
+                        (getattr(c, 'required_points', 0) or 0) > (getattr(best, 'required_points', 0) or 0)
+                        or (getattr(c, 'required_directs', 0) or 0) > (getattr(best, 'required_directs', 0) or 0)
+                        or (getattr(c, 'required_direct_sales', 0) or 0) > (getattr(best, 'required_direct_sales', 0) or 0)
+                    ):
+                        # c é acima de best
+                        if not (
+                            total_points >= (getattr(c, 'required_points', 0) or 0)
+                            and directs >= (getattr(c, 'required_directs', 0) or 0)
+                            and sales_count >= (getattr(c, 'required_direct_sales', 0) or 0)
+                        ):
+                            next_plan = c
+                            break
+            # Guarda nome ANTES
+            before_name = getattr(getattr(current_licensed, 'current_career', None), 'stage_name', None)
+            with transaction.atomic():
+                if best and current_licensed.current_career_id != getattr(best, 'id', None):
+                    current_licensed.current_career = best
+                    current_licensed.save(update_fields=['current_career'])
+
+            updated = bool(best and current_licensed.current_career_id == getattr(best, 'id', None))
+            # Ajuste: if updated just happened, before is previous; mas não temos previous; retornamos 'before' via payload best BEFORE change. Para simplificar, expor both names.
+            after_name = getattr(getattr(current_licensed, 'current_career', None), 'stage_name', None)
+            best_name = getattr(best, 'stage_name', None)
+            # Missing to next plan
+            missing_points = None
+            missing_directs = None
+            missing_sales = None
+            if next_plan is not None:
+                rp = getattr(next_plan, 'required_points', 0) or 0
+                rd = getattr(next_plan, 'required_directs', 0) or 0
+                rs = getattr(next_plan, 'required_direct_sales', 0) or 0
+                missing_points = max(0, rp - (total_points or 0))
+                missing_directs = max(0, rd - (directs or 0))
+                missing_sales = max(0, rs - (sales_count or 0))
+
+            return Response({
+                'updated': updated,
+                'before': before_name,
+                'after': after_name,
+                'metrics': {
+                    'points': float(total_points),
+                    'directs': directs,
+                    'sales': sales_count,
+                },
+                'next': {
+                    'stage_name': getattr(next_plan, 'stage_name', None),
+                    'required_points': getattr(next_plan, 'required_points', None),
+                    'required_directs': getattr(next_plan, 'required_directs', None),
+                    'required_direct_sales': getattr(next_plan, 'required_direct_sales', None),
+                } if next_plan else None,
+                'missing': {
+                    'points': missing_points,
+                    'directs': missing_directs,
+                    'sales': missing_sales,
+                } if next_plan is not None else None,
+            })
+        except Licensed.DoesNotExist:
+            return Response({'error': 'Usuário não possui perfil de licenciado'}, status=404)
+        except Exception as e:
+            return Response({'error': f'Erro ao verificar carreira: {str(e)}'}, status=500)
