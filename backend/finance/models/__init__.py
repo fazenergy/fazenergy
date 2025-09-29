@@ -4,6 +4,7 @@ from .VirtualAccount import VirtualAccount
 from .Transaction import Transaction
 from .BankAccount import BankAccount
 from .WithdrawRequest import WithdrawRequest
+from .PixConfig import PixConfig
 
 __all__ = [
     "GatewayConfig",
@@ -12,4 +13,5 @@ __all__ = [
     "Transaction",
     "BankAccount",
     "WithdrawRequest",
+    "PixConfig",
 ]

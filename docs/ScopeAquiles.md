@@ -238,6 +238,28 @@ Atualizações aplicadas (2025-08)
   - Solicitação bloqueada se já existir `pending` para o licenciado.
   - Valor mínimo e taxa fixa via `WITHDRAW_MIN_VALUE` e `WITHDRAW_FEE_FIXED`.
 
+#### Integração de Pagamento — PIX Sicoob (novo)
+- Serviço backend:
+  - `backend/finance/services/sicoob_pix.py` — cliente `SicoobPixClient` (env: `SICOOB_API_BASE_URL`, `SICOOB_OAUTH_URL`, `SICOOB_CLIENT_ID`, `SICOOB_CLIENT_SECRET`, `SICOOB_CERT_PATH`, `SICOOB_KEY_PATH`, opcional `SICOOB_ACCESS_TOKEN`).
+  - `backend/finance/services/withdraw.py` — `process_withdraw_request`: valida janela de saque, debita `VirtualAccount`, cria `Transaction`, chama PIX e atualiza `WithdrawRequest` para `paid` ou `rejected`.
+- Configuração dedicada do PIX (separada de Gateway/Pagar.me):
+  - Model/Serializer/ViewSet: `finance.PixConfig` → `api/finance/pix-config/` (GET retorna singleton, POST/PUT salva; auto-cria default se vazio).
+  - `SicoobPixClient` aceita overrides a partir de `PixConfig` (URLs, credenciais, paths mTLS, token dev).
+- Endpoint de processamento:
+  - `POST /api/finance/withdraw-requests/{id}/process/` — somente `superadmin|operador`.
+  - Resposta: `{ ok, status, message, provider_payload }`.
+- Janela de saque (opcional em `settings.py`):
+  - `WITHDRAW_ALLOWED_DAY_RANGE = "1-5"` (intervalo de dias do mês)
+  - `WITHDRAW_ALLOWED_DAYS = [5, 20]`
+  - `WITHDRAW_ALLOWED_WEEKDAYS = [0,1,2,3,4]` (seg=0)
+- Frontend:
+  - Tela `Finance/WithdrawRequests.vue` deve incluir botão “Processar” (somente operador/superadmin) que chama o endpoint acima e exibe o resultado.
+  - Em `Settings > Pagamentos`, sub‑abas: “Configurações” (regras de saque), “Config API” e “Webhook” (ambas consumindo `api/finance/pix-config/`).
+  - A aba “Gateway” permanece exclusiva para Pagar.me (venda de plano anual) e não se mistura com PIX/Sicoob.
+- Referência Sicoob:
+  - PIX Pagamentos: https://developers.sicoob.com.br/portal/documentacao?slugItem=apis&slugSubItem=pix-pagamentos
+  - Catálogo de APIs: https://developers.sicoob.com.br/portal/apis
+
 ### Contracts (Lexo)
 - APIs
   - `api/contracts/config/` (singleton GET/POST/PUT de `ContractConfig`).

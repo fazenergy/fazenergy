@@ -7,7 +7,7 @@ from .models.Transaction import Transaction
 from .models.PaymentLink import PaymentLink
 from .serializers import (
     GatewayConfigSerializer, TransactionSerializer, PaymentLinkSerializer,
-    BankAccountSerializer, WithdrawRequestSerializer
+    BankAccountSerializer, WithdrawRequestSerializer, PixConfigSerializer
 )
 from .models.VirtualAccount import VirtualAccount
 from .models import BankAccount, WithdrawRequest
@@ -15,6 +15,9 @@ from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 from django.contrib.auth.models import Group
 from core.models.Licensed import Licensed
+from rest_framework.decorators import action
+from .services.withdraw import process_withdraw_request
+from .models.PixConfig import PixConfig
 
 
 class GatewayConfigViewSet(viewsets.ModelViewSet):
@@ -32,6 +35,19 @@ class GatewayConfigViewSet(viewsets.ModelViewSet):
                 api_url='https://sdx-api.pagar.me/core/v5/paymentlinks',
                 active=True,
             )
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+
+class PixConfigViewSet(viewsets.ModelViewSet):
+    queryset = PixConfig.objects.all()
+    serializer_class = PixConfigSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        instance = PixConfig.objects.first()
+        if not instance:
+            instance = PixConfig.objects.create(provider_name='Sicoob', active=True)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -230,4 +246,34 @@ class WithdrawRequestViewSet(viewsets.ModelViewSet):
             if licensed_id:
                 return qs.filter(licensed_id=licensed_id)
         return qs.filter(licensed__user=user)
+
+    @action(detail=True, methods=['post'])
+    def process(self, request, pk=None):
+        """Processa uma solicitação de saque pendente via PIX Sicoob.
+
+        - Valida permissões (somente superadmin/operador).
+        - Aciona serviço que valida janela permitida, debita saldo e integra com Sicoob PIX.
+        - Atualiza status para paid/rejected conforme resposta.
+        """
+        user = request.user
+        is_admin_or_operator = (
+            getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False)
+            or user.groups.filter(name='Operador').exists()
+        )
+        if not is_admin_or_operator:
+            return Response({'detail': 'Sem permissão para processar.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            obj = self.get_queryset().get(pk=pk)
+        except WithdrawRequest.DoesNotExist:
+            return Response({'detail': 'Solicitação não encontrada.'}, status=404)
+
+        result = process_withdraw_request(obj, actor_username=user.username)
+        resp = {
+            'ok': result.ok,
+            'status': result.status,
+            'message': result.message,
+            'provider_payload': result.provider_payload,
+        }
+        return Response(resp, status=200 if result.ok else 400)
 

@@ -2,11 +2,12 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     GatewayConfigViewSet, TransactionViewSet, PaymentLinkViewSet, PaymentLinkLatestView, VirtualAccountBalanceView,
-    BankAccountViewSet, WithdrawRequestViewSet
+    BankAccountViewSet, WithdrawRequestViewSet, PixConfigViewSet
 )
 
 router = DefaultRouter()
 router.register(r'gateway-config', GatewayConfigViewSet, basename='gateway-config')
+router.register(r'pix-config', PixConfigViewSet, basename='pix-config')
 router.register(r'transactions', TransactionViewSet, basename='transactions')
 router.register(r'payment-links', PaymentLinkViewSet, basename='payment-links')
 router.register(r'bank-accounts', BankAccountViewSet, basename='bank-accounts')

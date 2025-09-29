@@ -4,20 +4,25 @@
     <h1 class="text-2xl font-bold mb-2">Configurações do Sistema</h1>
     <p class="text-gray-600 mb-6">Gerencie as configurações globais do sistema MMN</p>
 
-    <!-- Abas -->
-    <div class="flex border-b mb-4 space-x-2">
-      <button
-        v-for="tab in tabs"
-        :key="tab"
-        @click="activeTab = tab"
-        :class="[
-          'px-4 py-2 rounded-t',
-          activeTab === tab
-            ? 'bg-green-600 text-white border border-b-0'
-            : 'bg-gray-100 hover:bg-gray-200'
-        ]"
-      >
-        {{ tab }}
+    <!-- Abas + botão Info -->
+    <div class="flex items-center justify-between border-b mb-4">
+      <div class="flex space-x-2">
+        <button
+          v-for="tab in tabs"
+          :key="tab"
+          @click="activeTab = tab"
+          :class="[
+            'px-4 py-2 rounded-t',
+            activeTab === tab
+              ? 'bg-green-600 text-white border border-b-0'
+              : 'bg-gray-100 hover:bg-gray-200'
+          ]"
+        >
+          {{ tab }}
+        </button>
+      </div>
+      <button @click="openInfo" class="inline-flex items-center justify-center w-8 h-8 rounded text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 shadow-sm" title="Sobre esta aba">
+        <Info class="w-4 h-4" />
       </button>
     </div>
 
@@ -25,11 +30,24 @@
     <div class="border rounded p-4 bg-white">
       <component :is="currentTabComponent" />
     </div>
+
+    <!-- Modal de Info -->
+    <Modal v-model="showInfo" :header-blue="true" max-width="max-w-lg">
+      <template #title>{{ activeTab }}</template>
+      <div class="text-sm text-gray-700 whitespace-pre-line">{{ infoMessage }}</div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2">
+          <button class="px-3 py-1.5 rounded border" @click="showInfo=false">Fechar</button>
+        </div>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import Modal from '@/components/ui/Modal.vue'
+import { Info } from 'lucide-vue-next'
 import PlansTab from './Tabs/PlansTab.vue'
 import CareerPlansTab from './Tabs/CareerPlansTab.vue'
 import NotificationsTab from './Tabs/NotificationsTab.vue'
@@ -44,7 +62,7 @@ const GenericTab = {
   props: ['tab']
 }
 
-const tabs = ['Geral', 'Rede', 'Pagamentos', 'Gateway', 'Planos', 'Planos de Carreira', 'Notificações', 'Webhooks', 'APIs', 'Contratos']
+const tabs = ['Geral', 'Rede', 'Pagamentos', 'Gateway', 'Planos', 'Planos de Carreira', 'Notificações', 'Contratos']
 const activeTab = ref('Planos') // já abre na aba Planos
 
 const currentTabComponent = computed(() => {
@@ -69,6 +87,21 @@ const currentTabComponent = computed(() => {
       return GenericTab
   }
 })
+
+// Botão Info
+const showInfo = ref(false)
+const infoMap = {
+  'Geral': 'Informações institucionais, contatos e logos da empresa para uso em telas e relatórios.',
+  'Rede': 'Parâmetros do MMN: compressão dinâmica, habilitações e níveis de comissionamento.',
+  'Pagamentos': 'Regras de saque (Configurações) e integração PIX Sicoob (Config API e Webhook).',
+  'Gateway': 'Integração com o gateway Pagar.me para venda do plano anual (links, postback, redirect).',
+  'Planos': 'Cadastro e manutenção dos planos MMN utilizados nas adesões e cálculos.',
+  'Planos de Carreira': 'Etapas de carreira, requisitos (pontos, diretos, vendas) e progressão.',
+  'Notificações': 'Configuração de SMTP e templates de e-mail com envio de teste.',
+  'Contratos': 'Integração com Lexo Legal: configurações e templates de contrato.'
+}
+const infoMessage = computed(() => infoMap[activeTab.value] || 'Sem descrição para esta aba.')
+function openInfo(){ showInfo.value = true }
 
 // import { ref, computed } from 'vue'
 

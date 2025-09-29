@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models.GatewayConfig import GatewayConfig
+from .models.PixConfig import PixConfig
 from .models.Transaction import Transaction
 from .models.PaymentLink import PaymentLink
 from .models.BankAccount import BankAccount
@@ -15,6 +16,16 @@ class GatewayConfigSerializer(serializers.ModelSerializer):
             'postback_url', 'redirect_url',
             'webhook_token', 'webhook_user', 'webhook_password', 'webhook_secret',
             'active'
+        ]
+
+class PixConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PixConfig
+        fields = [
+            'id', 'provider_name', 'api_base_url', 'oauth_url', 'client_id', 'client_secret',
+            'access_token', 'cert_path', 'key_path',
+            'webhook_url', 'webhook_token', 'webhook_user', 'webhook_password', 'webhook_secret',
+            'active', 'updated_at'
         ]
 
 class TransactionSerializer(serializers.ModelSerializer):

@@ -77,6 +77,11 @@
             </div>
           </div>
 
+          <div>
+            <label class="block mb-1">Válido por (meses)</label>
+            <input v-model.number="form.validity_months" type="number" min="1" class="w-full border rounded px-2 py-1" placeholder="Ex.: 12 para anual, 6 semestral, 1 mensal" />
+          </div>
+
           <div class="grid grid-cols-2 gap-2">
             <div v-for="n in 5" :key="n">
               <label class="block mb-1">Bônus Nível {{ n }}</label>
@@ -113,6 +118,7 @@ const columns = [
   { key: 'name', label: 'Nome' },
   { key: 'price', label: 'Preço' },
   { key: 'points', label: 'Pontos' },
+    { key: 'validity_months', label: 'Validade (meses)' },
   { key: 'last_update', label: 'Última Edição' },
   { key: 'stt_record', label: 'Status' },
 ]
@@ -160,6 +166,7 @@ function savePlan() {
   fd.append('name', form.value.name)
   fd.append('price', form.value.price)
   fd.append('points', form.value.points)
+  fd.append('validity_months', form.value.validity_months ?? 12)
   fd.append('bonus_level_1', form.value.bonus_level_1)
   fd.append('bonus_level_2', form.value.bonus_level_2)
   fd.append('bonus_level_3', form.value.bonus_level_3)

@@ -6,6 +6,7 @@ from .models.PlanCareer import PlanCareer
 from .models import Qualification
 
 class PlanSerializer(serializers.ModelSerializer):
+    validity_months = serializers.IntegerField(required=False, min_value=1)
     usr_update_username = serializers.SerializerMethodField()
     class Meta:
         model = Plan
@@ -15,6 +16,7 @@ class PlanSerializer(serializers.ModelSerializer):
             'image',
             'price',
             'points',
+            'validity_months',
             'bonus_level_1',
             'bonus_level_2',
             'bonus_level_3',
@@ -36,10 +38,17 @@ class PlanSerializer(serializers.ModelSerializer):
         # Se vier imagem, trata via request.FILES
         image = request.FILES.get('image') if request and 'image' in request.FILES else None
 
+        # Coerção defensiva para multipart/form-data
+        try:
+            vm = int((request.data.get('validity_months') if request else None) or validated_data.get('validity_months') or 12)
+        except Exception:
+            vm = 12
+
         plan = Plan.objects.create(
             name=validated_data.get('name'),
             price=validated_data.get('price'),
             points=validated_data.get('points'),
+            validity_months=vm,
             bonus_level_1=validated_data.get('bonus_level_1'),
             bonus_level_2=validated_data.get('bonus_level_2'),
             bonus_level_3=validated_data.get('bonus_level_3'),
@@ -62,6 +71,13 @@ class PlanSerializer(serializers.ModelSerializer):
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
+        # Garante atualização quando vier via multipart mas não passou na validação
+        if request and 'validity_months' in request.data:
+            try:
+                instance.validity_months = int(request.data.get('validity_months'))
+            except Exception:
+                pass
 
         if request and 'image' in request.FILES:
             instance.image = request.FILES['image']

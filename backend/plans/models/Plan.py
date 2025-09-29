@@ -10,6 +10,7 @@ class Plan(models.Model):
     image = models.ImageField(upload_to='plans/', blank=True, null=True, verbose_name="Capa")  # 400x400 px
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Preço")
     points = models.PositiveIntegerField(verbose_name="Pontos")
+    validity_months = models.PositiveIntegerField(default=12, verbose_name="Validade (meses)")
     bonus_level_1 = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Bônus Nível 1")
     bonus_level_2 = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Bônus Nível 2")
     bonus_level_3 = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Bônus Nível 3")
