@@ -75,7 +75,7 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
 - Layout do grid com rodapé/paginação fixo no rodapé do container:
   - Aplicar min-height responsivo (cálculo por viewport) para que o grid preencha a área útil e mantenha o footer visível, como em Rede > Diretos.
 - Colunas: a primeira deve ser Ações; a segunda o ID da linha; a última também apresenta o ID quando aplicável.
-- Páginas alvo para aplicar o padrão: Rede (Diretos, Rede Completa, Árvore da Rede, Adesões) e todas as demais listagens do sistema.
+- Páginas alvo para aplicar o padrão: Rede (Diretos, Rede Completa, Adesões) e todas as demais listagens do sistema.
 
 ### Meu PJ (Novo)
 - Rota: `/company` (roles: licenciado, superadmin)
@@ -90,91 +90,16 @@ Documento de contexto e escopo consolidado das alterações recentes (backend e 
   - Se cadastrar empresa, os 2 documentos PJ tornam-se obrigatórios e ficam pendentes até validação por Operador.
   - Tela de Revisão de Documentos permite filtrar por `owner_type` (PF/PJ) e exibe colunas Origem e Empresa.
 
-### Gerenciar Usuários (Plano de Execução)
-- Objetivo: criar visão administrativa completa (somente Superadmin) para manutenção de Usuários, Perfis/Permissões e Grupos, seguindo o padrão de barra de botões, filtros e grid.
-
-- Escopo das Telas
-  1) Usuários
-     - Grid com colunas: ID, Username, Nome, E-mail, Ativo, Última atualização.
-     - Filtros: Texto (username/nome/e-mail), Grupo, Status (ativo/inativo).
-     - Ações: Adicionar, Exportar, Imprimir.
-     - Modal de Cadastro/Edição com abas:
-       - Dados (username, e-mail, senha/confirmar, nome, ativo, imagem de perfil).
-       - Grupos & Permissões (seleção de grupos existentes; permissões granulares opcionais).
-       - Layout do topo à esquerda com anexo de foto, igual ao cadastro de Licenciado.
-  2) Perfis (Permissões)
-     - Grid de permissões do Django (app_label, codename, name).
-     - Filtros por app e busca.
-     - Ações: Exportar, Imprimir.
-  3) Grupos
-     - Grid com colunas: ID, Nome do Grupo, Qtde de Permissões.
-     - Filtros por texto.
-     - Ações: Adicionar, Exportar, Imprimir.
-     - Modal para criar/editar e vincular permissões ao grupo.
-
-- Backend (APIs)
-  - Endpoints autenticados (somente superadmin):
-    - `api/admin/users/` (CRUD de usuários)
-    - `api/admin/groups/` (CRUD de grupos + vincular permissões)
-    - `api/admin/permissions/` (listagem)
-  - Regras:
-    - Senhas só são obrigatórias na criação; na edição, alterar apenas se os campos forem enviados.
-    - Proteção para não remover o próprio superadmin único do sistema.
-
-- Frontend (Vue)
-  - Rotas protegidas (meta: requiresAuth + role superadmin):
-    - `/admin/users`, `/admin/groups`, `/admin/permissions`.
-  - Telas com DataTable padrão, filtros e barra de botões (Adicionar/Exportar/Imprimir).
-  - Modais com o mesmo padrão visual e validações de campos obrigatórios.
-
-- Entregáveis (ordem)
-  1) Implementar APIs (users, groups, permissions) no backend.
-  2) Telas de Grupos e Permissões (mais simples) no frontend.
-  3) Tela de Usuários com modal em abas (Dados; Grupos & Permissões).
-  4) Integração de exportar/imprimir e validações finais.
-
-### Dependências e Notas
-- Sem novas dependências obrigatórias neste escopo (reuso das bibliotecas atuais: DRF, DataTable, etc.).
-
-Atualizações aplicadas (2025-08)
-- Header (global)
-  - Breadcrumbs dinâmicos ativados para: Rede (Diretos, Rede Completa, Adesões, Árvore da Rede), Licenciados, Documentos e Relatórios (Pontos, Bônus).
-  - Remover breadcrumbs locais das páginas que ainda tiverem duplicidade.
-- Dashboard
-  - Barra superior com botões: Convidar Licenciado (verde), Exportar (roxo), Imprimir (azul). Para superadmin, manter também Cadastrar Licenciado (verde).
-  - Exportar/Imprimir exportam as métricas atuais (cards) em XLS e impressão simples.
-  - Bloco “Distribuição Geográfica”: mapa do Brasil clicável por UF com abertura de modal de totais filtrados por estado. Ao clicar, os dados são pré-carregados e o modal só é aberto após o retorno da API; um overlay de loading cobre o card do mapa durante a requisição.
-  - Conteúdo do modal com margem superior de 10px e espaçamento de 20px antes do rodapé.
-  - Regras de contagem no Dashboard:
-    - Total de Licenciados: considera somente licenciados que possuam ao menos uma adesão confirmada (paga).
-    - Resumo Operacional — Pré‑Cadastros (30 dias): licenciados criados nos últimos 30 dias que possuem apenas adesões não pagas (pending/canceled) e nenhuma adesão confirmada.
-    - Resumo Operacional — Ativações: licenciados com adesão confirmada com data de pagamento há 20 dias ou mais (liberação após 20 dias).
-
-- Rede
-  - Diretos, Rede Completa, Adesões: toolbar padronizada (botões + filtros + busca expansível) sem borda, com footer do grid colado ao rodapé do container.
-  - Árvore da Rede: endpoint ajustado para retornar URL ABSOLUTA da imagem de perfil (garante render no front).
-- Licenciados
-  - Lista padronizada com toolbar (Adicionar, Exportar, Imprimir) e busca expansível.
-- Relatórios
-  - Pontos e Bônus: toolbar padronizada com Exportar/Imprimir, filtros e busca expansível; breadcrumbs no header.
-  - Fechamentos: botão Info com regras e modal “Solicitar Saque” (licenciado); ao selecionar a conta, preenche automaticamente banco/tipo/agência/conta (campos bloqueados) e permite informar o valor.
-- Documentos do Licenciado
-  - Padronizar a tela com a mesma toolbar (Exportar/Imprimir, filtro de status, busca expansível) e grid com footer fixo.
-  - Ações “Anexar/Reenviar” em modal com botões “Fechar/Gravar”.
-- UX/Estilo global
-  - Botões primários de “Gravar/Salvar”: cor verde (bg-emerald-600, hover:bg-emerald-700).
-  - Inputs `readonly` devem exibir fundo cinza claro e sem foco (aplicado no componente `Input.vue`).
-
-### Documentos do Licenciado (Novo)
-- Rotas:
-  - `/documents` (licenciado) — anexar/reenviar CPF, RG, Comprovante de Endereço, PIS; grid + modal padrão.
-  - `/documents/review` (operador/superadmin) — revisar/aprovar/reprovar documentos pendentes.
-- Dashboard:
-  - Card “Documentação do Licenciado” com gradiente amarelo/laranja.
-  - Alertas no topo quando pendente e quick action “Enviar Documentos”.
-- UX:
-  - Botões: “Anexar” no grid; modal com “Fechar/Gravar”.
-  - Erros de anexos exibidos dentro do modal (sem alert).
+### Fechamentos — Solicitação de Saque (Novo)
+- Rota: `/reports/closures`
+- Para Licenciado:
+  - Botão “Solicitar Saque” com seleção de conta e valor (preenchimento automático dos dados da conta e validações de saldo/mínimo).
+  - Seção “Solicitações de Saque” com status, previsão de recebimento e botão de cancelar quando pendente/agendado.
+  - Ícone de histórico por linha mostrando todos os eventos desde a solicitação.
+- Para Operador/Superadmin:
+  - Ações por linha: Aprovar (define `expected_payout_date`), Agendar (define `scheduled_for` e previsão), Liberação de Emergência (motivo obrigatório; chama pagamento imediato), Cancelar.
+  - Histórico abre modal com trilha completa (quem aprovou, motivo de emergência, cancelamento).
+- Status exibidos: `pending`, `scheduled`, `processing`, `paid`, `canceled`, `rejected`.
 
 ### Dashboard — Mapa por Estado (Novo)
 - Componente: `frontend/src/components/BrazilStatesMap.vue`.
@@ -201,18 +126,32 @@ Atualizações aplicadas (2025-08)
   - Sininho no header global mostra contador de alertas e abre modal com mensagens importantes.
 
 ## Backend (Django + DRF)
+### Finance (Saque — Novo)
+- Models:
+  - `finance.WithdrawRequest`: acrescido de estados/campos para aprovação, agendamento, emergência e cancelamento (`approved_by/at`, `scheduled_for/by`, `expected_payout_date`, `emergency_reason`, `canceled_by/at`, `cancel_reason`, status `scheduled`).
+  - `finance.WithdrawRequestLog`: trilha de auditoria com ações (`requested`, `approved`, `scheduled`, `emergency_released`, `canceled`, `processed_paid`, `processed_rejected`, `processing`).
+- Serializers/Views/URLs:
+  - `api/finance/withdraw-requests/` (CRUD autenticado; licenciado vê/cria próprios; operador/superadmin filtram por `licensed_id`).
+  - Ações:
+    - `POST /api/finance/withdraw-requests/{id}/approve/` — define aprovação e previsão (somente operador/superadmin).
+    - `POST /api/finance/withdraw-requests/{id}/schedule/` — agenda processamento (somente operador/superadmin).
+    - `POST /api/finance/withdraw-requests/{id}/emergency_release/` — liberação emergencial (motivo obrigatório; processa imediato ignorando janela) (somente operador/superadmin).
+    - `POST /api/finance/withdraw-requests/{id}/cancel/` — cancela pendente/agendado (operador/superadmin; licenciado pode cancelar o próprio).
+    - `GET /api/finance/withdraw-requests/{id}/history/` — histórico completo da solicitação.
+- Regras de validação:
+  - Bloqueio de múltiplas pendentes por licenciado; valida mínimo e saldo; snapshot da conta na resposta; taxa fixa via `WITHDRAW_FEE_FIXED` e janela via `WITHDRAW_ALLOWED_*`.
+- Processamento PIX (Sicoob):
+  - Cliente `SicoobPixClient` realiza POST `{{base_url}}/pagamentos` (Pix Pagamentos v2). Não há suporte oficial mapeado para agendamento nativo de PIX; portanto, agendamento é feito no banco e processado por rotina.
+  - Serviço `process_withdraw_request` debita saldo, cria `Transaction` e integra com Sicoob; atualiza `paid`/`rejected` e registra logs.
+- Tarefa periódica:
+  - `finance.tasks.process_scheduled_withdraws` — processa `scheduled` vencidos, ignorando janela, para execução diária (Celery Beat).
+
 ### Plans
 - `PlanCareer` API
   - Serializer `PlanCareerSerializer`.
   - ViewSet `PlanCareerViewSet`.
   - Rota: `api/plans/plan-careers/` (CRUD autenticado).
 - `PlanAdesionSerializer`: incluído `licensed_username` para exibir `id-username` no front.
-
-- Verificação/Evolução de Carreira
-  - Endpoint `POST /api/core/career/verify/`:
-    - Calcula pontos válidos (`ScoreReference.status='valid'`), diretos e vendas de usina aprovadas.
-    - Seleciona o maior `PlanCareer` que atende `required_points`, `required_directs` e `required_direct_sales` e atualiza `Licensed.current_career`.
-    - Resposta inclui `updated`, `before`, `after`, `metrics {points,directs,sales}`, `next {stage_name,required_*}` e `missing {points,directs,sales}`.
 
 ### Notifications
 - Modelos já existentes: `NotifyConfig`, `NotifyTemplate`.
@@ -226,47 +165,12 @@ Atualizações aplicadas (2025-08)
   - Serializer/ViewSet/URL: `api/finance/gateway-config/`.
   - GET cria registro default caso não exista (para facilitar o preenchimento via UI).
 
-### Finance (Saque — Novo)
-- Models:
-  - `finance.BankAccount`: contas bancárias do licenciado (PF/PJ com vínculo opcional a `core.LicensedCompany` aprovada).
-  - `finance.WithdrawRequest`: solicitações de saque com status (`pending|processing|paid|canceled|rejected`), taxas e impostos.
-- Serializers/Views/URLs:
-  - `api/finance/bank-accounts/` (CRUD autenticado; retorna/edita apenas contas do usuário corrente; operador/superadmin podem filtrar por `licensed_id`).
-  - `api/finance/withdraw-requests/` (CRUD autenticado; criação valida saldo, mínimo, bloqueia duplicadas pendentes e retorna snapshot do banco).
-- Regras de validação:
-  - Conta PJ exige empresa aprovada; PF não permite empresa.
-  - Solicitação bloqueada se já existir `pending` para o licenciado.
-  - Valor mínimo e taxa fixa via `WITHDRAW_MIN_VALUE` e `WITHDRAW_FEE_FIXED`.
-
-#### Integração de Pagamento — PIX Sicoob (novo)
-- Serviço backend:
-  - `backend/finance/services/sicoob_pix.py` — cliente `SicoobPixClient` (env: `SICOOB_API_BASE_URL`, `SICOOB_OAUTH_URL`, `SICOOB_CLIENT_ID`, `SICOOB_CLIENT_SECRET`, `SICOOB_CERT_PATH`, `SICOOB_KEY_PATH`, opcional `SICOOB_ACCESS_TOKEN`).
-  - `backend/finance/services/withdraw.py` — `process_withdraw_request`: valida janela de saque, debita `VirtualAccount`, cria `Transaction`, chama PIX e atualiza `WithdrawRequest` para `paid` ou `rejected`.
-- Configuração dedicada do PIX (separada de Gateway/Pagar.me):
-  - Model/Serializer/ViewSet: `finance.PixConfig` → `api/finance/pix-config/` (GET retorna singleton, POST/PUT salva; auto-cria default se vazio).
-  - `SicoobPixClient` aceita overrides a partir de `PixConfig` (URLs, credenciais, paths mTLS, token dev).
-- Endpoint de processamento:
-  - `POST /api/finance/withdraw-requests/{id}/process/` — somente `superadmin|operador`.
-  - Resposta: `{ ok, status, message, provider_payload }`.
-- Janela de saque (opcional em `settings.py`):
-  - `WITHDRAW_ALLOWED_DAY_RANGE = "1-5"` (intervalo de dias do mês)
-  - `WITHDRAW_ALLOWED_DAYS = [5, 20]`
-  - `WITHDRAW_ALLOWED_WEEKDAYS = [0,1,2,3,4]` (seg=0)
-- Frontend:
-  - Tela `Finance/WithdrawRequests.vue` deve incluir botão “Processar” (somente operador/superadmin) que chama o endpoint acima e exibe o resultado.
-  - Em `Settings > Pagamentos`, sub‑abas: “Configurações” (regras de saque), “Config API” e “Webhook” (ambas consumindo `api/finance/pix-config/`).
-  - A aba “Gateway” permanece exclusiva para Pagar.me (venda de plano anual) e não se mistura com PIX/Sicoob.
-- Referência Sicoob:
-  - PIX Pagamentos: https://developers.sicoob.com.br/portal/documentacao?slugItem=apis&slugSubItem=pix-pagamentos
-  - Catálogo de APIs: https://developers.sicoob.com.br/portal/apis
-
 ### Contracts (Lexo)
 - APIs
   - `api/contracts/config/` (singleton GET/POST/PUT de `ContractConfig`).
   - `api/contracts/templates/` (CRUD de `ContractTemplate`).
 - Reenvio de Contrato
   - `POST /api/contracts/templates/resend-adesion/` — reenvia contrato de adesão via Lexo para o e‑mail do licenciado atual.
-  - Front exibe modal de confirmação: “Contrato reenviado para o e‑mail {email}”.
 - Remoções
   - `ContractLog` removido do projeto (model/admin), migração criada e referências limpas em `contracts/services.py`.
 
@@ -277,85 +181,33 @@ Atualizações aplicadas (2025-08)
 ### Core
 - `LicensedCompany` (novo)
   - N:1 com `core.Licensed` (um licenciado pode ter várias empresas/CNPJs).
-  - Campos principais: `cnpj` (único), `razao_social`, `nome_fantasia`, `insc_estadual`, `insc_municipal`, `cep`, `city_lookup`, `endereco`, `numero`, `complemento`, `bairro`, `telefone`, `observacao`, `stt_validate` (pending/rejected/approved), `rejection_reason`, timestamps.
-- `LicensedDocument`
-  - Acrescentado `owner_type` (`pf`|`pj`) e FK opcional `company` (quando `owner_type='pj'`).
-  - Unicidade:
-    - PF: (`licensed`, `owner_type`, `document_type`).
-    - PJ: (`company`, `document_type`).
-  - Novos tipos: `cnpj_card` (Cartão CNPJ) e `social_contract` (Contrato Social).
-- `Licensed`
-  - Campo `stt_document` (pending/rejected/approved) usado pelo Dashboard.
-  - Regras de sinal: recalcula automaticamente o `stt_document` quando documentos são criados/atualizados/excluídos.
-- API
-  - `api/core/licensed-documents/` (CRUD autenticado)
-    - Licenciado cria/edita apenas os próprios; operador vê todos e pode aprovar/reprovar.
-    - Upload via multipart; `licensed` inferido do usuário (operador deve informar explicitamente).
-  - Dashboard expõe `documents.status` e `documents.pending`.
-- Dashboard — Documentação PF/PJ
-  - Card `docs_status` passa a trazer objeto `{ pf, pj }` com status independentes.
-  - Estrutura `documents` inclui `pf`, `pj` e `company_cnpjs` para montar alertas direcionados (PF e PJ).
-- `LicensedListSerializer` expandido para suportar `documents_status` derivado (pendente, incompleto, aguardando aprovação, aprovado) e cidade/UF com ids.
-- `LicensedViewSet` ganhou action para operadores/superadmins atualizarem campos do usuário vinculado (nome, e‑mail, senha, foto) de forma segura.
-- Notificações
-  - Envio de e-mail para operadores quando o conjunto obrigatório estiver completo e pendente de validação (template: `LicensedDocsSubmitted`).
-  - Removidos campos `previous_career` e `dtt_previous_career`.
-  - Ajustes no método de qualificação para carreira atual.
-  - Admin `LicensedAdmin` atualizado (sem carreira anterior, `fieldsets` e validações ajustados).
-- Endpoint do Dashboard com filtro por UF (novo)
-  - `GET /api/core/dashboard/?state=UF` (admin/operador)
-    - Filtra por `Licensed.city_lookup__state__uf` quando aplicável.
-    - Adesões pagas: filtra por UF do licenciado da adesão (join até `Licensed`).
-    - Bônus: filtra por UF via `Transaction.virtual_account.licensed.city_lookup.state.uf`.
-    - Pontos: filtra por UF via `ScoreReference.receiver_licensed.city_lookup.state.uf`.
-    - Resumo (pré-cadastros, ativações, solicitações de saque) respeita a UF.
-
-#### Segurança do Login (atual)
-- Endpoint `POST /api/token/` usa `SecureTokenObtainPairView` com bloqueio temporário após 5 tentativas falhas por usuário (lockout por cache).
-- Throttling e 2FA foram desativados neste momento conforme decisão de produto.
-- Parâmetros ajustáveis (em `settings.py`):
-  - `LOGIN_LOCKOUT_FAILURES` (padrão 5)
-  - `LOGIN_LOCKOUT_WINDOW` (padrão 900s)
-  - `LOGIN_LOCKOUT_DURATION` (padrão 900s)
+  - Campos principais: `cnpj`, `razao_social`, `nome_fantasia`, `insc_estadual`, `insc_municipal`, `cep`, `city_lookup`, `endereco`, `numero`, `complemento`, `bairro`, `telefone`, `observacao`, `stt_validate` (pending/rejected/approved), `rejection_reason`, timestamps.
+- `LicensedDocument` — novos campos e unicidade PF/PJ.
+- `Licensed` — `stt_document` para dashboard; sinais ajustados.
+- Dashboard com filtro por UF: `GET /api/core/dashboard/?state=UF`.
 
 ## Rotas/Endpoints (resumo)
-- Plans: `api/plans/plan-careers/`
-- Notifications: `api/notifications/config/`, `api/notifications/templates/`, `api/notifications/templates/{id}/test/`
-- Finance: `api/finance/gateway-config/`, `api/finance/transactions/?licensed_username=&month=&year=`, `api/finance/virtual-account/balance/`
- - Finance: `api/finance/gateway-config/`, `api/finance/transactions/?licensed_username=&month=&year=`, `api/finance/virtual-account/balance/`, `api/finance/bank-accounts/`, `api/finance/withdraw-requests/`
-- Contracts: `api/contracts/config/`, `api/contracts/templates/`
-- Core: `api/core/licensed-documents/`, `api/core/licensed-documents/pending/`, `api/core/licensed-companies/`, `api/core/dashboard/?state=UF`
-- Network: `api/network/upline-chain/`, `api/network/tree/`
-
-## Frontend — Atualizações relevantes
-- Licenciados
-  - Toolbar padrão (Adicionar, Exportar, Imprimir) e busca expansível.
-  - Ações por linha: Editar (azul), Relatórios (cinza), Extrato Virtual (roxo), Trocar Senha (laranja). Botão de Upline removido.
-  - Modal de Relatório: mantém informações do licenciado e acrescenta grid “Upline | Nível”.
-  - Modal Extrato Virtual: filtros Mês/Ano, saldo disponível no topo e grid (ID, Data Cadastro, Referência — origem Adesão/Usina, Descrição, Valor, Operação, Status).
-  - CEP com preenchimento automático (ViaCEP) e máscaras de Telefone/CEP/CPF.
-  - Modal Edição: `username` somente leitura; campos de senha removidos.
-  - Modal Trocar Senha: campos sempre limpos ao abrir; validação forte e alert flutuante com [×].
-
+- Finance:
+  - `api/finance/bank-accounts/`
+  - `api/finance/withdraw-requests/`
+  - `POST /api/finance/withdraw-requests/{id}/approve/`
+  - `POST /api/finance/withdraw-requests/{id}/schedule/`
+  - `POST /api/finance/withdraw-requests/{id}/emergency_release/`
+  - `POST /api/finance/withdraw-requests/{id}/cancel/`
+  - `GET  /api/finance/withdraw-requests/{id}/history/`
+- PixConfig: `api/finance/pix-config/`
+- Gateway (Pagar.me): `api/finance/gateway-config/`
+- Transações/Saldo: `api/finance/transactions/`, `api/finance/virtual-account/balance/`
+- Demais: plans, notifications, contracts, core, network (como já descrito acima).
 
 ## Migrações
-- Contracts: deleção de `ContractLog`.
-- Core: criação de `LicensedDocument`; inclusão de `Licensed.stt_document`.
-- Plans/Notifications/Finance/Contracts: novas rotas/serializers/views sem alterações de esquema além das citadas.
+- Finance: criação de `WithdrawRequestLog` e extensão de `WithdrawRequest` com campos de aprovação/agendamento/emergência/cancelamento.
 
 ## Pendências/Operação
 - Executar migrações após alterações do backend:
   - `python manage.py migrate`
-- Garantir token JWT válido para acessar rotas autenticadas no front.
-- Opcional: integrar CKEditor 5/Monaco oficiais se necessário (dependências de build).
-
-### Dependências adicionadas (Frontend)
-- `@svg-maps/brazil` — shapes SVG dos estados do Brasil para o componente de mapa.
-  - Instalação (no diretório `frontend/`):
-    - `npm install @svg-maps/brazil`
-  - Reinicie o Vite após instalar.
-
-Observação: avaliamos `vue3-svg-map`, mas a solução final não depende dela; usamos apenas `@svg-maps/brazil` e renderização SVG nativa.
+- Configurar Celery Beat para executar `finance.tasks.process_scheduled_withdraws` diariamente (ou conforme janela definida).
+- Garantir token de sandbox para testes Sicoob (ou OAuth2 + mTLS em homolog/produção).
 
 ---
 Atualizado por: Assistente (Aquiles) — data da última consolidação conforme execução das tarefas recentes.
