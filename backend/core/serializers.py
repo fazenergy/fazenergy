@@ -8,6 +8,7 @@ from core.models.LicensedDocument import LicensedDocument
 from core.models.LicensedCompany import LicensedCompany
 from core.choices import DOCUMENT_TYPE_CHOICES, DOCUMENT_STATUS_CHOICES, DOCUMENT_OWNER_TYPE_CHOICES
 from notifications.utils import send_email
+from .models.ScheduledTaskConfig import ScheduledTaskConfig, ScheduledTaskLog
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -736,3 +737,17 @@ class AdminUserSerializer(serializers.ModelSerializer):
         if perms is not None:
             instance.user_permissions.set(perms)
         return instance
+
+
+class ScheduledTaskConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ScheduledTaskConfig
+        fields = ['id', 'key', 'task', 'active', 'disabled_reason', 'updated_at', 'created_at']
+        read_only_fields = ['id', 'updated_at', 'created_at']
+
+
+class ScheduledTaskLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ScheduledTaskLog
+        fields = ['id', 'config', 'action', 'actor_username', 'reason', 'created_at']
+        read_only_fields = ['id', 'created_at']

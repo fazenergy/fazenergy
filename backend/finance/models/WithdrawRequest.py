@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class WithdrawRequest(models.Model):
@@ -13,6 +14,7 @@ class WithdrawRequest(models.Model):
 
     STATUS = (
         ("pending", "Pendente"),
+        ("scheduled", "Agendado"),
         ("processing", "Processando"),
         ("paid", "Pago"),
         ("canceled", "Cancelado"),
@@ -27,6 +29,28 @@ class WithdrawRequest(models.Model):
     status = models.CharField(max_length=12, choices=STATUS, default='pending')
     note = models.TextField(blank=True, null=True)
 
+    # Aprovação/Agendamento
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='approved_withdraw_requests'
+    )
+    approved_at = models.DateTimeField(blank=True, null=True)
+    scheduled_for = models.DateTimeField(blank=True, null=True)
+    scheduled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='scheduled_withdraw_requests'
+    )
+    expected_payout_date = models.DateField(blank=True, null=True)
+    emergency_reason = models.TextField(blank=True, null=True)
+
+    # Cancelamento
+    canceled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='canceled_withdraw_requests'
+    )
+    canceled_at = models.DateTimeField(blank=True, null=True)
+    cancel_reason = models.TextField(blank=True, null=True)
+
     requested_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(blank=True, null=True)
 
@@ -37,6 +61,7 @@ class WithdrawRequest(models.Model):
         indexes = [
             models.Index(fields=['licensed']),
             models.Index(fields=['status']),
+            models.Index(fields=['scheduled_for']),
         ]
 
     def __str__(self) -> str:

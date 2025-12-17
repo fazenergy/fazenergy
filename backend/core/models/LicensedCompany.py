@@ -60,3 +60,12 @@ class LicensedCompany(models.Model):
 
 
 
+
+
+
+
+
+
+
+
+

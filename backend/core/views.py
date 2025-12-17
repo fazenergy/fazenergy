@@ -24,12 +24,16 @@ from network.models import UnilevelNetwork
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
 from django.views.decorators.http import require_GET
+from celery.schedules import crontab
+from django.utils import timezone as dj_tz
 
 # ==== Segurança do Login (throttle + lockout) ====
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.core.cache import cache
 from django.conf import settings
+from core.models.ScheduledTaskConfig import ScheduledTaskConfig, ScheduledTaskLog
+from core.serializers import ScheduledTaskConfigSerializer, ScheduledTaskLogSerializer
 
 
 class SecureTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -1011,6 +1015,121 @@ class DashboardView(APIView):
             }
 
         return Response(data)
+
+
+class AdminSchedulesView(APIView):
+    """Exibe configurações de rotinas agendadas (Celery Beat) para admins.
+
+    Retorna lista com: nome, descrição, schedule (crontab/human readable), próxima execução estimada e task.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        is_operator_or_admin = user.is_superuser or user.is_staff or user.groups.filter(name='Operador').exists()
+        if not is_operator_or_admin:
+            return Response([], status=403)
+
+        from django.conf import settings
+        schedules = []
+        beat = getattr(settings, 'CELERY_BEAT_SCHEDULE', {}) or {}
+
+        now = dj_tz.localtime()
+
+        for key, item in beat.items():
+            task = item.get('task')
+            schedule = item.get('schedule')
+            description = item.get('description') or ''
+            human = None
+            next_run = None
+
+            # CrontabSchedule do celery possui método remaining_estimate; estimamos próxima execução
+            try:
+                if isinstance(schedule, crontab):
+                    human = f"crontab(min={schedule._orig_minute}, hour={schedule._orig_hour}, day_of_month={schedule._orig_day_of_month}, month={schedule._orig_month_of_year}, day_of_week={schedule._orig_day_of_week})"
+                    # próxima execução baseada no método de remanescente
+                    delta = schedule.remaining_estimate(now)
+                    next_run = (now + delta).isoformat()
+                else:
+                    # intervalos ou outros tipos – tentativa genérica
+                    human = str(schedule)
+                    try:
+                        delta = schedule.remaining_estimate(now)
+                        next_run = (now + delta).isoformat()
+                    except Exception:
+                        next_run = None
+            except Exception:
+                human = str(schedule)
+                next_run = None
+
+            schedules.append({
+                'key': key,
+                'task': task,
+                'description': description,
+                'schedule': human,
+                'next_run': next_run,
+            })
+
+        return Response({'generated_at': now.isoformat(), 'entries': schedules})
+
+    def post(self, request):
+        """Ações de administração: toggle ativa/inativa (com motivo) e executar agora.
+
+        Body:
+        - action: 'toggle' | 'run_now'
+        - key: chave do CELERY_BEAT_SCHEDULE
+        - active: bool (para toggle)
+        - reason: texto (obrigatório quando active=false)
+        """
+        user = request.user
+        is_operator_or_admin = user.is_superuser or user.is_staff or user.groups.filter(name='Operador').exists()
+        if not is_operator_or_admin:
+            return Response({'detail': 'Sem permissão'}, status=403)
+
+        action = (request.data.get('action') or '').strip()
+        key = (request.data.get('key') or '').strip()
+        if not key:
+            return Response({'key': 'Informe a chave da rotina.'}, status=400)
+
+        beat = getattr(settings, 'CELERY_BEAT_SCHEDULE', {}) or {}
+        if key not in beat:
+            return Response({'key': 'Rotina não encontrada.'}, status=404)
+
+        # Garante registro de config
+        item = beat[key]
+        cfg, _ = ScheduledTaskConfig.objects.get_or_create(key=key, defaults={'task': item.get('task') or ''})
+
+        if action == 'toggle':
+            if 'active' not in request.data:
+                return Response({'active': 'Informe active=true/false.'}, status=400)
+            active = bool(request.data.get('active'))
+            reason = (request.data.get('reason') or '').strip() or None
+            if not active and not reason:
+                return Response({'reason': 'Informe o motivo da desativação.'}, status=400)
+            cfg.active = active
+            cfg.disabled_reason = None if active else reason
+            cfg.task = item.get('task') or cfg.task
+            cfg.save()
+            ScheduledTaskLog.objects.create(config=cfg, action=('enable' if active else 'disable'), actor_username=user.username, reason=reason)
+            ser = ScheduledTaskConfigSerializer(cfg)
+            return Response({'ok': True, 'config': ser.data})
+
+        if action == 'run_now':
+            # opcionalmente checa active
+            if cfg.active is False:
+                ScheduledTaskLog.objects.create(config=cfg, action='run_now', actor_username=user.username, reason='Executado manualmente (mesmo desativado)')
+            else:
+                ScheduledTaskLog.objects.create(config=cfg, action='run_now', actor_username=user.username, reason='Executado manualmente')
+            # Disparo da task
+            try:
+                from celery import current_app
+                task_name = item.get('task')
+                current_app.send_task(task_name)
+                return Response({'ok': True, 'message': f'Task {task_name} enfileirada para execução imediata.'})
+            except Exception as e:
+                return Response({'ok': False, 'error': str(e)}, status=500)
+
+        return Response({'action': 'Use action=toggle ou action=run_now'}, status=400)
 
 
 class PendingDocumentsCountView(APIView):

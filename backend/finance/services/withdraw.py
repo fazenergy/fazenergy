@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from finance.models import WithdrawRequest, VirtualAccount, Transaction, PixConfig
+from finance.models import WithdrawRequest, VirtualAccount, Transaction, PixConfig, WithdrawRequestLog
 from .sicoob_pix import SicoobPixClient
 
 
@@ -65,7 +65,7 @@ def _is_withdraw_allowed_now(now=None) -> bool:
     return True
 
 
-def process_withdraw_request(req: WithdrawRequest, *, actor_username: str = "system") -> WithdrawProcessResult:
+def process_withdraw_request(req: WithdrawRequest, *, actor_username: str = "system", bypass_window: bool = False) -> WithdrawProcessResult:
     """Processa a solicitação de saque via PIX Sicoob, debitando saldo e atualizando status.
 
     Fluxo:
@@ -77,7 +77,7 @@ def process_withdraw_request(req: WithdrawRequest, *, actor_username: str = "sys
     if req.status != "pending":
         return WithdrawProcessResult(False, req.status, "Solicitação não está pendente.")
 
-    if not _is_withdraw_allowed_now():
+    if not bypass_window and not _is_withdraw_allowed_now():
         return WithdrawProcessResult(False, req.status, "Fora do período permitido para saque.")
 
     # Dados necessários
@@ -147,6 +147,14 @@ def process_withdraw_request(req: WithdrawRequest, *, actor_username: str = "sys
             err = result.get("error") or {}
             req.note = (req.note or "") + f"\nFalha PIX: {err}"
             req.save(update_fields=["status", "processed_at", "note"])
+            try:
+                WithdrawRequestLog.objects.create(
+                    withdraw_request=req,
+                    action='processed_rejected',
+                    note=f"Falha PIX: {err}",
+                )
+            except Exception:
+                pass
             return WithdrawProcessResult(False, req.status, "Falha no pagamento PIX.", provider_payload=err)
 
         # Sucesso
@@ -154,6 +162,14 @@ def process_withdraw_request(req: WithdrawRequest, *, actor_username: str = "sys
         req.processed_at = timezone.now()
         req.note = (req.note or "") + f"\nPIX efetuado com sucesso."
         req.save(update_fields=["status", "processed_at", "note"])
+        try:
+            WithdrawRequestLog.objects.create(
+                withdraw_request=req,
+                action='processed_paid',
+                note="PIX efetuado com sucesso.",
+            )
+        except Exception:
+            pass
 
         return WithdrawProcessResult(True, req.status, "Saque pago com sucesso.", provider_payload=result.get("data"))
 

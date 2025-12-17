@@ -73,6 +73,11 @@ class SicoobPixClient:
             headers["Authorization"] = f"Bearer {token}"
         return headers
 
+    @staticmethod
+    def _join_url(base: str, path: str) -> str:
+        """Junta base e path garantindo exatamente uma barra entre eles."""
+        return f"{(base or '').rstrip('/')}/{(path or '').lstrip('/')}"
+
     def pay_pix_by_cpf_cnpj(self, *, amount: str, cpf_cnpj: str, name: str) -> Dict:
         """Inicia um pagamento PIX para uma chave tipo CPF/CNPJ.
 
@@ -84,7 +89,10 @@ class SicoobPixClient:
         Retorno: dict com chaves 'ok' (bool), 'data' (payload) e 'error' (quando houver).
         """
         txid = uuid.uuid4().hex[:25]  # 25 chars máx (boa prática em Pix)
-        endpoint = f"{self.base_url}/pix/pagamentos"
+        # Espera-se que self.base_url já aponte para a base ".../pix-pagamentos/v2"
+        # Ex.: https://sandbox.sicoob.com.br/sicoob/sandbox/pix-pagamentos/v2
+        # Então o recurso correto é apenas "/pagamentos".
+        endpoint = self._join_url(self.base_url, "pagamentos")
 
         # O payload exato depende da API do Sicoob (PIX Pagamentos).
         # Ajuste campos conforme contrato/homologação da instituição financeira.

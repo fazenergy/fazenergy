@@ -5,6 +5,7 @@ from .models.Transaction import Transaction
 from .models.PaymentLink import PaymentLink
 from .models.BankAccount import BankAccount
 from .models.WithdrawRequest import WithdrawRequest
+from .models.WithdrawRequestLog import WithdrawRequestLog
 from network.models.ScoreReference import ScoreReference
 
 
@@ -174,9 +175,14 @@ class WithdrawRequestSerializer(serializers.ModelSerializer):
         model = WithdrawRequest
         fields = [
             'id', 'licensed', 'bank_account', 'amount', 'fee_amount', 'tax_amount', 'status', 'note',
-            'requested_at', 'processed_at', 'bank_snapshot'
+            'requested_at', 'processed_at', 'approved_by', 'approved_at',
+            'scheduled_for', 'scheduled_by', 'expected_payout_date', 'emergency_reason',
+            'canceled_by', 'canceled_at', 'cancel_reason',
+            'bank_snapshot'
         ]
-        read_only_fields = ['licensed', 'status', 'requested_at', 'processed_at', 'fee_amount', 'tax_amount', 'bank_snapshot']
+        read_only_fields = ['licensed', 'status', 'requested_at', 'processed_at', 'fee_amount', 'tax_amount', 'bank_snapshot',
+                            'approved_by', 'approved_at', 'scheduled_for', 'scheduled_by', 'expected_payout_date',
+                            'canceled_by', 'canceled_at']
 
     def get_bank_snapshot(self, obj):
         try:
@@ -233,4 +239,29 @@ class WithdrawRequestSerializer(serializers.ModelSerializer):
         from core.models.Licensed import Licensed
         licensed = Licensed.objects.get(user=request.user)
         validated_data['licensed'] = licensed
-        return super().create(validated_data)
+        obj = super().create(validated_data)
+        try:
+            WithdrawRequestLog.objects.create(
+                withdraw_request=obj,
+                action='requested',
+                actor=request.user if request and getattr(request.user, 'is_authenticated', False) else None,
+                note=f"Solicitação criada no valor de R$ {validated_data.get('amount')}"
+            )
+        except Exception:
+            pass
+        return obj
+
+
+class WithdrawRequestLogSerializer(serializers.ModelSerializer):
+    actor_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WithdrawRequestLog
+        fields = ['id', 'withdraw_request', 'action', 'actor', 'actor_username', 'note', 'created_at']
+        read_only_fields = ['id', 'withdraw_request', 'actor', 'created_at']
+
+    def get_actor_username(self, obj):
+        try:
+            return getattr(obj.actor, 'username', None)
+        except Exception:
+            return None

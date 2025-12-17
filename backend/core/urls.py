@@ -24,6 +24,7 @@ from .views import (
     GeneralReportView,            # Relatório geral da plataforma
     CurrentLicensedView,          # Licensed do usuário atual
     VerifyCareerView,             # Verificar/atualizar carreira
+    AdminSchedulesView,           # Dashboard de rotinas agendadas
 )
 
 # ========================================
@@ -59,4 +60,5 @@ urlpatterns = [
     path('career-data/', CareerDataView.as_view(), name='career-data'),                 # Dados de carreira
     path('career/verify/', VerifyCareerView.as_view(), name='career-verify'),           # Verificar carreira atual
     path('general-report/', GeneralReportView.as_view(), name='general-report'),        # Relatório geral
+    path('admin/schedules/', AdminSchedulesView.as_view(), name='admin-schedules'),     # Rotinas agendadas (admin)
 ]

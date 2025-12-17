@@ -240,6 +240,21 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 # como rodar o Celery: celery -A config worker --loglevel=info
 
+# Agendamentos (Celery Beat)
+try:
+    from celery.schedules import crontab
+    CELERY_BEAT_SCHEDULE = {
+        # Processa saques agendados diariamente às 03:00 (horário do servidor/tz Django)
+        'finance.process_scheduled_withdraws_daily': {
+            'task': 'finance.tasks.process_scheduled_withdraws',
+            'schedule': crontab(minute=0, hour=3),
+            'options': {'queue': 'default'},
+            'description': 'Processar saques agendados (finance) diariamente',
+        },
+    }
+except Exception:
+    CELERY_BEAT_SCHEDULE = {}
+
 
 
 ##########################################################################

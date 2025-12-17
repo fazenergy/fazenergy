@@ -11,6 +11,7 @@ from .Operator import Operator
 # from .auth_customer import Customer  # descomente quando existir
 from .LicensedDocument import LicensedDocument
 from .LicensedCompany import LicensedCompany
+from .ScheduledTaskConfig import ScheduledTaskConfig, ScheduledTaskLog
 
 __all__ = [
     "User",
@@ -21,5 +22,7 @@ __all__ = [
     "Operator",
     "LicensedDocument",
     "LicensedCompany",
+    "ScheduledTaskConfig",
+    "ScheduledTaskLog",
     # "Customer",
 ]
