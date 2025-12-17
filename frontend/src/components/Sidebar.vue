@@ -148,6 +148,11 @@
                 <Link class="w-4 h-4" /><span v-if="!mini">Grupos</span>
               </router-link>
             </li>
+            <li>
+              <router-link to="/admin/schedules" :class="['flex items-center p-2 rounded hover:bg-blue-800', mini ? 'justify-center' : 'gap-2']" title="Rotinas (Dev)">
+                <Clock class="w-4 h-4" /><span v-if="!mini">Rotinas (Dev)</span>
+              </router-link>
+            </li>
           </ul>
         </div>
 
@@ -314,7 +319,7 @@ defineProps({
 import {
   Zap, LayoutDashboard, FileText, FileCheck, Settings, Users, User, Link,
   ArrowRight, TreePine, Book, LifeBuoy, BarChart, UserCircle,
-  ChevronDown, ChevronRight, DollarSign, Banknote
+  ChevronDown, ChevronRight, DollarSign, Banknote, Clock
 } from 'lucide-vue-next'
 
 import { computed, ref, onMounted } from 'vue'

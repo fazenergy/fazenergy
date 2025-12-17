@@ -46,6 +46,7 @@ import WithdrawAccounts from '../views/Finance/WithdrawAccounts.vue'
 import AdminUsers from '../views/Admin/Users.vue'
 import AdminGroups from '../views/Admin/Groups.vue'
 import AdminPermissions from '../views/Admin/Permissions.vue'
+import AdminSchedules from '../views/Admin/SchedulesDashboard.vue'
 
 // Propostas e Carreira
 import ProposalList from '../views/Proposal/List.vue'
@@ -116,6 +117,7 @@ const routes = [
   { path: '/admin/users', component: AdminUsers, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/admin/groups', component: AdminGroups, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/admin/permissions', component: AdminPermissions, meta: { requiresAuth: true, roles: ['superadmin'] } },
+  { path: '/admin/schedules', component: AdminSchedules, meta: { requiresAuth: true, roles: ['superadmin'] } },
   { path: '/settings', component: Settings, meta: { requiresAuth: true, roles: ['superadmin'] } },
   
   // Plano de carreira

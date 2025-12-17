@@ -42,6 +42,69 @@
     </DataTable>
   </div>
 
+  <!-- Seção: Solicitações de Saque -->
+  <div class="mt-4">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-base font-semibold text-gray-800">Solicitações de Saque</h3>
+      <div class="text-xs text-gray-500">Status e previsão de recebimento</div>
+    </div>
+    <div class="bg-white rounded border">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left bg-gray-50 border-b">
+            <th class="py-2 px-2">ID</th>
+            <th class="py-2 px-2">Valor</th>
+            <th class="py-2 px-2">Conta</th>
+            <th class="py-2 px-2">Status</th>
+            <th class="py-2 px-2">Prev. Recebimento</th>
+            <th class="py-2 px-2">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="w in withdrawRows" :key="w.id" class="border-b">
+            <td class="py-2 px-2">{{ w.id }}</td>
+            <td class="py-2 px-2">{{ formatCurrencyBRL(w.amount) }}</td>
+            <td class="py-2 px-2">{{ formatBankSnap(w.bank_snapshot) }}</td>
+            <td class="py-2 px-2">
+              <span :class="statusBadgeClass(w.status)" class="px-2 py-0.5 rounded text-xs">{{ statusLabel(w.status) }}</span>
+            </td>
+            <td class="py-2 px-2">{{ formatDate(w.expected_payout_date) }}</td>
+            <td class="py-2 px-2">
+              <div class="flex items-center gap-1.5">
+                <!-- Histórico -->
+                <button @click="openHistory(w.id)" class="w-7 h-[27px] inline-flex items-center justify-center text-gray-600 hover:text-gray-800 border border-gray-200" title="Histórico">
+                  <Info class="w-4 h-4" />
+                </button>
+                <!-- Licenciado: cancelar -->
+                <button v-if="isLicensed && (w.status==='pending' || w.status==='scheduled')" @click="cancelWithdraw(w.id)" class="w-7 h-[27px] inline-flex items-center justify-center text-red-600 hover:text-red-700 border border-red-200" title="Cancelar">
+                  ✕
+                </button>
+                <!-- Operador/Admin: aprovar, agendar, emergência, cancelar -->
+                <template v-if="isOperator">
+                  <button @click="approveWithdraw(w.id)" class="w-7 h-[27px] inline-flex items-center justify-center text-blue-600 hover:text-blue-700 border border-blue-200" title="Aprovar">
+                    ✓
+                  </button>
+                  <button @click="openSchedule(w)" class="w-7 h-[27px] inline-flex items-center justify-center text-amber-600 hover:text-amber-700 border border-amber-200" title="Agendar">
+                    ⏰
+                  </button>
+                  <button @click="openEmergency(w)" class="w-7 h-[27px] inline-flex items-center justify-center text-emerald-700 hover:text-emerald-800 border border-emerald-200" title="Emergência">
+                    ⚡
+                  </button>
+                  <button v-if="(w.status==='pending' || w.status==='scheduled')" @click="cancelWithdraw(w.id)" class="w-7 h-[27px] inline-flex items-center justify-center text-red-600 hover:text-red-700 border border-red-200" title="Cancelar">
+                    ✕
+                  </button>
+                </template>
+              </div>
+            </td>
+          </tr>
+          <tr v-if="!withdrawRows.length">
+            <td colspan="6" class="py-4 px-2 text-center text-gray-500">Nenhuma solicitação de saque encontrada.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Modais -->
   <Modal v-model="showWithdrawRules" :header-blue="true" :no-header-border="true">
     <template #title>Regras para Saque</template>
@@ -106,6 +169,72 @@
       </div>
     </template>
   </Modal>
+
+  <!-- Modal histórico de solicitação -->
+  <Modal v-model="showHistory" :header-blue="true" :no-header-border="true">
+    <template #title>Histórico da Solicitação</template>
+    <div class="max-h-[60vh] overflow-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left border-b bg-gray-50">
+            <th class="py-2 px-2">Data/Hora</th>
+            <th class="py-2 px-2">Ação</th>
+            <th class="py-2 px-2">Usuário</th>
+            <th class="py-2 px-2">Observação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="h in history" :key="h.id" class="border-b">
+            <td class="py-1 px-2">{{ formatDateTime(h.created_at) }}</td>
+            <td class="py-1 px-2">{{ actionLabel(h.action) }}</td>
+            <td class="py-1 px-2">{{ h.actor_username || '-' }}</td>
+            <td class="py-1 px-2 whitespace-pre-wrap">{{ h.note || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <template #footer>
+      <div class="flex items-center justify-end gap-2 py-2">
+        <button class="px-4 py-2 rounded border" @click="showHistory=false">Fechar</button>
+      </div>
+    </template>
+  </Modal>
+
+  <!-- Modal Agendar -->
+  <Modal v-model="showScheduleModal" :header-blue="true" :no-header-border="true">
+    <template #title>Agendar Pagamento</template>
+    <div class="space-y-3 text-sm">
+      <div>
+        <label class="block text-xs text-gray-600 mb-1">Data/Hora (ISO)</label>
+        <input v-model.trim="scheduleModel.scheduled_for" placeholder="2025-10-10T15:00:00" class="border rounded px-2 py-1 h-8 w-full" />
+      </div>
+      <div>
+        <label class="block text-xs text-gray-600 mb-1">Previsão de Recebimento (opcional)</label>
+        <input v-model.trim="scheduleModel.expected_payout_date" placeholder="2025-10-11" class="border rounded px-2 py-1 h-8 w-full" />
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex items-center justify-end gap-2 py-2">
+        <button class="px-4 py-2 rounded border" @click="showScheduleModal=false">Fechar</button>
+        <button class="px-4 py-2 rounded bg-amber-600 hover:bg-amber-700 text-white" @click="submitSchedule">Agendar</button>
+      </div>
+    </template>
+  </Modal>
+
+  <!-- Modal Emergência -->
+  <Modal v-model="showEmergencyModal" :header-blue="true" :no-header-border="true">
+    <template #title>Liberação de Emergência</template>
+    <div class="space-y-3 text-sm">
+      <div class="text-gray-700">Informe o motivo da liberação emergencial. O pagamento será processado imediatamente.</div>
+      <textarea v-model.trim="emergencyModel.reason" rows="4" class="border rounded w-full p-2" placeholder="Descreva o motivo..."></textarea>
+    </div>
+    <template #footer>
+      <div class="flex items-center justify-end gap-2 py-2">
+        <button class="px-4 py-2 rounded border" @click="showEmergencyModal=false">Fechar</button>
+        <button class="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white" @click="submitEmergency">Liberar Agora</button>
+      </div>
+    </template>
+  </Modal>
 </template>
 
 <script setup>
@@ -117,10 +246,13 @@ import Modal from '@/components/ui/Modal.vue'
 import { useAuthStore } from '@/store/auth'
 
 const rows = ref([])
+const withdrawRows = ref([])
 const loading = ref(false)
 const submitting = ref(false)
 const showWithdraw = ref(false)
 const showWithdrawRules = ref(false)
+const showHistory = ref(false)
+const history = ref([])
 const bankAccounts = ref([])
 const selectedBank = ref(null)
 // Valor do saque (display e valor numérico em paralelo para máscara estável)
@@ -134,6 +266,7 @@ const withdrawDays = ref('Seg, Qua e Sex')
 const payoutProjection = ref('próximo dia útil')
 const auth = useAuthStore()
 const isLicensed = computed(() => auth.user?.groups?.includes('Licenciado'))
+const isOperator = computed(() => auth.user?.is_staff || auth.user?.is_superuser || auth.user?.groups?.includes('Operador'))
 
 const search = ref('')
 
@@ -159,6 +292,11 @@ function formatDate(iso) {
   const d = new Date(iso)
   return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`
 }
+function formatDateTime(iso){
+  if (!iso) return '-'
+  const d = new Date(iso)
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 function formatNumber(v){
   return Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
 }
@@ -169,8 +307,10 @@ function formatCurrencyBRL(n){
 async function fetchData() {
   loading.value = true
   try {
-    // Sem endpoint de fechamentos por enquanto — mantemos grid vazio
+    // TODO: Integrar endpoint real de fechamentos; por ora, carregar contexto de saque do usuário
     rows.value = []
+    const { data } = await api.get('/api/finance/withdraw-requests/')
+    withdrawRows.value = Array.isArray(data) ? data : []
   } finally {
     loading.value = false
   }
@@ -246,6 +386,103 @@ function extractErrorMessage(err){
   } catch {
     return 'Erro ao processar solicitação.'
   }
+}
+
+function statusLabel(s){
+  const map = {
+    pending: 'Pendente',
+    scheduled: 'Agendado',
+    processing: 'Processando',
+    paid: 'Pago',
+    canceled: 'Cancelado',
+    rejected: 'Rejeitado',
+  }
+  return map[s] || s
+}
+function statusBadgeClass(s){
+  if (s==='paid') return 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+  if (s==='pending') return 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+  if (s==='scheduled') return 'bg-amber-100 text-amber-800 border border-amber-200'
+  if (s==='processing') return 'bg-blue-100 text-blue-800 border border-blue-200'
+  if (s==='canceled') return 'bg-gray-100 text-gray-600 border border-gray-200'
+  if (s==='rejected') return 'bg-red-100 text-red-700 border border-red-200'
+  return 'bg-gray-100 text-gray-700 border border-gray-200'
+}
+function formatBankSnap(b){
+  if (!b) return '-'
+  return `${b.bank_code} ${b.bank_name || ''} • Ag ${b.agency_number}-${b.agency_digit||''} • Cc ${b.account_number}-${b.account_digit||''}`
+}
+
+// Fluxos Operacionais
+async function approveWithdraw(id){
+  try {
+    await api.post(`/api/finance/withdraw-requests/${id}/approve/`, { expected_payout_date: null })
+    await fetchData()
+  } catch (e) { alert(`Falha ao aprovar: ${extractErrorMessage(e)}`) }
+}
+
+const showScheduleModal = ref(false)
+const scheduleModel = ref({ id: null, scheduled_for: '', expected_payout_date: '' })
+function openSchedule(w){
+  scheduleModel.value = { id: w.id, scheduled_for: '', expected_payout_date: w.expected_payout_date || '' }
+  showScheduleModal.value = true
+}
+async function submitSchedule(){
+  try {
+    const { id, scheduled_for, expected_payout_date } = scheduleModel.value
+    if (!scheduled_for) { alert('Informe data/hora para agendamento.'); return }
+    await api.post(`/api/finance/withdraw-requests/${id}/schedule/`, { scheduled_for, expected_payout_date })
+    showScheduleModal.value = false
+    await fetchData()
+  } catch (e) { alert(`Falha ao agendar: ${extractErrorMessage(e)}`) }
+}
+
+const showEmergencyModal = ref(false)
+const emergencyModel = ref({ id: null, reason: '' })
+function openEmergency(w){
+  emergencyModel.value = { id: w.id, reason: '' }
+  showEmergencyModal.value = true
+}
+async function submitEmergency(){
+  try {
+    const { id, reason } = emergencyModel.value
+    if (!reason.trim()) { alert('Informe o motivo.'); return }
+    await api.post(`/api/finance/withdraw-requests/${id}/emergency_release/`, { reason })
+    showEmergencyModal.value = false
+    await fetchData()
+  } catch (e) { alert(`Falha na liberação emergencial: ${extractErrorMessage(e)}`) }
+}
+
+async function cancelWithdraw(id){
+  try {
+    await api.post(`/api/finance/withdraw-requests/${id}/cancel/`, { reason: 'Cancelado via UI' })
+    await fetchData()
+  } catch (e) { alert(`Falha ao cancelar: ${extractErrorMessage(e)}`) }
+}
+
+// Ações operacionais: aprovar, agendar, emergência, cancelar, histórico
+async function openHistory(withdrawId){
+  try {
+    const { data } = await api.get(`/api/finance/withdraw-requests/${withdrawId}/history/`)
+    history.value = data || []
+    showHistory.value = true
+  } catch (e) {
+    alert(`Falha ao carregar histórico: ${extractErrorMessage(e)}`)
+  }
+}
+
+function actionLabel(action){
+  const map = {
+    requested: 'Solicitado',
+    approved: 'Aprovado',
+    scheduled: 'Agendado',
+    emergency_released: 'Emergencial',
+    canceled: 'Cancelado',
+    processed_paid: 'Pago',
+    processed_rejected: 'Rejeitado',
+    processing: 'Processando',
+  }
+  return map[action] || action
 }
 
 onMounted(fetchData)
